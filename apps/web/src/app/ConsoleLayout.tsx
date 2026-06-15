@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useUser } from '@clerk/nextjs';
+import { useUser, useClerk } from '@clerk/nextjs';
 import { 
   LayoutDashboard, Users, PhoneCall, Megaphone, Package, Landmark, 
   UserCheck, CheckSquare, LifeBuoy, Settings, BarChart3, MessageSquare, 
@@ -26,7 +26,10 @@ interface ConsoleLayoutProps {
 
 export default function ConsoleLayout({ children }: ConsoleLayoutProps) {
   const pathname = usePathname();
+  const { user } = useUser();
+  const { signOut } = useClerk();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
   
   // Dual-mode AI config state
@@ -284,8 +287,56 @@ export default function ConsoleLayout({ children }: ConsoleLayoutProps) {
           <span className="px-3 py-1 text-[10px] rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 font-bold uppercase tracking-wide">
             Growth Tier
           </span>
-          <div className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center font-bold text-white text-xs shadow-inner">
-            CEO
+          <div className="relative">
+            <button 
+              onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
+              className="w-8 h-8 rounded-full bg-indigo-600 overflow-hidden flex items-center justify-center font-bold text-white text-xs shadow-inner border border-slate-200 dark:border-slate-800 focus:outline-none hover:ring-2 hover:ring-teal-500 transition-all"
+            >
+              {user?.imageUrl ? (
+                <img src={user.imageUrl} alt="Profile" className="w-full h-full object-cover" />
+              ) : (
+                user?.fullName ? user.fullName.split(' ').map((n: string) => n[0]).join('').toUpperCase() : 'CEO'
+              )}
+            </button>
+
+            {isProfileDropdownOpen && (
+              <>
+                <div 
+                  className="fixed inset-0 z-45" 
+                  onClick={() => setIsProfileDropdownOpen(false)}
+                />
+                <div className="absolute right-0 mt-2 w-56 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl z-50 p-2 text-xs">
+                  <div className="px-3 py-2 border-b border-slate-100 dark:border-slate-800 mb-1">
+                    <p className="font-bold text-slate-800 dark:text-slate-200">{user?.fullName || 'User Account'}</p>
+                    <p className="text-[10px] text-slate-500 truncate">{user?.primaryEmailAddress?.emailAddress || 'active session'}</p>
+                  </div>
+                  
+                  <Link 
+                    href="/settings?tab=profile" 
+                    onClick={() => setIsProfileDropdownOpen(false)}
+                    className="flex items-center gap-2 px-3 py-2 rounded-xl text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 font-bold transition-all"
+                  >
+                    User Profile Update
+                  </Link>
+                  <Link 
+                    href="/settings" 
+                    onClick={() => setIsProfileDropdownOpen(false)}
+                    className="flex items-center gap-2 px-3 py-2 rounded-xl text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 font-bold transition-all"
+                  >
+                    User Preferences
+                  </Link>
+                  <button 
+                    onClick={() => {
+                      setIsProfileDropdownOpen(false);
+                      signOut();
+                    }}
+                    className="w-full text-left flex items-center gap-2 px-3 py-2 rounded-xl text-rose-600 dark:text-rose-400 hover:text-rose-800 dark:hover:text-rose-350 hover:bg-rose-55 dark:hover:bg-rose-950/20 font-bold transition-all border-t border-slate-100 dark:border-slate-800 mt-1 pt-2"
+                  >
+                    Logout
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       </header>

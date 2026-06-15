@@ -24,8 +24,11 @@ interface WorkflowTemplate {
   isActive: boolean;
 }
 
-export default function SettingsPage() {
+import { useSearchParams } from 'next/navigation';
+
+function SettingsContent() {
   const { user, isLoaded } = useUser();
+  const searchParams = useSearchParams();
   const isDemo = isLoaded && user?.primaryEmailAddress?.emailAddress?.toLowerCase() === 'demo@vortiq.ai';
 
   useEffect(() => {
@@ -52,6 +55,14 @@ export default function SettingsPage() {
   }, [isLoaded, isDemo]);
 
   const [activeSubTab, setActiveSubTab] = useState<'profile' | 'keys' | 'voice' | 'n8n' | 'modules' | 'ai-safety'>('profile');
+
+  useEffect(() => {
+    const tab = searchParams.get('tab');
+    if (tab && ['profile', 'keys', 'voice', 'n8n', 'modules', 'ai-safety'].includes(tab)) {
+      setActiveSubTab(tab as any);
+    }
+  }, [searchParams]);
+
   const [showSecret, setShowSecret] = useState<Record<string, boolean>>({});
 
   // Global AI Mode State
@@ -671,5 +682,13 @@ export default function SettingsPage() {
 
       </div>
     </ConsoleLayout>
+  );
+}
+
+export default function SettingsPage() {
+  return (
+    <React.Suspense fallback={<div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex items-center justify-center text-xs text-slate-500 font-bold">Loading settings...</div>}>
+      <SettingsContent />
+    </React.Suspense>
   );
 }
