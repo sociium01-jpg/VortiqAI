@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "main": "src/client.ts",
   "types": "src/client.ts",
+  "scripts": {
+    "build": "prisma generate"
+  },
   "dependencies": {
     "@prisma/client": "^5.10.0"
   },
