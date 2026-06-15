@@ -31,6 +31,23 @@ export default function ConsoleLayout({ children }: ConsoleLayoutProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
+  const [isDemoUser, setIsDemoUser] = useState(false);
+  const [clientPlan, setClientPlan] = useState('GROWTH');
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const isLocalDemo = localStorage.getItem('vortiq-demo-logged-in') === 'true';
+      const isClerkDemo = user?.primaryEmailAddress?.emailAddress?.toLowerCase() === 'demo@vortiq.ai';
+      setIsDemoUser(isLocalDemo || isClerkDemo);
+      setClientPlan(localStorage.getItem('vortiq-plan') || 'GROWTH');
+      
+      const handlePlanUpdate = () => {
+        setClientPlan(localStorage.getItem('vortiq-plan') || 'GROWTH');
+      };
+      window.addEventListener('vortiq-plan-change', handlePlanUpdate);
+      return () => window.removeEventListener('vortiq-plan-change', handlePlanUpdate);
+    }
+  }, [user]);
   
   // Dual-mode AI config state
   const [aiMode, setAiMode] = useState<'manual' | 'ai-assisted'>('ai-assisted');
@@ -285,14 +302,16 @@ export default function ConsoleLayout({ children }: ConsoleLayoutProps) {
           </button>
 
           <span className="px-3 py-1 text-[10px] rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 font-bold uppercase tracking-wide">
-            Growth Tier
+            {clientPlan.charAt(0) + clientPlan.slice(1).toLowerCase()} Tier
           </span>
           <div className="relative">
             <button 
               onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
               className="w-8 h-8 rounded-full bg-indigo-600 overflow-hidden flex items-center justify-center font-bold text-white text-xs shadow-inner border border-slate-200 dark:border-slate-800 focus:outline-none hover:ring-2 hover:ring-teal-500 transition-all"
             >
-              {user?.imageUrl ? (
+              {isDemoUser ? (
+                <div className="w-full h-full bg-gradient-to-tr from-teal-500 to-indigo-650 flex items-center justify-center font-black text-white text-xs">DU</div>
+              ) : user?.imageUrl ? (
                 <img src={user.imageUrl} alt="Profile" className="w-full h-full object-cover" />
               ) : (
                 user?.fullName ? user.fullName.split(' ').map((n: string) => n[0]).join('').toUpperCase() : 'CEO'
@@ -307,8 +326,12 @@ export default function ConsoleLayout({ children }: ConsoleLayoutProps) {
                 />
                 <div className="absolute right-0 mt-2 w-56 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl z-50 p-2 text-xs">
                   <div className="px-3 py-2 border-b border-slate-100 dark:border-slate-800 mb-1">
-                    <p className="font-bold text-slate-800 dark:text-slate-200">{user?.fullName || 'User Account'}</p>
-                    <p className="text-[10px] text-slate-500 truncate">{user?.primaryEmailAddress?.emailAddress || 'active session'}</p>
+                    <p className="font-bold text-slate-800 dark:text-slate-200">
+                      {isDemoUser ? 'Vortiq Demo User' : (user?.fullName || 'User Account')}
+                    </p>
+                    <p className="text-[10px] text-slate-500 truncate">
+                      {isDemoUser ? 'demo@vortiq.ai' : (user?.primaryEmailAddress?.emailAddress || 'active session')}
+                    </p>
                   </div>
                   
                   <Link 
@@ -328,9 +351,15 @@ export default function ConsoleLayout({ children }: ConsoleLayoutProps) {
                   <button 
                     onClick={() => {
                       setIsProfileDropdownOpen(false);
-                      signOut();
+                      localStorage.removeItem('vortiq-demo-logged-in');
+                      try {
+                        signOut();
+                      } catch (e) {
+                        // ignore
+                      }
+                      window.location.href = '/';
                     }}
-                    className="w-full text-left flex items-center gap-2 px-3 py-2 rounded-xl text-rose-600 dark:text-rose-400 hover:text-rose-800 dark:hover:text-rose-350 hover:bg-rose-55 dark:hover:bg-rose-950/20 font-bold transition-all border-t border-slate-100 dark:border-slate-800 mt-1 pt-2"
+                    className="w-full text-left flex items-center gap-2 px-3 py-2 rounded-xl text-rose-600 dark:text-rose-400 hover:text-rose-800 dark:hover:text-rose-350 hover:bg-rose-50 dark:hover:bg-rose-950/20 font-bold transition-all border-t border-slate-100 dark:border-slate-800 mt-1 pt-2"
                   >
                     Logout
                   </button>

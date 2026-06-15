@@ -36,3 +36,30 @@ All core console screens have been expanded into fully-featured dashboards, tabl
 5.  **tRPC Plan Limitations (HTTP 402)**: Feature gates map limit exceptions directly to HTTP Status 402.
 6.  **100% Green Code Compilation**: Checked Next.js workspace compilation and verified that the entire workspace builds successfully with **zero typescript or linting errors**.
 7.  **Next.js Development Server running on Port 3005**: Port configurations resolved, ensuring active local development servers can run alongside backend API servers on port **4000**.
+
+---
+
+## 🎨 Design Upgrades, Mobile Navigation, and Demo Isolation
+
+We completed the following core improvements in this phase:
+
+1.  **Light Theme & Legibility Clean-Up**:
+    * Corrected invalid Tailwind color stops (`650`, `655`, `505`, `350`, `255`, `450`, `850`, `855`, `805`, `750`, `550`) in 24 component files.
+    * Ensured high contrast and clean presentation for all text fields, tables, and borders in Light Theme.
+2.  **Mobile & Tablet App-Like UI/UX**:
+    * Redesigned the left sidebar menu to behave as a smooth slide-over transition drawer with close button controls and a dark background overlay backdrop on viewports `< 1024px`.
+    * Implemented a sticky bottom Navigation Bar for mobile/tablet screens providing immediate shortcuts to **Dashboard**, **CRM**, **Sales**, **Support**, and **Settings**.
+    * Added bottom page layout padding (`pb-28`) on smaller viewports to prevent content overlap.
+3.  **Live Animated Landing Page Counters & CTAs**:
+    * Introduced a `requestAnimationFrame`-based `AnimatedCounter` component.
+    * Integrated count-up animations for landing page statistics in the hero block.
+    * Added **Sign In** action links/buttons directly in the landing page navigation header and the main hero CTA section.
+4.  **Dedicated Demo Login Switcher**:
+    * Added a tabbed login screen on `/login` to switch between Client Sign In (Clerk) and Interactive Demo Console (local login).
+    * Gated demo access with credentials `demo@vortiq.ai` / `VortiqDemo2026`, saving login state in local storage to isolate demo data.
+5.  **Quarterly/Annual Pricing Selectors & ROI Sync**:
+    * Updated the pricing cards on `/pricing` to display flat quarterly or annual sums (e.g. Starter: Rs 8,997/quarter or Rs 26,988/year) when the billing period toggle is clicked.
+    * Allowed selecting individual plan cards (marked by a teal active border and checkmark). Storing active selection in `localStorage` under `vortiq-plan` key to instantly customize the user's trial setup.
+    * Wired the selected plan directly into the ROI Calculator tool to dynamically recalculate net monthly software cost savings.
+6.  **Billing Page Protection Gate**:
+    * Implemented router-level checks on `/pricing` that automatically redirect signed-in users back to `/dashboard` to hide pricing details from customers during active trials.

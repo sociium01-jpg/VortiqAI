@@ -63,6 +63,102 @@ export default function VortiqAdminPage() {
   const [newEmployeeEmail, setNewEmployeeEmail] = useState('');
   const [newEmployeeRole, setNewEmployeeRole] = useState('Support Lead');
 
+  // Client User Accounts state
+  const [selectedClientId, setSelectedClientId] = useState('CLI-001');
+  const [clientUsers, setClientUsers] = useState<any[]>([]);
+
+  // Input states for client user provisioning
+  const [newClientUserName, setNewClientUserName] = useState('');
+  const [newClientUserEmail, setNewClientUserEmail] = useState('');
+  const [newClientUserRole, setNewClientUserRole] = useState('Sales Rep');
+  const [newClientUserPassword, setNewClientUserPassword] = useState('Password123');
+
+  // Load client users from localStorage
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const customBrandName = localStorage.getItem('vortiq-brand-name') || 'My Business';
+      const customPlan = localStorage.getItem('vortiq-plan') || 'STARTER';
+      
+      const defaultClients = [
+        { id: 'CLI-001', name: 'Bharat Components', owner: 'Ravi Shah', email: 'ravi@bharatforge.com', plan: 'GROWTH', trialDaysLeft: 12, docUploaded: true, paymentStatus: 'TRIAL_ACTIVE', registeredName: 'Bharat Components Private Limited', gstin: '27AADCB1234F1Z5' },
+        { id: 'CLI-002', name: 'Zora Wellness', owner: 'Priya Patel', email: 'priya@tata.com', plan: 'BUSINESS', trialDaysLeft: 2, docUploaded: true, paymentStatus: 'TRIAL_ENDING_ALERT', registeredName: 'Zora Wellness Retail LLP', gstin: '27AAEZW9988G2Z1' },
+        { id: 'CLI-003', name: 'Nexus Cloud', owner: 'Amit Desai', email: 'amit@reliance.com', plan: 'STARTER', trialDaysLeft: 0, docUploaded: false, paymentStatus: 'PAYMENT_OVERDUE', registeredName: 'Nexus Cloud Solutions Pvt Ltd', gstin: '29AABCN5544H1Z9' },
+        { id: 'CLI-004', name: customBrandName, owner: 'Onboarding Owner', email: 'owner@vortiq.ai', plan: customPlan, trialDaysLeft: 14, docUploaded: false, paymentStatus: 'TRIAL_ACTIVE', registeredName: `${customBrandName} Private Limited`, gstin: '27AABCV1234E1Z0' }
+      ];
+      setClients(defaultClients);
+
+      let allUsers = [];
+      const saved = localStorage.getItem('vortiq-all-client-users');
+      if (saved) {
+        try {
+          allUsers = JSON.parse(saved);
+        } catch (e) {
+          // ignore
+        }
+      } else {
+        allUsers = [
+          { id: "usr-01", clientId: "CLI-001", clientName: "Bharat Components", name: "Ravi Shah", email: "ravi@bharatforge.com", role: "Super Admin", password: "Password123", status: "Active" },
+          { id: "usr-02", clientId: "CLI-001", clientName: "Bharat Components", name: "Sunil Kumar", email: "sunil@bharatforge.com", role: "Sales Rep", password: "Password123", status: "Active" },
+          { id: "usr-03", clientId: "CLI-002", clientName: "Zora Wellness", name: "Priya Patel", email: "priya@tata.com", role: "Super Admin", password: "Password123", status: "Active" },
+          { id: "usr-04", clientId: "CLI-002", clientName: "Zora Wellness", name: "Rahul Sen", email: "rahul@vortiq.ai", role: "Sales Rep", password: "Password123", status: "Active" },
+          { id: "usr-05", clientId: "CLI-002", clientName: "Zora Wellness", name: "Sneha Rao", email: "sneha@vortiq.ai", role: "Marketing Manager", password: "Password123", status: "Active" }
+        ];
+        localStorage.setItem('vortiq-all-client-users', JSON.stringify(allUsers));
+      }
+      setClientUsers(allUsers);
+    }
+  }, [isAdminLoggedIn, activeTab]);
+
+  const activeClient = clients.find(c => c.id === selectedClientId) || clients[0];
+  const activeClientPlan = activeClient.plan;
+  const planLimits: Record<string, number> = {
+    'STARTER': 3,
+    'GROWTH': 15,
+    'BUSINESS': 50,
+    'ENTERPRISE': 9999
+  };
+  const activeClientLimit = planLimits[activeClientPlan.toUpperCase()] || 3;
+  const activeClientUsers = clientUsers.filter(u => u.clientId === selectedClientId);
+
+  const handleAddClientUser = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newClientUserName.trim() || !newClientUserEmail.trim()) return;
+
+    if (activeClientUsers.length >= activeClientLimit) {
+      alert(`Limit reached! Client plan ${activeClientPlan} allows a maximum of ${activeClientLimit} team members. Upgrade client package or remove a user first.`);
+      return;
+    }
+
+    const newUser = {
+      id: `usr-${Date.now()}`,
+      clientId: selectedClientId,
+      clientName: activeClient.name,
+      name: newClientUserName.trim(),
+      email: newClientUserEmail.trim().toLowerCase(),
+      role: newClientUserRole,
+      password: newClientUserPassword,
+      status: 'Active'
+    };
+
+    const allUsers = [...clientUsers, newUser];
+    localStorage.setItem('vortiq-all-client-users', JSON.stringify(allUsers));
+    setClientUsers(allUsers);
+    
+    setNewClientUserName('');
+    setNewClientUserEmail('');
+    setNewClientUserPassword('Password123');
+    alert('Client user account created successfully!');
+  };
+
+  const handleRemoveClientUser = (id: string) => {
+    if (confirm('Are you sure you want to remove this client user account?')) {
+      const allUsers = clientUsers.filter(u => u.id !== id);
+      localStorage.setItem('vortiq-all-client-users', JSON.stringify(allUsers));
+      setClientUsers(allUsers);
+      alert('User account deleted.');
+    }
+  };
+
   // Input states for updates
   const [remindedClient, setRemindedClient] = useState<string | null>(null);
   const [ticketReply, setTicketReply] = useState<Record<string, string>>({});
@@ -285,6 +381,7 @@ export default function VortiqAdminPage() {
           {[
             { id: 'dashboard', label: 'Admin Dashboard', icon: Landmark },
             { id: 'clients', label: 'Clients & Documents', icon: Building2 },
+            { id: 'client-users', label: 'Client Team Accounts', icon: Users },
             { id: 'support', label: 'Client Support Queue', icon: HelpCircle },
             { id: 'tasks', label: 'Internal Staff Tasks', icon: CheckSquare },
             { id: 'finance', label: 'Corporate Accounts', icon: Landmark },
@@ -770,6 +867,178 @@ export default function VortiqAdminPage() {
                     </button>
                   </form>
                 </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB: CLIENT TEAM ACCOUNTS */}
+          {activeTab === 'client-users' && (
+            <div className="space-y-6">
+              <div className="flex items-center justify-between border-b border-slate-200 pb-5">
+                <div>
+                  <h2 className="text-lg font-black text-slate-800">Client Team Accounts Management</h2>
+                  <p className="text-xs text-slate-500 font-semibold mt-0.5">Provision and manage team member logins for each client company, enforcing license plan limitations.</p>
+                </div>
+              </div>
+
+              {/* Client Selection and Limits Info */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="md:col-span-1 bg-white border border-slate-200 p-5 rounded-2xl space-y-4 shadow-sm">
+                  <h3 className="text-xs font-bold text-slate-700 uppercase tracking-widest">Select Client Company</h3>
+                  <div className="space-y-4">
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] uppercase font-bold text-slate-500">Client Company</label>
+                      <select
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-700 focus:outline-none focus:border-rose-500"
+                        value={selectedClientId}
+                        onChange={(e) => setSelectedClientId(e.target.value)}
+                      >
+                        {clients.map(c => (
+                          <option key={c.id} value={c.id}>{c.name} ({c.id})</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-3">
+                      <div>
+                        <span className="text-[9px] font-black uppercase text-slate-400 block">Current Plan / Tier</span>
+                        <span className="inline-block px-2.5 py-0.5 mt-1 rounded bg-indigo-50 border border-indigo-150 text-[10px] font-bold text-indigo-600">
+                          {activeClientPlan}
+                        </span>
+                      </div>
+
+                      <div>
+                        <span className="text-[9px] font-black uppercase text-slate-400 block">Seat Utilization</span>
+                        <div className="flex items-center justify-between text-xs font-bold text-slate-700 mt-1">
+                          <span>{activeClientUsers.length} of {activeClientLimit === 9999 ? 'Unlimited' : activeClientLimit} Seats Used</span>
+                        </div>
+                        <div className="w-full bg-slate-200 h-2 rounded-full overflow-hidden mt-1.5">
+                          <div 
+                            className="bg-indigo-650 h-full rounded-full transition-all duration-300"
+                            style={{ width: `${Math.min(100, (activeClientUsers.length / (activeClientLimit === 9999 ? 100 : activeClientLimit)) * 100)}%` }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Provision Form */}
+                <div className="md:col-span-2 bg-white border border-slate-200 p-5 rounded-2xl space-y-4 shadow-sm">
+                  <h3 className="text-xs font-bold text-slate-700 uppercase tracking-widest">Provision Client Team Account</h3>
+                  <form onSubmit={handleAddClientUser} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <label className="text-[10px] uppercase font-bold text-slate-500">Full Name</label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="e.g. Sunil Kumar"
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-rose-500 transition-colors"
+                        value={newClientUserName}
+                        onChange={(e) => setNewClientUserName(e.target.value)}
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-[10px] uppercase font-bold text-slate-500">Email Address</label>
+                      <input
+                        type="email"
+                        required
+                        placeholder="e.g. sunil@bharatforge.com"
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-rose-500 transition-colors"
+                        value={newClientUserEmail}
+                        onChange={(e) => setNewClientUserEmail(e.target.value)}
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-[10px] uppercase font-bold text-slate-500">Client Role</label>
+                      <select
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-700 focus:outline-none focus:border-rose-500"
+                        value={newClientUserRole}
+                        onChange={(e) => setNewClientUserRole(e.target.value)}
+                      >
+                        <option value="Super Admin">Super Admin</option>
+                        <option value="Sales Rep">Sales Rep</option>
+                        <option value="Marketing Manager">Marketing Manager</option>
+                        <option value="Finance Operations">Finance Operations</option>
+                        <option value="HR Lead">HR Lead</option>
+                      </select>
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-[10px] uppercase font-bold text-slate-500">Initial Password</label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="Password123"
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-rose-500 transition-colors"
+                        value={newClientUserPassword}
+                        onChange={(e) => setNewClientUserPassword(e.target.value)}
+                      />
+                    </div>
+
+                    <div className="md:col-span-2 pt-2">
+                      <button
+                        type="submit"
+                        className="w-full py-2.5 bg-rose-500 hover:bg-rose-400 text-white font-bold text-xs rounded-xl shadow-lg shadow-rose-500/10 transition-colors"
+                      >
+                        Create Account & Deduct Seat
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+
+              {/* Client User List */}
+              <div className="bg-white border border-slate-200 p-5 rounded-2xl space-y-4 shadow-sm">
+                <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+                  <h3 className="text-xs font-bold text-slate-700 uppercase tracking-widest">Active Client Team Directory ({activeClient?.name})</h3>
+                  <span className="text-xs font-semibold text-slate-500">{activeClientUsers.length} Members Active</span>
+                </div>
+                {activeClientUsers.length === 0 ? (
+                  <p className="text-xs text-slate-500 italic py-4">No team accounts provisioned for this client yet.</p>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-xs border-collapse">
+                      <thead>
+                        <tr className="border-b border-slate-200 text-slate-400 text-[9px] uppercase font-bold bg-slate-50">
+                          <th className="py-2.5 px-4">User ID</th>
+                          <th className="py-2.5 px-4">Full Name</th>
+                          <th className="py-2.5 px-4">Role</th>
+                          <th className="py-2.5 px-4">Email</th>
+                          <th className="py-2.5 px-4">Password</th>
+                          <th className="py-2.5 px-4">Status</th>
+                          <th className="py-2.5 px-4 text-right">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="font-semibold text-slate-700">
+                        {activeClientUsers.map(u => (
+                          <tr key={u.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                            <td className="py-3 px-4 font-mono text-[10px] text-slate-500">{u.id}</td>
+                            <td className="py-3 px-4 text-slate-850">{u.name}</td>
+                            <td className="py-3 px-4 text-slate-650">{u.role}</td>
+                            <td className="py-3 px-4 text-slate-650 font-mono text-[10px]">{u.email}</td>
+                            <td className="py-3 px-4 text-slate-800 font-mono text-[10px]">{u.password}</td>
+                            <td className="py-3 px-4">
+                              <span className="px-2 py-0.5 rounded text-[9px] font-bold bg-teal-500/10 text-teal-650 border border-teal-500/20">
+                                {u.status}
+                              </span>
+                            </td>
+                            <td className="py-3 px-4 text-right">
+                              <button
+                                onClick={() => handleRemoveClientUser(u.id)}
+                                className="p-1.5 rounded-lg border border-slate-200 hover:border-red-200 hover:bg-red-50 text-slate-500 hover:text-red-650 flex items-center gap-1 ml-auto text-[10px] font-bold transition-all"
+                              >
+                                <X className="w-3.5 h-3.5" /> Remove
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
               </div>
             </div>
           )}

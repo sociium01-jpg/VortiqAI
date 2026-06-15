@@ -159,6 +159,22 @@ export default function TasksPage() {
     setTasks(prev => prev.map(t => t.id === id ? { ...t, stage } : t));
   };
 
+  const handleDragStart = (e: React.DragEvent, id: string) => {
+    e.dataTransfer.setData('text/plain', id);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+  };
+
+  const handleDrop = (e: React.DragEvent, targetStage: 'TODO' | 'IN_PROGRESS' | 'DONE') => {
+    e.preventDefault();
+    const id = e.dataTransfer.getData('text/plain');
+    if (id) {
+      handleUpdateStage(id, targetStage);
+    }
+  };
+
   const handleAddComment = (taskId: string) => {
     const text = commentInputs[taskId];
     if (!text || !text.trim()) return;
@@ -394,19 +410,29 @@ export default function TasksPage() {
               {(['TODO', 'IN_PROGRESS', 'DONE'] as const).map(stage => {
                 const stageTasks = tasks.filter(t => t.stage === stage);
                 return (
-                  <div key={stage} className="bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 p-4 rounded-xl space-y-4">
+                  <div 
+                    key={stage} 
+                    onDragOver={handleDragOver}
+                    onDrop={(e) => handleDrop(e, stage)}
+                    className="bg-slate-50 dark:bg-slate-955/80 border border-slate-200 dark:border-slate-800 p-4 rounded-xl space-y-4 min-h-[450px] transition-colors duration-200 hover:bg-slate-100/50 dark:hover:bg-slate-900/40"
+                  >
                     <div className="flex justify-between items-center border-b border-slate-200 dark:border-slate-800 pb-2">
                       <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{stage.replace(/_/g, ' ')}</span>
                       <span className="text-[10px] font-bold text-slate-600 bg-white dark:bg-slate-900 px-2 py-0.5 rounded border border-slate-250 dark:border-slate-800">
                         {stageTasks.length}
                       </span>
                     </div>
-
+ 
                     <div className="space-y-3">
                       {stageTasks.map(t => {
                         const isBlocked = t.dependencyId && tasks.some(parent => parent.id === t.dependencyId && parent.stage !== 'DONE');
                         return (
-                          <div key={t.id} className="bg-white dark:bg-slate-900/60 p-4 rounded-xl border border-slate-200 dark:border-slate-800 space-y-3 text-xs shadow-sm">
+                          <div 
+                            key={t.id} 
+                            draggable
+                            onDragStart={(e) => handleDragStart(e, t.id)}
+                            className="bg-white dark:bg-slate-900/60 p-4 rounded-xl border border-slate-200 dark:border-slate-800 space-y-3 text-xs shadow-sm cursor-grab active:cursor-grabbing hover:border-teal-500/50 transition-all duration-200"
+                          >
                             <div className="flex justify-between items-start gap-1">
                               <div>
                                 <div className="flex items-center gap-1.5 flex-wrap">

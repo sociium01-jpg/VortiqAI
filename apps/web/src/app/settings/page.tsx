@@ -6,7 +6,8 @@ import React, { useState, useEffect } from 'react';
 import ConsoleLayout from '../ConsoleLayout';
 import { 
   Settings, Key, Phone, MessageSquare, Database, CreditCard, Save, RefreshCw, EyeOff, Eye, Building2,
-  ToggleLeft, ToggleRight, Play, Cpu, AlertTriangle, ShieldCheck, Sparkles, Code, Brain, Shield, Trash2, Download
+  ToggleLeft, ToggleRight, Play, Cpu, AlertTriangle, ShieldCheck, Sparkles, Code, Brain, Shield, Trash2, Download,
+  Users
 } from 'lucide-react';
 
 interface ModuleConfig {
@@ -54,11 +55,130 @@ function SettingsContent() {
     }
   }, [isLoaded, isDemo]);
 
-  const [activeSubTab, setActiveSubTab] = useState<'profile' | 'keys' | 'voice' | 'n8n' | 'modules' | 'ai-safety'>('profile');
+  const [activeSubTab, setActiveSubTab] = useState<'profile' | 'keys' | 'voice' | 'n8n' | 'modules' | 'ai-safety' | 'team'>('profile');
+
+  const [clientPlan, setClientPlan] = useState('GROWTH');
+  const [clientId, setClientId] = useState('CLI-002');
+  const [clientNameText, setClientNameText] = useState('Zora Wellness');
+  const [teamMembers, setTeamMembers] = useState<any[]>([]);
+
+  // Input states for adding new team member
+  const [newMemberName, setNewMemberName] = useState('');
+  const [newMemberEmail, setNewMemberEmail] = useState('');
+  const [newMemberRole, setNewMemberRole] = useState('Sales Rep');
+  const [newMemberPassword, setNewMemberPassword] = useState('Password123');
+
+  // Load plan and team members on mount / isDemo change
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const isLocalDemo = localStorage.getItem('vortiq-demo-logged-in') === 'true';
+      const isClerkDemo = user?.primaryEmailAddress?.emailAddress?.toLowerCase() === 'demo@vortiq.ai';
+      const resolvedDemo = isLocalDemo || isClerkDemo;
+
+      const currentClientId = resolvedDemo ? 'CLI-002' : 'CLI-004';
+      const currentClientName = resolvedDemo ? 'Zora Wellness' : (localStorage.getItem('vortiq-brand-name') || 'My Business');
+      const currentPlan = resolvedDemo ? 'BUSINESS' : (localStorage.getItem('vortiq-plan') || 'STARTER');
+
+      setClientId(currentClientId);
+      setClientNameText(currentClientName);
+      setClientPlan(currentPlan);
+
+      // Initialize all client users in localStorage if not present
+      let allUsers = [];
+      const savedUsersStr = localStorage.getItem('vortiq-all-client-users');
+      if (savedUsersStr) {
+        try {
+          allUsers = JSON.parse(savedUsersStr);
+        } catch (e) {
+          // ignore
+        }
+      } else {
+        allUsers = [
+          { id: "usr-01", clientId: "CLI-001", clientName: "Bharat Components", name: "Ravi Shah", email: "ravi@bharatforge.com", role: "Super Admin", password: "Password123", status: "Active" },
+          { id: "usr-02", clientId: "CLI-001", clientName: "Bharat Components", name: "Sunil Kumar", email: "sunil@bharatforge.com", role: "Sales Rep", password: "Password123", status: "Active" },
+          { id: "usr-03", clientId: "CLI-002", clientName: "Zora Wellness", name: "Priya Patel", email: "priya@tata.com", role: "Super Admin", password: "Password123", status: "Active" },
+          { id: "usr-04", clientId: "CLI-002", clientName: "Zora Wellness", name: "Rahul Sen", email: "rahul@vortiq.ai", role: "Sales Rep", password: "Password123", status: "Active" },
+          { id: "usr-05", clientId: "CLI-002", clientName: "Zora Wellness", name: "Sneha Rao", email: "sneha@vortiq.ai", role: "Marketing Manager", password: "Password123", status: "Active" }
+        ];
+        localStorage.setItem('vortiq-all-client-users', JSON.stringify(allUsers));
+      }
+
+      // Filter users for the current client
+      const filtered = allUsers.filter((u: any) => u.clientId === currentClientId);
+      
+      // If fresh workspace (CLI-004) has no users, add the owner as first user
+      if (filtered.length === 0 && !resolvedDemo && user) {
+        const ownerUser = {
+          id: `usr-${Date.now()}`,
+          clientId: "CLI-004",
+          clientName: currentClientName,
+          name: user.fullName || "Owner Account",
+          email: user.primaryEmailAddress?.emailAddress || "owner@vortiq.ai",
+          role: "Super Admin",
+          password: "OwnerPassword123",
+          status: "Active"
+        };
+        allUsers.push(ownerUser);
+        localStorage.setItem('vortiq-all-client-users', JSON.stringify(allUsers));
+        setTeamMembers([ownerUser]);
+      } else {
+        setTeamMembers(filtered);
+      }
+    }
+  }, [isLoaded, user, isDemo]);
+
+  const planLimits: Record<string, number> = {
+    'STARTER': 3,
+    'GROWTH': 15,
+    'BUSINESS': 50,
+    'ENTERPRISE': 9999
+  };
+  const currentLimit = planLimits[clientPlan.toUpperCase()] || 3;
+
+  const handleAddTeamMember = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newMemberName.trim() || !newMemberEmail.trim()) return;
+
+    if (teamMembers.length >= currentLimit) {
+      alert(`Limit reached! Your current ${clientPlan} plan allows a maximum of ${currentLimit} team members. Please upgrade your package or remove an existing member.`);
+      return;
+    }
+
+    const newMember = {
+      id: `usr-${Date.now()}`,
+      clientId: clientId,
+      clientName: clientNameText,
+      name: newMemberName.trim(),
+      email: newMemberEmail.trim().toLowerCase(),
+      role: newMemberRole,
+      password: newMemberPassword,
+      status: 'Active'
+    };
+
+    const allUsers = JSON.parse(localStorage.getItem('vortiq-all-client-users') || '[]');
+    allUsers.push(newMember);
+    localStorage.setItem('vortiq-all-client-users', JSON.stringify(allUsers));
+
+    setTeamMembers([...teamMembers, newMember]);
+    setNewMemberName('');
+    setNewMemberEmail('');
+    setNewMemberPassword('Password123');
+    alert('Team member account provisioned successfully!');
+  };
+
+  const handleRemoveTeamMember = (id: string) => {
+    if (confirm('Are you sure you want to remove this team member?')) {
+      const allUsers = JSON.parse(localStorage.getItem('vortiq-all-client-users') || '[]');
+      const updatedAll = allUsers.filter((u: any) => u.id !== id);
+      localStorage.setItem('vortiq-all-client-users', JSON.stringify(updatedAll));
+      setTeamMembers(teamMembers.filter(m => m.id !== id));
+      alert('Team member removed.');
+    }
+  };
 
   useEffect(() => {
     const tab = searchParams.get('tab');
-    if (tab && ['profile', 'keys', 'voice', 'n8n', 'modules', 'ai-safety'].includes(tab)) {
+    if (tab && ['profile', 'keys', 'voice', 'n8n', 'modules', 'ai-safety', 'team'].includes(tab)) {
       setActiveSubTab(tab as any);
     }
   }, [searchParams]);
@@ -266,6 +386,7 @@ function SettingsContent() {
             {[
               { id: 'profile', label: 'Company Profile', icon: Building2 },
               { id: 'keys', label: 'BYOK API Keys', icon: Key },
+              { id: 'team', label: 'Team Management', icon: Users },
               { id: 'ai-safety', label: 'AI Integration & Safety', icon: Shield },
               { id: 'voice', label: 'Voice Outbound Rules', icon: Phone },
               { id: 'n8n', label: 'n8n Webhook Triggers', icon: Cpu },
@@ -650,7 +771,7 @@ function SettingsContent() {
             {activeSubTab === 'modules' && (
               <div className="space-y-6 animate-fadeIn">
                 <div>
-                  <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200">Module Visibility Customizer</h3>
+                  <h3 className="text-sm font-bold text-slate-800 dark:text-slate-205">Module Visibility Customizer</h3>
                   <p className="text-xs text-slate-400 mt-1">Enable or disable specific modules. Disabled modules will be hidden from the sidebar menu.</p>
                 </div>
 
@@ -672,6 +793,171 @@ function SettingsContent() {
                       </button>
                     </div>
                   ))}
+                </div>
+              </div>
+            )}
+
+            {/* TAB: TEAM MANAGEMENT */}
+            {activeSubTab === 'team' && (
+              <div className="space-y-6 animate-fadeIn">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b pb-4 border-slate-100 dark:border-slate-800">
+                  <div>
+                    <h3 className="text-sm font-bold text-slate-850 dark:text-slate-200">Team Directory & Seat Allocations</h3>
+                    <p className="text-xs text-slate-400 mt-1">
+                      Manage team members and user roles. Your current package limit is based on your active license tier.
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <span className="inline-block px-3 py-1 text-[10px] rounded-full bg-teal-500/10 text-teal-600 font-extrabold border border-teal-500/20 uppercase tracking-wide">
+                      {clientPlan} Plan Limit: {currentLimit === 9999 ? 'Unlimited' : currentLimit} Seats
+                    </span>
+                  </div>
+                </div>
+
+                {/* seat limit usage progress bar */}
+                <div className="p-4 bg-slate-50 dark:bg-slate-950/40 border rounded-2xl space-y-2 text-xs">
+                  <div className="flex justify-between font-bold text-slate-600">
+                    <span>Seat Utilization</span>
+                    <span>{teamMembers.length} / {currentLimit === 9999 ? '∞' : currentLimit} Users active</span>
+                  </div>
+                  <div className="w-full h-2 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
+                    <div 
+                      className={`h-full rounded-full transition-all duration-500 ${
+                        (teamMembers.length / currentLimit) >= 0.9 ? 'bg-red-500' : 'bg-teal-500'
+                      }`}
+                      style={{ width: `${Math.min((teamMembers.length / (currentLimit === 9999 ? 1 : currentLimit)) * 100, 100)}%` }}
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                  {/* Left: Active Directory */}
+                  <div className="lg:col-span-2 space-y-3">
+                    <h4 className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Active Team Members</h4>
+                    <div className="overflow-hidden border border-slate-200 dark:border-slate-805 rounded-2xl bg-white dark:bg-slate-900/10 text-xs">
+                      <table className="w-full text-left border-collapse">
+                        <thead>
+                          <tr className="bg-slate-50 dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800 text-[9px] font-bold uppercase tracking-wider text-slate-505 text-slate-500">
+                            <th className="p-3">Name</th>
+                            <th className="p-3">Email Address</th>
+                            <th className="p-3">Role</th>
+                            <th className="p-3 text-right">Action</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-semibold text-slate-700 dark:text-slate-300">
+                          {teamMembers.map(member => (
+                            <tr key={member.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/10">
+                              <td className="p-3 font-extrabold text-slate-800 dark:text-slate-200">{member.name}</td>
+                              <td className="p-3 font-mono text-[10px] text-slate-500">{member.email}</td>
+                              <td className="p-3">
+                                <span className="px-2 py-0.5 rounded bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 text-[9px] font-black border border-indigo-100 dark:border-indigo-950/40">
+                                  {member.role}
+                                </span>
+                              </td>
+                              <td className="p-3 text-right">
+                                <button 
+                                  onClick={() => handleRemoveTeamMember(member.id)}
+                                  className="text-rose-600 hover:text-rose-800 font-bold hover:underline"
+                                >
+                                  Remove
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                          {teamMembers.length === 0 && (
+                            <tr>
+                              <td colSpan={4} className="p-6 text-center text-slate-400">
+                                No team members found. Invite/add staff to get started.
+                              </td>
+                            </tr>
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                  {/* Right: Add Form */}
+                  <div className="bg-white dark:bg-slate-900/10 border border-slate-200 dark:border-slate-800 p-5 rounded-2xl space-y-4 shadow-sm h-fit">
+                    <h4 className="text-[10px] uppercase font-bold text-slate-550 tracking-wider">Provision New Account</h4>
+                    <form onSubmit={handleAddTeamMember} className="space-y-4 text-xs">
+                      <div className="space-y-1">
+                        <label className="text-[9px] uppercase font-bold text-slate-500 block">Full Name</label>
+                        <input
+                          type="text" required value={newMemberName} onChange={(e) => setNewMemberName(e.target.value)}
+                          placeholder="e.g. Sunil Kumar"
+                          className="w-full bg-slate-55 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs focus:outline-none text-slate-800 dark:text-white"
+                        />
+                      </div>
+                      
+                      <div className="space-y-1">
+                        <label className="text-[9px] uppercase font-bold text-slate-500 block">Work Email</label>
+                        <input
+                          type="email" required value={newMemberEmail} onChange={(e) => setNewMemberEmail(e.target.value)}
+                          placeholder="e.g. sunil@bharatforge.com"
+                          className="w-full bg-slate-55 dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs focus:outline-none text-slate-800 dark:text-white"
+                        />
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="text-[9px] uppercase font-bold text-slate-500 block">Account Password</label>
+                        <input
+                          type="password" required value={newMemberPassword} onChange={(e) => setNewMemberPassword(e.target.value)}
+                          placeholder="Password123"
+                          className="w-full bg-slate-55 dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs focus:outline-none text-slate-800 dark:text-white"
+                        />
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="text-[9px] uppercase font-bold text-slate-500 block">Platform Role</label>
+                        <select
+                          value={newMemberRole} onChange={(e) => setNewMemberRole(e.target.value)}
+                          className="w-full bg-slate-55 dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs focus:outline-none text-slate-800 dark:text-white"
+                        >
+                          <option value="Admin">Admin</option>
+                          <option value="Sales Rep">Sales Rep</option>
+                          <option value="Marketing Manager">Marketing Manager</option>
+                          <option value="Support Agent">Support Agent</option>
+                          <option value="Finance Manager">Finance Manager</option>
+                          <option value="Viewer">Viewer</option>
+                        </select>
+                      </div>
+
+                      <button
+                        type="submit"
+                        className="w-full py-2.5 bg-teal-650 hover:bg-teal-600 text-slate-950 hover:text-white font-bold rounded-xl shadow-sm text-xs"
+                      >
+                        Provision Account
+                      </button>
+                    </form>
+                  </div>
+                </div>
+
+                {/* Subscription upgrade simulator */}
+                <div className="p-4 bg-amber-500/5 border border-amber-500/10 rounded-2xl flex items-center justify-between gap-4 text-xs font-semibold">
+                  <div>
+                    <p className="font-extrabold text-amber-700 dark:text-amber-400">Upgrade Plan (License Sandbox)</p>
+                    <p className="text-[10px] text-slate-500 mt-0.5">Toggle license tiers in real time to simulate package limit restriction checks.</p>
+                  </div>
+                  <div className="flex gap-2">
+                    {['STARTER', 'GROWTH', 'BUSINESS', 'ENTERPRISE'].map(plan => (
+                      <button
+                        key={plan}
+                        onClick={() => {
+                          localStorage.setItem('vortiq-plan', plan);
+                          setClientPlan(plan);
+                          window.dispatchEvent(new Event('vortiq-plan-change'));
+                          alert(`Switched workspace license tier to: ${plan}`);
+                        }}
+                        className={`px-2.5 py-1.5 border rounded-lg text-[10px] font-black transition-all ${
+                          clientPlan === plan 
+                            ? 'bg-amber-500/15 border-amber-500/20 text-amber-600 font-black' 
+                            : 'bg-white dark:bg-slate-900 border-slate-200 hover:bg-slate-50 text-slate-500'
+                        }`}
+                      >
+                        {plan}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
             )}

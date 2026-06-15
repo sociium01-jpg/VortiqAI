@@ -11,6 +11,7 @@ export default function PricingPage() {
   const router = useRouter();
 
   const [billingPeriod, setBillingPeriod] = useState<'quarterly' | 'annual'>('quarterly');
+  const [selectedPlan, setSelectedPlan] = useState('Growth');
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
 
   // ROI Calculator States
@@ -19,11 +20,26 @@ export default function PricingPage() {
   const [hoursSaved, setHoursSaved] = useState(6);
   const [avgSalary, setAvgSalary] = useState(40000);
 
+  // plans configurations for math
+  const plansTable: Record<string, { quarterlyPrice: number; annualPrice: number }> = {
+    'Starter': { quarterlyPrice: 8997, annualPrice: 26988 },
+    'Growth': { quarterlyPrice: 23997, annualPrice: 71988 },
+    'Business': { quarterlyPrice: 59997, annualPrice: 179988 },
+    'Enterprise': { quarterlyPrice: 0, annualPrice: 0 }
+  };
+
+  const selectedPlanData = plansTable[selectedPlan] || plansTable['Growth'];
+  const calculatedVortiqCostMonthly = selectedPlan === 'Enterprise' 
+    ? 25000 
+    : (billingPeriod === 'quarterly' 
+        ? selectedPlanData.quarterlyPrice / 3 
+        : selectedPlanData.annualPrice / 12);
+
   // ROI Math
   const hourlyRate = avgSalary / 160; // 160 working hours in a month
   const productivitySavings = teamSize * hoursSaved * 4.3 * hourlyRate; // 4.3 weeks in a month
   const totalPotentialSavings = productivitySavings + softwareSpend;
-  const vortiqCost = billingPeriod === 'quarterly' ? 7999 : 5999; // Growth plan reference
+  const vortiqCost = calculatedVortiqCostMonthly; 
   const netSavings = Math.max(0, totalPotentialSavings - vortiqCost);
 
   useEffect(() => {
@@ -49,14 +65,22 @@ export default function PricingPage() {
     }
   };
 
+  const handleSelectPlan = (planName: string) => {
+    setSelectedPlan(planName);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('vortiq-plan', planName.toUpperCase());
+      window.dispatchEvent(new Event('vortiq-plan-change'));
+    }
+  };
+
   const plans = [
     {
       name: 'Starter',
       desc: 'Ideal for small Indian trading or service firms.',
       users: 'Up to 3 users',
-      price: billingPeriod === 'quarterly' ? 2999 : 2249,
-      period: 'mo',
-      billed: billingPeriod === 'quarterly' ? 'Rs 8,997 billed quarterly' : 'Rs 26,988 billed annually',
+      price: billingPeriod === 'quarterly' ? 8997 : 26988,
+      period: billingPeriod === 'quarterly' ? 'quarter' : 'year',
+      billed: billingPeriod === 'quarterly' ? 'Equivalent to Rs 2,999/mo' : 'Equivalent to Rs 2,249/mo (Save 25%)',
       features: [
         '3 users included',
         'Sales CRM & Pipeline logs',
@@ -71,9 +95,9 @@ export default function PricingPage() {
       name: 'Growth',
       desc: 'Most popular. Comprehensive tools for mid-market SMEs.',
       users: 'Up to 15 users',
-      price: billingPeriod === 'quarterly' ? 7999 : 5999,
-      period: 'mo',
-      billed: billingPeriod === 'quarterly' ? 'Rs 23,997 billed quarterly' : 'Rs 71,988 billed annually',
+      price: billingPeriod === 'quarterly' ? 23997 : 71988,
+      period: billingPeriod === 'quarterly' ? 'quarter' : 'year',
+      billed: billingPeriod === 'quarterly' ? 'Equivalent to Rs 7,999/mo' : 'Equivalent to Rs 5,999/mo (Save 25%)',
       features: [
         '15 users included',
         'All Starter features',
@@ -90,9 +114,9 @@ export default function PricingPage() {
       name: 'Business',
       desc: 'Advanced controls & compliance for growing organizations.',
       users: 'Up to 50 users',
-      price: billingPeriod === 'quarterly' ? 19999 : 14999,
-      period: 'mo',
-      billed: billingPeriod === 'quarterly' ? 'Rs 59,997 billed quarterly' : 'Rs 1,79,988 billed annually',
+      price: billingPeriod === 'quarterly' ? 59997 : 179988,
+      period: billingPeriod === 'quarterly' ? 'quarter' : 'year',
+      billed: billingPeriod === 'quarterly' ? 'Equivalent to Rs 19,999/mo' : 'Equivalent to Rs 14,999/mo (Save 25%)',
       features: [
         '50 users included',
         'All Growth features',
@@ -189,10 +213,13 @@ export default function PricingPage() {
         {plans.map((p) => (
           <div 
             key={p.name} 
-            className={`p-6 rounded-3xl flex flex-col justify-between relative transition-all duration-300 ${
-              p.popular 
-                ? 'bg-white dark:bg-slate-900 border-2 border-teal-500 shadow-2xl shadow-teal-500/5 transform md:-translate-y-2' 
-                : 'bg-white dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-800 shadow-sm shadow-slate-100 dark:shadow-none'
+            onClick={() => handleSelectPlan(p.name)}
+            className={`p-6 rounded-3xl flex flex-col justify-between relative transition-all duration-300 cursor-pointer ${
+              selectedPlan === p.name
+                ? 'bg-white dark:bg-slate-900 border-2 border-teal-500 shadow-2xl shadow-teal-500/10 transform md:-translate-y-2 ring-4 ring-teal-500/10'
+                : p.popular 
+                  ? 'bg-white dark:bg-slate-900 border border-teal-500/50 shadow-md shadow-teal-500/5 hover:border-teal-500' 
+                  : 'bg-white dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 shadow-sm shadow-slate-100 dark:shadow-none'
             }`}
           >
             {p.popular && (
@@ -201,9 +228,16 @@ export default function PricingPage() {
               </span>
             )}
             <div className="space-y-4">
-              <div>
-                <h3 className="text-lg font-black text-slate-900 dark:text-white">{p.name}</h3>
-                <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-normal mt-1 min-h-[32px] font-semibold">{p.desc}</p>
+              <div className="flex justify-between items-start">
+                <div>
+                  <h3 className="text-lg font-black text-slate-900 dark:text-white">{p.name}</h3>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-normal mt-1 min-h-[32px] font-semibold">{p.desc}</p>
+                </div>
+                {selectedPlan === p.name && (
+                  <span className="w-5 h-5 rounded-full bg-teal-500 flex items-center justify-center text-slate-950 text-[10px] font-bold">
+                    ✓
+                  </span>
+                )}
               </div>
 
               <div className="py-2 border-y border-slate-200 dark:border-slate-800/60">
@@ -231,16 +265,22 @@ export default function PricingPage() {
             </div>
 
             <div className="pt-6 mt-6 border-t border-slate-100 dark:border-slate-800/40 space-y-3">
-              <Link 
-                href="/signup" 
+              <button 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleSelectPlan(p.name);
+                  router.push('/signup');
+                }}
                 className={`w-full py-3 rounded-xl text-center text-xs font-black transition-all flex items-center justify-center gap-1.5 shadow-lg ${
-                  p.popular 
-                    ? 'bg-teal-500 hover:bg-teal-400 text-slate-950 shadow-teal-500/10' 
-                    : 'bg-slate-100 dark:bg-slate-800 hover:bg-slate-205 dark:hover:bg-slate-800 text-slate-800 dark:text-white border border-slate-250 dark:border-slate-700'
+                  selectedPlan === p.name
+                    ? 'bg-gradient-to-r from-teal-500 to-indigo-600 text-white shadow-teal-500/25'
+                    : p.popular 
+                      ? 'bg-teal-500 hover:bg-teal-400 text-slate-955 shadow-teal-500/10' 
+                      : 'bg-slate-100 dark:bg-slate-800 hover:bg-slate-205 dark:hover:bg-slate-800 text-slate-800 dark:text-white border border-slate-250 dark:border-slate-700'
                 }`}
               >
-                Start 15-Day Free Trial
-              </Link>
+                {selectedPlan === p.name ? 'Plan Selected - Start Trial' : 'Select Plan & Start Trial'}
+              </button>
               <p className="text-[9px] text-center text-slate-500 font-semibold">No credit card required</p>
             </div>
           </div>
@@ -339,7 +379,7 @@ export default function PricingPage() {
             <div className="border-t border-slate-200 dark:border-slate-800 pt-4 mt-6">
               <p className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Estimated Monthly Savings</p>
               <h4 className="text-3xl font-black text-teal-600 dark:text-teal-400 mt-1">Rs {Math.round(netSavings).toLocaleString('en-IN')}</h4>
-              <p className="text-[10px] text-slate-550 mt-1 font-semibold">Billed at Rs {vortiqCost.toLocaleString('en-IN')}/mo on the Growth Plan.</p>
+              <p className="text-[10px] text-slate-500 mt-1 font-semibold">Equivalent cost of Rs {Math.round(vortiqCost).toLocaleString('en-IN')}/mo on the selected {selectedPlan} Plan.</p>
             </div>
           </div>
         </div>
@@ -354,7 +394,7 @@ export default function PricingPage() {
           {[
             { q: "Do you store my API key?", a: "Never unencrypted. AES-256 at rest. We never see it in plaintext." },
             { q: "What happens after my 15-day trial?", a: "You'll be prompted to choose a billing plan. No automatic charges." },
-            { q: "Can I import from Zoho or HubSpot?", a: "Yes. One-click CSV import and native Zoho/HubSpot API migration." },
+            { q: "Can I import from other legacy platforms?", a: "Yes. One-click CSV import and native API migration utilities are built-in." },
             { q: "Is this GST compliant for my CA?", a: "Yes. Every invoice has IRN, QR code, and GSTIN. GSTR-1 and 3B prep included." },
             { q: "Do I need to install anything?", a: "No. 100% web-based. Mobile apps for iOS and Android available." },
             { q: "What if I want to cancel?", a: "Cancel anytime. Your data is exportable in CSV/Excel within 24 hours of request." }

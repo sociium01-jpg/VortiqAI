@@ -33,17 +33,7 @@ interface BroadcastLog {
 
 export default function BriefingsPage() {
   const { user, isLoaded } = useUser();
-  const isDemo = isLoaded && user?.primaryEmailAddress?.emailAddress?.toLowerCase() === 'demo@vortiq.ai';
-
-  useEffect(() => {
-    if (isLoaded && !isDemo) {
-      setRules([]);
-      setLogs([]);
-      setAiAnalysis("BriefingAgent: WhatsApp notification scheduler offline. Define briefing targets to begin.");
-    }
-  }, [isLoaded, isDemo]);
-
-  const [activeTab, setActiveTab] = useState<'scheduler' | 'logs' | 'sandbox'>('scheduler');
+  const [isDemo, setIsDemo] = useState(false);
 
   // Scheduled Briefings
   const [rules, setRules] = useState<BriefingRule[]>(
@@ -72,10 +62,30 @@ export default function BriefingsPage() {
 
   // Sandbox states
   const [testText, setTestText] = useState('Morning Briefing: June Revenues hit Rs 18.5L. Tata Motors PO awaiting CFO verification.');
+  const [sandboxPhone, setSandboxPhone] = useState('+91 98765 43210');
   const [sandboxResponse, setSandboxResponse] = useState<string | null>(null);
 
   const [aiWorking, setAiWorking] = useState(false);
   const [aiAnalysis, setAiAnalysis] = useState('BriefingAgent: Morning scorecards compiled for CEO Manoj. Next scheduled update CFO Ledger (07:30 PM). Cloud API sandbox channels verified.');
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const clerkDemo = isLoaded && user?.primaryEmailAddress?.emailAddress?.toLowerCase() === 'demo@vortiq.ai';
+      const localDemo = localStorage.getItem('vortiq-demo-logged-in') === 'true';
+      const resolvedDemo = clerkDemo || localDemo;
+      setIsDemo(resolvedDemo);
+
+      if (isLoaded && !resolvedDemo) {
+        setRules([]);
+        setLogs([]);
+        setAiAnalysis("BriefingAgent: WhatsApp notification scheduler offline. Define briefing targets to begin.");
+        setTestText("");
+        setSandboxPhone("+91 ");
+      }
+    }
+  }, [isLoaded, user]);
+
+  const [activeTab, setActiveTab] = useState<'scheduler' | 'logs' | 'sandbox'>('scheduler');
 
   const handleCreateRule = (e: React.FormEvent) => {
     e.preventDefault();
@@ -103,11 +113,15 @@ export default function BriefingsPage() {
   };
 
   const handleTestWhatsAppTrigger = () => {
+    if (!sandboxPhone.trim() || !testText.trim()) {
+      alert("Please enter target phone number and message payload.");
+      return;
+    }
     setAiWorking(true);
     setSandboxResponse(null);
     setTimeout(() => {
       setAiWorking(false);
-      setSandboxResponse(`JSON response payload:\n{\n  "status": "success",\n  "message_id": "wa_msg_90123849182",\n  "channel": "WHATSAPP_CLOUD_API",\n  "recipient": "+91 98765 43210",\n  "delivered_at": "2026-06-15T15:25:00Z"\n}`);
+      setSandboxResponse(`JSON response payload:\n{\n  "status": "success",\n  "message_id": "wa_msg_${Math.floor(1000000000 + Math.random() * 9000000000)}",\n  "channel": "WHATSAPP_CLOUD_API",\n  "recipient": "${sandboxPhone}",\n  "delivered_at": "${new Date().toISOString()}"\n}`);
       
       // Append success log
       const testLog: BroadcastLog = {
@@ -119,7 +133,7 @@ export default function BriefingsPage() {
         status: 'DELIVERED',
         payloadSummary: testText
       };
-      setLogs([testLog, ...logs]);
+      setLogs(prev => [testLog, ...prev]);
     }, 1200);
   };
 
@@ -478,11 +492,17 @@ export default function BriefingsPage() {
                 <div className="flex gap-3">
                   <div className="flex-1">
                     <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Target Phone</label>
-                    <input type="text" defaultValue="+91 98765 43210" disabled className="w-full bg-slate-100 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs" />
+                    <input 
+                      type="text" 
+                      value={sandboxPhone} 
+                      onChange={(e) => setSandboxPhone(e.target.value)}
+                      placeholder="+91 98765 43210" 
+                      className="w-full bg-slate-50 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-teal-500" 
+                    />
                   </div>
                   <div className="flex-1">
                     <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Channel</label>
-                    <input type="text" defaultValue="WhatsApp Cloud API" disabled className="w-full bg-slate-100 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs" />
+                    <input type="text" value="WhatsApp Cloud API" disabled className="w-full bg-slate-100 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-500 cursor-not-allowed" />
                   </div>
                 </div>
 

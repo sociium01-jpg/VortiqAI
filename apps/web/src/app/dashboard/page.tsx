@@ -15,37 +15,7 @@ import {
 
 function DashboardContent() {
   const { user, isLoaded } = useUser();
-  const isDemo = isLoaded && user?.primaryEmailAddress?.emailAddress?.toLowerCase() === 'demo@vortiq.ai';
-
-  useEffect(() => {
-    if (isLoaded && !isDemo) {
-      setMetrics({
-        healthScore: 100,
-        revenue: 0,
-        targetAmount: 0,
-        leadsToday: 0,
-        tasksCompleted: 0,
-        activeAgents: 8,
-        efficiencyScore: 100,
-        openTickets: 0,
-        activeCampaigns: 0,
-        briefingsSent: 0,
-        receivables: 0,
-        payoutsDone: 0
-      });
-      setAiRecommendations([]);
-      setAgentLogs([]);
-      setAiInsightText("Superboss Command AI: Workspace initialized. Welcome to Vortiq OS! Connect your integrations to begin collecting operations telemetry.");
-    }
-  }, [isLoaded, isDemo]);
-
-  const searchParams = useSearchParams();
-  const demoMode = searchParams.get('demo') || 'saas';
-
-  // Global filters
-  const [dateRange, setDateRange] = useState('MTD');
-  const [selectedDept, setSelectedDept] = useState('ALL');
-  const [aiMode, setAiMode] = useState<'manual' | 'ai-assisted'>('ai-assisted');
+  const [isDemo, setIsDemo] = useState(false);
 
   // simulated metrics
   const [metrics, setMetrics] = useState({
@@ -60,8 +30,104 @@ function DashboardContent() {
     activeCampaigns: 4,
     briefingsSent: 8,
     receivables: 450000,
-    payoutsDone: 180000
+    payoutsDone: 180000,
+    attendancePresent: 12,
+    attendanceTotal: 15,
+    adClicks: 1420
   });
+
+  const [isTelemetryOpen, setIsTelemetryOpen] = useState(false);
+  const [formRevenue, setFormRevenue] = useState('');
+  const [formTarget, setFormTarget] = useState('');
+  const [formLeads, setFormLeads] = useState('');
+  const [formReceivables, setFormReceivables] = useState('');
+  const [formPayouts, setFormPayouts] = useState('');
+  const [formStaffPresent, setFormStaffPresent] = useState('');
+  const [formStaffTotal, setFormStaffTotal] = useState('');
+  const [formAdClicks, setFormAdClicks] = useState('');
+  const [formTickets, setFormTickets] = useState('');
+
+  // Sync form inputs when metrics are updated
+  useEffect(() => {
+    setFormRevenue(metrics.revenue.toString());
+    setFormTarget(metrics.targetAmount.toString());
+    setFormLeads(metrics.leadsToday.toString());
+    setFormReceivables(metrics.receivables.toString());
+    setFormPayouts(metrics.payoutsDone.toString());
+    setFormStaffPresent((metrics.attendancePresent || 0).toString());
+    setFormStaffTotal((metrics.attendanceTotal || 0).toString());
+    setFormAdClicks((metrics.adClicks || 0).toString());
+    setFormTickets(metrics.openTickets.toString());
+  }, [metrics]);
+
+  const handleTelemetrySubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const updated = {
+      ...metrics,
+      revenue: Number(formRevenue) || 0,
+      targetAmount: Number(formTarget) || 0,
+      leadsToday: Number(formLeads) || 0,
+      receivables: Number(formReceivables) || 0,
+      payoutsDone: Number(formPayouts) || 0,
+      attendancePresent: Number(formStaffPresent) || 0,
+      attendanceTotal: Number(formStaffTotal) || 0,
+      adClicks: Number(formAdClicks) || 0,
+      openTickets: Number(formTickets) || 0
+    };
+    setMetrics(updated);
+    localStorage.setItem('vortiq-user-metrics', JSON.stringify(updated));
+    alert('Telemetry metrics updated successfully!');
+  };
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const clerkDemo = isLoaded && user?.primaryEmailAddress?.emailAddress?.toLowerCase() === 'demo@vortiq.ai';
+      const localDemo = localStorage.getItem('vortiq-demo-logged-in') === 'true';
+      const resolvedDemo = clerkDemo || localDemo;
+      setIsDemo(resolvedDemo);
+
+      if (isLoaded && !resolvedDemo) {
+        // Load saved metrics from localStorage if they exist
+        const saved = localStorage.getItem('vortiq-user-metrics');
+        if (saved) {
+          try {
+            setMetrics(JSON.parse(saved));
+          } catch (e) {
+            // fallback
+          }
+        } else {
+          setMetrics({
+            healthScore: 100,
+            revenue: 0,
+            targetAmount: 0,
+            leadsToday: 0,
+            tasksCompleted: 0,
+            activeAgents: 8,
+            efficiencyScore: 100,
+            openTickets: 0,
+            activeCampaigns: 0,
+            briefingsSent: 0,
+            receivables: 0,
+            payoutsDone: 0,
+            attendancePresent: 0,
+            attendanceTotal: 0,
+            adClicks: 0
+          });
+        }
+        setAiRecommendations([]);
+        setAgentLogs([]);
+        setAiInsightText("Superboss Command AI: Workspace initialized. Welcome to Vortiq OS! Connect your integrations or input telemetry data below.");
+      }
+    }
+  }, [isLoaded, user]);
+
+  const searchParams = useSearchParams();
+  const demoMode = searchParams.get('demo') || 'saas';
+
+  // Global filters
+  const [dateRange, setDateRange] = useState('MTD');
+  const [selectedDept, setSelectedDept] = useState('ALL');
+  const [aiMode, setAiMode] = useState<'manual' | 'ai-assisted'>('ai-assisted');
 
   // Load and sync AI mode
   useEffect(() => {
@@ -78,6 +144,7 @@ function DashboardContent() {
 
   // Adjust metrics based on persona
   useEffect(() => {
+    if (!isDemo) return; // Only adjust if in demo mode!
     if (demoMode === 'manufacturing') {
       setMetrics({
         healthScore: 86,
@@ -91,7 +158,10 @@ function DashboardContent() {
         activeCampaigns: 2,
         briefingsSent: 12,
         receivables: 1250000,
-        payoutsDone: 620000
+        payoutsDone: 620000,
+        attendancePresent: 14,
+        attendanceTotal: 16,
+        adClicks: 840
       });
     } else if (demoMode === 'd2c') {
       setMetrics({
@@ -106,7 +176,10 @@ function DashboardContent() {
         activeCampaigns: 8,
         briefingsSent: 24,
         receivables: 150000,
-        payoutsDone: 950000
+        payoutsDone: 950000,
+        attendancePresent: 18,
+        attendanceTotal: 20,
+        adClicks: 8430
       });
     } else {
       setMetrics({
@@ -121,10 +194,13 @@ function DashboardContent() {
         activeCampaigns: 4,
         briefingsSent: 8,
         receivables: 450000,
-        payoutsDone: 180000
+        payoutsDone: 180000,
+        attendancePresent: 12,
+        attendanceTotal: 15,
+        adClicks: 1420
       });
     }
-  }, [demoMode]);
+  }, [demoMode, isDemo]);
 
   // AI Consolidated Business Analyst insights state
   const [aiInsightText, setAiInsightText] = useState('');
@@ -333,7 +409,7 @@ function DashboardContent() {
         <div className="bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-900 rounded-2xl p-4 flex items-center justify-between shadow-sm">
           <div>
             <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider">Attendance Present</p>
-            <h3 className="text-base font-extrabold text-slate-900 dark:text-white mt-1">12 / 15</h3>
+            <h3 className="text-base font-extrabold text-slate-900 dark:text-white mt-1">{metrics.attendancePresent} / {metrics.attendanceTotal}</h3>
           </div>
           <div className="p-2 bg-teal-500/10 text-teal-600 dark:text-teal-400 rounded-lg">
             <UserCheck className="w-4.5 h-4.5" />
@@ -343,13 +419,131 @@ function DashboardContent() {
         <div className="bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-900 rounded-2xl p-4 flex items-center justify-between shadow-sm">
           <div>
             <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider">Active Ad Clicks</p>
-            <h3 className="text-base font-extrabold text-slate-900 dark:text-white mt-1">1,420</h3>
+            <h3 className="text-base font-extrabold text-slate-900 dark:text-white mt-1">{metrics.adClicks.toLocaleString()}</h3>
           </div>
           <div className="p-2 bg-teal-500/10 text-teal-600 dark:text-teal-400 rounded-lg">
             <TrendingUp className="w-4.5 h-4.5" />
           </div>
         </div>
       </div>
+
+      {/* Telemetry Input Panel (Only for non-demo users to input data) */}
+      {!isDemo && (
+        <div className="bg-white dark:bg-slate-900/20 border border-slate-200 dark:border-slate-800 p-5 rounded-3xl shadow-sm space-y-4">
+          <div className="flex items-center justify-between cursor-pointer" onClick={() => setIsTelemetryOpen(!isTelemetryOpen)}>
+            <h3 className="text-xs font-bold text-slate-700 dark:text-slate-200 uppercase tracking-widest flex items-center gap-1.5">
+              <Settings className="w-4.5 h-4.5 text-teal-600" />
+              Manual Telemetry Data Input (Workspace Setup)
+            </h3>
+            <span className="text-xs text-teal-600 font-bold hover:underline">
+              {isTelemetryOpen ? 'Collapse Panel' : 'Expand Panel'}
+            </span>
+          </div>
+
+          {isTelemetryOpen && (
+            <form onSubmit={handleTelemetrySubmit} className="grid grid-cols-2 md:grid-cols-5 gap-4 pt-2 text-xs animate-fadeIn">
+              <div className="space-y-1">
+                <label className="text-[9px] uppercase font-bold text-slate-400">Monthly Revenue (Rs)</label>
+                <input 
+                  type="number" 
+                  value={formRevenue} 
+                  onChange={(e) => setFormRevenue(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-1.5 text-xs text-slate-800 focus:outline-none focus:border-teal-500" 
+                  placeholder="0"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[9px] uppercase font-bold text-slate-400">Target Revenue (Rs)</label>
+                <input 
+                  type="number" 
+                  value={formTarget} 
+                  onChange={(e) => setFormTarget(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-1.5 text-xs text-slate-800 focus:outline-none focus:border-teal-500" 
+                  placeholder="0"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[9px] uppercase font-bold text-slate-400">Leads Today</label>
+                <input 
+                  type="number" 
+                  value={formLeads} 
+                  onChange={(e) => setFormLeads(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-1.5 text-xs text-slate-800 focus:outline-none focus:border-teal-500" 
+                  placeholder="0"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[9px] uppercase font-bold text-slate-400">Receivables (Rs)</label>
+                <input 
+                  type="number" 
+                  value={formReceivables} 
+                  onChange={(e) => setFormReceivables(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-1.5 text-xs text-slate-800 focus:outline-none focus:border-teal-500" 
+                  placeholder="0"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[9px] uppercase font-bold text-slate-400">Payouts Done (Rs)</label>
+                <input 
+                  type="number" 
+                  value={formPayouts} 
+                  onChange={(e) => setFormPayouts(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-1.5 text-xs text-slate-800 focus:outline-none focus:border-teal-500" 
+                  placeholder="0"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[9px] uppercase font-bold text-slate-400">Staff Present</label>
+                <input 
+                  type="number" 
+                  value={formStaffPresent} 
+                  onChange={(e) => setFormStaffPresent(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-1.5 text-xs text-slate-800 focus:outline-none focus:border-teal-500" 
+                  placeholder="0"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[9px] uppercase font-bold text-slate-400">Staff Total</label>
+                <input 
+                  type="number" 
+                  value={formStaffTotal} 
+                  onChange={(e) => setFormStaffTotal(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-1.5 text-xs text-slate-800 focus:outline-none focus:border-teal-500" 
+                  placeholder="0"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[9px] uppercase font-bold text-slate-400">Ad Clicks</label>
+                <input 
+                  type="number" 
+                  value={formAdClicks} 
+                  onChange={(e) => setFormAdClicks(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-1.5 text-xs text-slate-800 focus:outline-none focus:border-teal-500" 
+                  placeholder="0"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[9px] uppercase font-bold text-slate-400">Open Tickets</label>
+                <input 
+                  type="number" 
+                  value={formTickets} 
+                  onChange={(e) => setFormTickets(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-1.5 text-xs text-slate-800 focus:outline-none focus:border-teal-500" 
+                  placeholder="0"
+                />
+              </div>
+              <div className="flex items-end">
+                <button 
+                  type="submit" 
+                  className="w-full py-2 bg-teal-600 hover:bg-teal-500 text-white font-extrabold rounded-xl transition-all shadow-sm text-xs text-center"
+                >
+                  Save Telemetry
+                </button>
+              </div>
+            </form>
+          )}
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
