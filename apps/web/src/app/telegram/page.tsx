@@ -36,7 +36,7 @@ export default function TelegramPage() {
             <Key className="w-5 h-5 text-sky-400" /> Pair New User
           </h3>
 
-          <div className="text-center p-6 bg-slate-950 border border-slate-850 rounded-2xl space-y-4">
+          <div className="text-center p-6 bg-slate-950 border border-slate-800 rounded-2xl space-y-4">
             <p className="text-[10px] text-slate-400 uppercase tracking-widest font-black">6-Digit Pairing Code</p>
             <h2 className="text-4xl font-black text-teal-400 tracking-wider">{pairingCode}</h2>
             <p className="text-xs text-slate-400 leading-normal">
@@ -59,7 +59,7 @@ export default function TelegramPage() {
 
           <div className="space-y-3">
             {sessions.map((s) => (
-              <div key={s.id} className="p-4 rounded-xl bg-slate-950 border border-slate-850 flex items-center justify-between">
+              <div key={s.id} className="p-4 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-between">
                 <div>
                   <h4 className="text-xs font-extrabold text-white">{s.name}</h4>
                   <p className="text-[10px] text-slate-500">Username: {s.username} • Paired: {s.pairedAt}</p>

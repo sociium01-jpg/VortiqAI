@@ -1,6 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
+import { useUser } from '@clerk/nextjs';
+
+import React, { useState, useEffect } from 'react';
 import ConsoleLayout, { formatINR } from '../ConsoleLayout';
 import { 
   Package, Plus, Sparkles, Brain, AlertTriangle, 
@@ -46,6 +48,19 @@ interface Dispatch {
 }
 
 export default function InventoryPage() {
+  const { user, isLoaded } = useUser();
+  const isDemo = isLoaded && user?.primaryEmailAddress?.emailAddress?.toLowerCase() === 'demo@vortiq.ai';
+
+  useEffect(() => {
+    if (isLoaded && !isDemo) {
+      setSkus([]);
+      setPurchaseOrders([]);
+      setDispatches([]);
+      setHistory([]);
+      setAiAnalysis("Stock Analysis: Inventory ledger is empty. Register SKU parts to run automated replenishment scans.");
+    }
+  }, [isLoaded, isDemo]);
+
   const [activeTab, setActiveTab] = useState<'catalog' | 'inwards' | 'orders' | 'shipping'>('catalog');
 
   // SKUs List
@@ -217,7 +232,7 @@ export default function InventoryPage() {
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white dark:bg-slate-900/40 p-6 rounded-2xl border border-slate-200 dark:border-slate-900 shadow-sm">
           <div>
             <h2 className="text-xl font-black text-slate-900 dark:text-white flex items-center gap-2">
-              <Package className="w-5.5 h-5.5 text-teal-650 dark:text-teal-400" />
+              <Package className="w-5.5 h-5.5 text-teal-600 dark:text-teal-400" />
               SKUs & Warehouse Operations
             </h2>
             <p className="text-xs text-slate-500 font-semibold mt-1">
@@ -258,7 +273,7 @@ export default function InventoryPage() {
                 <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider">OpsAgent AI Auditor</h4>
                 <span className="text-[9px] px-1.5 py-0.5 bg-teal-500/20 text-teal-700 dark:text-teal-400 font-black rounded-full">Automated</span>
               </div>
-              <p className="text-xs text-slate-600 dark:text-slate-350 mt-1 font-medium max-w-2xl leading-relaxed">
+              <p className="text-xs text-slate-600 dark:text-slate-300 mt-1 font-medium max-w-2xl leading-relaxed">
                 "{aiAnalysis}"
               </p>
             </div>
@@ -267,7 +282,7 @@ export default function InventoryPage() {
           <button 
             onClick={handleTriggerReorderScan}
             disabled={aiWorking}
-            className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-900 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-350 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-bold transition-colors flex items-center gap-1.5"
+            className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-900 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-bold transition-colors flex items-center gap-1.5"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${aiWorking ? 'animate-spin' : ''}`} /> Scan Reorders
           </button>
@@ -311,7 +326,7 @@ export default function InventoryPage() {
                 <input 
                   type="text" required value={newCode} onChange={(e) => setNewCode(e.target.value)}
                   placeholder="e.g. RAW-STEEL-V4"
-                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-xl px-3 py-2 text-xs text-slate-800 dark:text-slate-200 uppercase focus:outline-none focus:border-teal-500"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-800 dark:text-slate-200 uppercase focus:outline-none focus:border-teal-500"
                 />
               </div>
               <div>
@@ -319,7 +334,7 @@ export default function InventoryPage() {
                 <input 
                   type="text" required value={newName} onChange={(e) => setNewName(e.target.value)}
                   placeholder="e.g. Raw Sheet Metal"
-                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-xl px-3 py-2 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-teal-500"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-teal-500"
                 />
               </div>
             </div>
@@ -329,7 +344,7 @@ export default function InventoryPage() {
                 <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Category</label>
                 <select 
                   value={newCategory} onChange={(e) => setNewCategory(e.target.value)}
-                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-xl px-3 py-2 text-xs"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs"
                 >
                   <option value="Metals">Metals</option>
                   <option value="Electrical">Electrical</option>
@@ -340,14 +355,14 @@ export default function InventoryPage() {
                 <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Initial Stock Quantity</label>
                 <input 
                   type="number" value={newQty} onChange={(e) => setNewQty(Number(e.target.value))}
-                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-xl px-3 py-2 text-xs text-slate-800 dark:text-slate-200 focus:outline-none"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-800 dark:text-slate-200 focus:outline-none"
                 />
               </div>
               <div>
                 <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Reorder Threshold</label>
                 <input 
                   type="number" value={newReorder} onChange={(e) => setNewReorder(Number(e.target.value))}
-                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-xl px-3 py-2 text-xs text-slate-800 dark:text-slate-200 focus:outline-none"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-800 dark:text-slate-200 focus:outline-none"
                 />
               </div>
             </div>
@@ -357,21 +372,21 @@ export default function InventoryPage() {
                 <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Cost Price (INR)</label>
                 <input 
                   type="number" value={newCost} onChange={(e) => setNewCost(Number(e.target.value))}
-                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-xl px-3 py-2 text-xs text-slate-800 dark:text-slate-200 focus:outline-none"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-800 dark:text-slate-200 focus:outline-none"
                 />
               </div>
               <div>
                 <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Selling Price (INR)</label>
                 <input 
                   type="number" value={newSell} onChange={(e) => setNewSell(Number(e.target.value))}
-                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-xl px-3 py-2 text-xs text-slate-800 dark:text-slate-200 focus:outline-none"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-800 dark:text-slate-200 focus:outline-none"
                 />
               </div>
               <div>
                 <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">GST Rate (%)</label>
                 <select 
                   value={newGst} onChange={(e) => setNewGst(Number(e.target.value))}
-                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-xl px-3 py-2 text-xs"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs"
                 >
                   <option value={5}>5%</option>
                   <option value={12}>12%</option>
@@ -387,7 +402,7 @@ export default function InventoryPage() {
                 <input 
                   type="text" value={newHsn} onChange={(e) => setNewHsn(e.target.value)}
                   placeholder="e.g. 7208.51"
-                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-xl px-3 py-2 text-xs text-slate-800 dark:text-slate-200 focus:outline-none"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-800 dark:text-slate-200 focus:outline-none"
                 />
               </div>
               <div>
@@ -395,14 +410,14 @@ export default function InventoryPage() {
                 <input 
                   type="text" value={newVendor} onChange={(e) => setNewVendor(e.target.value)}
                   placeholder="e.g. Jindal Steel"
-                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-xl px-3 py-2 text-xs text-slate-800 dark:text-slate-200 focus:outline-none"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-800 dark:text-slate-200 focus:outline-none"
                 />
               </div>
               <div>
                 <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Warehouse Location</label>
                 <input 
                   type="text" value={newLocation} onChange={(e) => setNewLocation(e.target.value)}
-                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-xl px-3 py-2 text-xs text-slate-800 dark:text-slate-200 focus:outline-none"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-800 dark:text-slate-200 focus:outline-none"
                 />
               </div>
             </div>
@@ -411,7 +426,7 @@ export default function InventoryPage() {
               <button type="submit" className="px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white rounded-lg text-xs font-bold transition-all">
                 Save SKU
               </button>
-              <button type="button" onClick={resetForm} className="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-850 dark:hover:bg-slate-800 text-slate-500 rounded-lg text-xs font-bold transition-all">
+              <button type="button" onClick={resetForm} className="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-800 text-slate-500 rounded-lg text-xs font-bold transition-all">
                 Cancel
               </button>
             </div>
@@ -428,7 +443,7 @@ export default function InventoryPage() {
                 <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Select SKU</label>
                 <select 
                   value={inwardSKU} onChange={(e) => setInwardSKU(e.target.value)}
-                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-xl px-3 py-2.5 text-xs"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2.5 text-xs"
                 >
                   {skus.map(s => (
                     <option key={s.code} value={s.code}>{s.code} - {s.name}</option>
@@ -440,7 +455,7 @@ export default function InventoryPage() {
                 <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Quantity to Inward</label>
                 <input 
                   type="number" required value={inwardQty} onChange={(e) => setInwardQty(Number(e.target.value))}
-                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-xl px-3 py-2 text-xs text-slate-800 dark:text-slate-200 focus:outline-none"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-800 dark:text-slate-200 focus:outline-none"
                 />
               </div>
 
@@ -449,7 +464,7 @@ export default function InventoryPage() {
                 <input 
                   type="text" required value={inwardReason} onChange={(e) => setInwardReason(e.target.value)}
                   placeholder="e.g. Audit Corrective or Supplier Delivery"
-                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-xl px-3 py-2 text-xs text-slate-800 dark:text-slate-200 focus:outline-none"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-800 dark:text-slate-200 focus:outline-none"
                 />
               </div>
             </div>
@@ -458,7 +473,7 @@ export default function InventoryPage() {
               <button type="submit" className="px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white rounded-lg text-xs font-bold transition-all">
                 Submit Inward
               </button>
-              <button type="button" onClick={() => setIsInwarding(false)} className="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-850 dark:hover:bg-slate-800 text-slate-500 rounded-lg text-xs font-bold transition-all">
+              <button type="button" onClick={() => setIsInwarding(false)} className="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-800 text-slate-500 rounded-lg text-xs font-bold transition-all">
                 Cancel
               </button>
             </div>
@@ -494,7 +509,7 @@ export default function InventoryPage() {
                     {skus.map((s) => {
                       const isLow = s.quantity <= s.reorderPoint;
                       return (
-                        <tr key={s.code} className="hover:bg-slate-50/50 dark:hover:bg-slate-950/10 text-slate-700 dark:text-slate-350 font-medium">
+                        <tr key={s.code} className="hover:bg-slate-50/50 dark:hover:bg-slate-950/10 text-slate-700 dark:text-slate-300 font-medium">
                           <td className="p-4 font-bold text-slate-900 dark:text-slate-100">{s.code}</td>
                           <td className="p-4">
                             <div>
@@ -507,7 +522,7 @@ export default function InventoryPage() {
                           <td className="p-4">
                             <span className={`px-2 py-0.5 rounded text-[10px] font-bold border flex items-center gap-1 w-fit ${
                               isLow 
-                                ? 'bg-red-50 dark:bg-red-950/40 text-red-655 dark:text-red-400 border-red-100 dark:border-red-950 animate-pulse' 
+                                ? 'bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400 border-red-100 dark:border-red-950 animate-pulse' 
                                 : 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border-emerald-100 dark:border-emerald-950'
                             }`}>
                               {isLow && <AlertTriangle className="w-3.5 h-3.5" />}
@@ -568,14 +583,14 @@ export default function InventoryPage() {
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-900 text-xs">
                   {history.map((h) => (
-                    <tr key={h.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-950/10 text-slate-700 dark:text-slate-350">
+                    <tr key={h.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-950/10 text-slate-700 dark:text-slate-300">
                       <td className="p-4 font-mono font-bold text-slate-900 dark:text-slate-100">{h.id}</td>
                       <td className="p-4 font-semibold">{h.skuCode}</td>
                       <td className="p-4">
                         <span className={`px-2 py-0.5 rounded text-[9px] font-bold border flex items-center gap-1 w-fit ${
                           h.type === 'INWARD'
                             ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border-emerald-100 dark:border-emerald-950'
-                            : 'bg-red-50 dark:bg-red-950/40 text-red-655 dark:text-red-400 border-red-100 dark:border-red-950'
+                            : 'bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400 border-red-100 dark:border-red-950'
                         }`}>
                           {h.type === 'INWARD' ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
                           {h.type}
@@ -618,7 +633,7 @@ export default function InventoryPage() {
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-900 text-xs">
                   {purchaseOrders.map((po) => (
-                    <tr key={po.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-950/10 text-slate-700 dark:text-slate-350">
+                    <tr key={po.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-950/10 text-slate-700 dark:text-slate-300">
                       <td className="p-4 font-mono font-bold text-slate-900 dark:text-slate-100">{po.id}</td>
                       <td className="p-4 font-semibold">{po.vendor}</td>
                       <td className="p-4 font-bold">{po.skuCode}</td>
@@ -636,7 +651,7 @@ export default function InventoryPage() {
                         {po.status === 'DRAFT' && (
                           <button 
                             onClick={() => approvePO(po.id)}
-                            className="px-3 py-1 bg-teal-655 bg-teal-600 hover:bg-teal-500 text-white rounded text-[10px] font-black transition-colors"
+                            className="px-3 py-1 bg-teal-600 bg-teal-600 hover:bg-teal-500 text-white rounded text-[10px] font-black transition-colors"
                           >
                             Approve PO
                           </button>
@@ -673,12 +688,12 @@ export default function InventoryPage() {
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-900 text-xs">
                   {dispatches.map((d) => (
-                    <tr key={d.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-950/10 text-slate-700 dark:text-slate-350">
+                    <tr key={d.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-950/10 text-slate-700 dark:text-slate-300">
                       <td className="p-4 font-mono font-bold text-slate-900 dark:text-slate-100">{d.id}</td>
                       <td className="p-4 font-semibold text-slate-800 dark:text-slate-200">{d.customer}</td>
                       <td className="p-4 font-bold">{d.skuCode} ({d.quantity})</td>
                       <td className="p-4">
-                        <span className="px-2 py-0.5 rounded bg-indigo-50 dark:bg-indigo-950/40 text-indigo-650 dark:text-indigo-400 text-[10px] font-black border border-indigo-100 dark:border-indigo-950">
+                        <span className="px-2 py-0.5 rounded bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 text-[10px] font-black border border-indigo-100 dark:border-indigo-950">
                           {d.partner}
                         </span>
                       </td>

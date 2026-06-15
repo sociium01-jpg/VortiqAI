@@ -3,8 +3,13 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Check, ArrowRight, ShieldCheck, Sparkles, Building2, HelpCircle, Sun, Moon } from 'lucide-react';
+import { useUser } from '@clerk/nextjs';
+import { useRouter } from 'next/navigation';
 
 export default function PricingPage() {
+  const { isSignedIn, isLoaded } = useUser();
+  const router = useRouter();
+
   const [billingPeriod, setBillingPeriod] = useState<'quarterly' | 'annual'>('quarterly');
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
 
@@ -20,6 +25,12 @@ export default function PricingPage() {
   const totalPotentialSavings = productivitySavings + softwareSpend;
   const vortiqCost = billingPeriod === 'quarterly' ? 7999 : 5999; // Growth plan reference
   const netSavings = Math.max(0, totalPotentialSavings - vortiqCost);
+
+  useEffect(() => {
+    if (isLoaded && isSignedIn) {
+      router.replace('/dashboard');
+    }
+  }, [isLoaded, isSignedIn, router]);
 
   useEffect(() => {
     const activeTheme = document.documentElement.classList.contains('dark') ? 'dark' : 'light';
@@ -130,7 +141,7 @@ export default function PricingPage() {
         <div className="flex items-center gap-4">
           <button 
             onClick={toggleTheme} 
-            className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl text-slate-505 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors"
+            className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors"
             title="Toggle theme"
           >
             {theme === 'light' ? <Moon className="w-4.5 h-4.5" /> : <Sun className="w-4.5 h-4.5" />}
@@ -149,9 +160,9 @@ export default function PricingPage() {
       <section className="py-20 px-6 text-center max-w-4xl mx-auto space-y-6 relative">
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-teal-500/5 rounded-full blur-[100px] pointer-events-none" />
         <span className="px-4 py-1.5 rounded-full text-xs font-bold bg-teal-500/10 text-teal-700 dark:text-teal-400 border border-teal-500/20 inline-flex items-center gap-2">
-          <Sparkles className="w-3.5 h-3.5 text-teal-650 dark:text-teal-400" /> TRANSPARENT, INDIA-FIRST PRICING
+          <Sparkles className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400" /> TRANSPARENT, INDIA-FIRST PRICING
         </span>
-        <h1 className="text-4xl md:text-6xl font-black tracking-tight leading-none bg-gradient-to-b from-slate-950 via-slate-900 to-slate-700 dark:from-white dark:to-slate-450 bg-clip-text text-transparent">
+        <h1 className="text-4xl md:text-6xl font-black tracking-tight leading-none bg-gradient-to-b from-slate-950 via-slate-900 to-slate-700 dark:from-white dark:to-slate-400 bg-clip-text text-transparent">
           Simple Pricing for Active Teams
         </h1>
         <p className="text-slate-600 dark:text-slate-400 max-w-xl mx-auto text-sm font-semibold">
@@ -181,7 +192,7 @@ export default function PricingPage() {
             className={`p-6 rounded-3xl flex flex-col justify-between relative transition-all duration-300 ${
               p.popular 
                 ? 'bg-white dark:bg-slate-900 border-2 border-teal-500 shadow-2xl shadow-teal-500/5 transform md:-translate-y-2' 
-                : 'bg-white dark:bg-slate-900/40 border border-slate-200 dark:border-slate-850 hover:border-slate-350 dark:hover:border-slate-800 shadow-sm shadow-slate-100 dark:shadow-none'
+                : 'bg-white dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-800 shadow-sm shadow-slate-100 dark:shadow-none'
             }`}
           >
             {p.popular && (
@@ -192,7 +203,7 @@ export default function PricingPage() {
             <div className="space-y-4">
               <div>
                 <h3 className="text-lg font-black text-slate-900 dark:text-white">{p.name}</h3>
-                <p className="text-[11px] text-slate-505 dark:text-slate-400 leading-normal mt-1 min-h-[32px] font-semibold">{p.desc}</p>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-normal mt-1 min-h-[32px] font-semibold">{p.desc}</p>
               </div>
 
               <div className="py-2 border-y border-slate-200 dark:border-slate-800/60">
@@ -225,7 +236,7 @@ export default function PricingPage() {
                 className={`w-full py-3 rounded-xl text-center text-xs font-black transition-all flex items-center justify-center gap-1.5 shadow-lg ${
                   p.popular 
                     ? 'bg-teal-500 hover:bg-teal-400 text-slate-950 shadow-teal-500/10' 
-                    : 'bg-slate-100 dark:bg-slate-850 hover:bg-slate-205 dark:hover:bg-slate-800 text-slate-800 dark:text-white border border-slate-250 dark:border-slate-750'
+                    : 'bg-slate-100 dark:bg-slate-800 hover:bg-slate-205 dark:hover:bg-slate-800 text-slate-800 dark:text-white border border-slate-250 dark:border-slate-700'
                 }`}
               >
                 Start 15-Day Free Trial
@@ -243,13 +254,13 @@ export default function PricingPage() {
           <p className="text-slate-500 dark:text-slate-400 text-xs font-semibold">Estimate how much money and time you recover with VORTIQ Business OS</p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 bg-white dark:bg-slate-900/30 border border-slate-200 dark:border-slate-850 rounded-3xl p-6 md:p-8 shadow-sm">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 bg-white dark:bg-slate-900/30 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 md:p-8 shadow-sm">
           {/* Sliders */}
           <div className="space-y-6">
             <div className="space-y-2">
               <div className="flex justify-between text-xs font-bold">
-                <span className="text-slate-605 dark:text-slate-300">Team Size</span>
-                <span className="text-teal-650 dark:text-teal-400 font-black">{teamSize} Employees</span>
+                <span className="text-slate-600 dark:text-slate-300">Team Size</span>
+                <span className="text-teal-600 dark:text-teal-400 font-black">{teamSize} Employees</span>
               </div>
               <input 
                 type="range" 
@@ -264,7 +275,7 @@ export default function PricingPage() {
             <div className="space-y-2">
               <div className="flex justify-between text-xs font-bold">
                 <span className="text-slate-655 dark:text-slate-300">Current Monthly Software Cost</span>
-                <span className="text-teal-655 dark:text-teal-400 font-black">Rs {softwareSpend.toLocaleString('en-IN')}</span>
+                <span className="text-teal-600 dark:text-teal-400 font-black">Rs {softwareSpend.toLocaleString('en-IN')}</span>
               </div>
               <input 
                 type="range" 
@@ -310,24 +321,24 @@ export default function PricingPage() {
           </div>
 
           {/* Savings Box */}
-          <div className="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-2xl p-6 flex flex-col justify-between">
+          <div className="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 flex flex-col justify-between">
             <div className="space-y-4">
               <h3 className="text-xs font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest">ROI Verdict Summary</h3>
               <div className="grid grid-cols-2 gap-4 text-xs font-semibold">
-                <div className="p-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-850 shadow-sm">
+                <div className="p-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm">
                   <p className="text-slate-500">Productivity Gain</p>
                   <p className="text-sm font-bold text-slate-900 dark:text-white mt-0.5">Rs {Math.round(productivitySavings).toLocaleString('en-IN')}</p>
                 </div>
-                <div className="p-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-850 shadow-sm">
-                  <p className="text-slate-505">Tool Consolidation</p>
+                <div className="p-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm">
+                  <p className="text-slate-500">Tool Consolidation</p>
                   <p className="text-sm font-bold text-slate-900 dark:text-white mt-0.5">Rs {softwareSpend.toLocaleString('en-IN')}</p>
                 </div>
               </div>
             </div>
 
-            <div className="border-t border-slate-200 dark:border-slate-850 pt-4 mt-6">
+            <div className="border-t border-slate-200 dark:border-slate-800 pt-4 mt-6">
               <p className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Estimated Monthly Savings</p>
-              <h4 className="text-3xl font-black text-teal-655 dark:text-teal-400 mt-1">Rs {Math.round(netSavings).toLocaleString('en-IN')}</h4>
+              <h4 className="text-3xl font-black text-teal-600 dark:text-teal-400 mt-1">Rs {Math.round(netSavings).toLocaleString('en-IN')}</h4>
               <p className="text-[10px] text-slate-550 mt-1 font-semibold">Billed at Rs {vortiqCost.toLocaleString('en-IN')}/mo on the Growth Plan.</p>
             </div>
           </div>
@@ -357,12 +368,12 @@ export default function PricingPage() {
       </section>
 
       {/* FOOTER */}
-      <footer className="border-t border-slate-200 dark:border-slate-900 bg-slate-100 dark:bg-slate-950 py-12 px-6 text-center text-xs text-slate-505 space-y-4 transition-colors">
+      <footer className="border-t border-slate-200 dark:border-slate-900 bg-slate-100 dark:bg-slate-950 py-12 px-6 text-center text-xs text-slate-500 space-y-4 transition-colors">
         <div className="flex flex-wrap items-center justify-center gap-4 text-slate-600 dark:text-slate-400 font-bold">
           <Link href="/" className="hover:text-slate-950 dark:hover:text-white transition-colors">Product</Link>
           <Link href="/pricing" className="hover:text-slate-950 dark:hover:text-white transition-colors">Pricing</Link>
           <Link href="/dashboard" className="hover:text-slate-950 dark:hover:text-white transition-colors">Console</Link>
-          <span className="text-slate-300 dark:text-slate-750">|</span>
+          <span className="text-slate-300 dark:text-slate-700">|</span>
           <span className="text-emerald-600 dark:text-emerald-400">GST Ready | e-Invoice | TDS | PF/ESI | DPDP Act 2023</span>
         </div>
         <p>© 2026 Vortiq Business OS. Made in India 🇮🇳 for Indian businesses.</p>

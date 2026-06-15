@@ -8,6 +8,25 @@ import {
   Sun, Moon
 } from 'lucide-react';
 
+function AnimatedCounter({ value, duration = 1200, suffix = "", prefix = "", decimals = 0 }: { value: number; duration?: number; suffix?: string; prefix?: string; decimals?: number }) {
+  const [count, setCount] = useState(0);
+
+  useEffect(() => {
+    let startTimestamp: number | null = null;
+    const step = (timestamp: number) => {
+      if (!startTimestamp) startTimestamp = timestamp;
+      const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+      setCount(progress * value);
+      if (progress < 1) {
+        window.requestAnimationFrame(step);
+      }
+    };
+    window.requestAnimationFrame(step);
+  }, [value, duration]);
+
+  return <span>{prefix}{count.toFixed(decimals)}{suffix}</span>;
+}
+
 export default function LandingPage() {
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
 
@@ -83,7 +102,7 @@ export default function LandingPage() {
           <Sparkles className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400" /> THE AI BUSINESS OS BUILT FOR INDIA
         </span>
 
-        <h1 className="text-5xl md:text-7xl font-black tracking-tight leading-none bg-gradient-to-b from-slate-950 via-slate-900 to-slate-700 dark:from-white dark:to-slate-450 bg-clip-text text-transparent max-w-5xl mx-auto">
+        <h1 className="text-5xl md:text-7xl font-black tracking-tight leading-none bg-gradient-to-b from-slate-950 via-slate-900 to-slate-700 dark:from-white dark:to-slate-400 bg-clip-text text-transparent max-w-5xl mx-auto">
           The AI Business OS <br />built for India
         </h1>
 
@@ -102,20 +121,28 @@ export default function LandingPage() {
 
         {/* Animated stat counters */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-6 pt-12 max-w-4xl mx-auto text-center border-t border-slate-200 dark:border-slate-900/60 mt-16">
-          <div>
-            <h4 className="text-2xl font-black text-slate-900 dark:text-white">63M+</h4>
+          <div className="transform hover:scale-105 transition-transform duration-300">
+            <h4 className="text-2xl font-black text-slate-900 dark:text-white">
+              <AnimatedCounter value={63} suffix="M+" />
+            </h4>
             <p className="text-[10px] text-slate-500 uppercase tracking-widest font-bold mt-1">Indian SMEs</p>
           </div>
-          <div>
-            <h4 className="text-2xl font-black text-slate-900 dark:text-white">12 Modules</h4>
+          <div className="transform hover:scale-105 transition-transform duration-300">
+            <h4 className="text-2xl font-black text-slate-900 dark:text-white">
+              <AnimatedCounter value={12} suffix=" Modules" />
+            </h4>
             <p className="text-[10px] text-slate-500 uppercase tracking-widest font-bold mt-1">Cohesive Flow</p>
           </div>
-          <div>
-            <h4 className="text-2xl font-black text-slate-900 dark:text-white">Zero AI Cost</h4>
+          <div className="transform hover:scale-105 transition-transform duration-300">
+            <h4 className="text-2xl font-black text-slate-900 dark:text-white">
+              <span>Zero</span> AI Cost
+            </h4>
             <p className="text-[10px] text-slate-500 uppercase tracking-widest font-bold mt-1">BYOK Routing</p>
           </div>
-          <div>
-            <h4 className="text-2xl font-black text-slate-900 dark:text-white">15-Min Setup</h4>
+          <div className="transform hover:scale-105 transition-transform duration-300">
+            <h4 className="text-2xl font-black text-slate-900 dark:text-white">
+              <AnimatedCounter value={15} suffix="-Min Setup" />
+            </h4>
             <p className="text-[10px] text-slate-500 uppercase tracking-widest font-bold mt-1">No Consultants</p>
           </div>
         </div>
@@ -152,15 +179,15 @@ export default function LandingPage() {
           </div>
           <div className="p-6 rounded-3xl bg-white dark:bg-slate-900/30 border border-slate-200 dark:border-slate-900 space-y-4 opacity-75 shadow-sm shadow-slate-100">
             <h3 className="text-sm font-black text-slate-400 uppercase tracking-wider border-b border-slate-100 dark:border-slate-900 pb-2">Zoho</h3>
-            <p className="text-xs text-red-650 dark:text-red-400 font-bold">✗ Charges Rs 1,250/employee even for inactive users.</p>
-            <p className="text-xs text-red-650 dark:text-red-400 font-bold">✗ Requires complex third-party consulting.</p>
-            <p className="text-xs text-red-650 dark:text-red-400 font-bold">✗ Fragmented modules require manual syncing.</p>
+            <p className="text-xs text-red-600 dark:text-red-400 font-bold">✗ Charges Rs 1,250/employee even for inactive users.</p>
+            <p className="text-xs text-red-600 dark:text-red-400 font-bold">✗ Requires complex third-party consulting.</p>
+            <p className="text-xs text-red-600 dark:text-red-400 font-bold">✗ Fragmented modules require manual syncing.</p>
           </div>
           <div className="p-6 rounded-3xl bg-white dark:bg-slate-900/30 border border-slate-200 dark:border-slate-900 space-y-4 opacity-75 shadow-sm shadow-slate-100">
             <h3 className="text-sm font-black text-slate-400 uppercase tracking-wider border-b border-slate-100 dark:border-slate-900 pb-2">HubSpot</h3>
-            <p className="text-xs text-red-650 dark:text-red-400 font-bold">✗ Costs Rs 75,000/month for advanced features.</p>
-            <p className="text-xs text-red-650 dark:text-red-400 font-bold">✗ Zero native support for Indian GST/TDS.</p>
-            <p className="text-xs text-red-650 dark:text-red-400 font-bold">✗ Standard USD pricing cuts margin.</p>
+            <p className="text-xs text-red-600 dark:text-red-400 font-bold">✗ Costs Rs 75,000/month for advanced features.</p>
+            <p className="text-xs text-red-600 dark:text-red-400 font-bold">✗ Zero native support for Indian GST/TDS.</p>
+            <p className="text-xs text-red-600 dark:text-red-400 font-bold">✗ Standard USD pricing cuts margin.</p>
           </div>
         </div>
       </section>
@@ -174,7 +201,7 @@ export default function LandingPage() {
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {featuresList.map((f, idx) => (
-            <div key={idx} className="p-6 rounded-3xl bg-white dark:bg-slate-900/20 border border-slate-200 dark:border-slate-900 space-y-3 hover:border-slate-350 dark:hover:border-slate-800 transition-all shadow-sm shadow-slate-100">
+            <div key={idx} className="p-6 rounded-3xl bg-white dark:bg-slate-900/20 border border-slate-200 dark:border-slate-900 space-y-3 hover:border-slate-300 dark:hover:border-slate-800 transition-all shadow-sm shadow-slate-100">
               <h3 className="text-sm font-extrabold text-slate-900 dark:text-white">{f.title}</h3>
               <p className="text-xs text-slate-600 dark:text-slate-400 leading-normal font-semibold">{f.desc}</p>
             </div>
@@ -196,7 +223,7 @@ export default function LandingPage() {
             { quote: "Outbound qualified lead calls now sync directly with our database. The response rate is 3x faster than manual dialers.", author: "Karan S., B2B SaaS Growth Lead" }
           ].map((t, idx) => (
             <div key={idx} className="p-6 rounded-3xl bg-white dark:bg-slate-900/35 border border-slate-200 dark:border-slate-900 space-y-4 text-xs shadow-sm shadow-slate-100">
-              <p className="text-slate-650 dark:text-slate-300 italic font-semibold leading-relaxed">"{t.quote}"</p>
+              <p className="text-slate-600 dark:text-slate-300 italic font-semibold leading-relaxed">"{t.quote}"</p>
               <p className="font-extrabold text-teal-600 dark:text-teal-400">— {t.author}</p>
             </div>
           ))}
@@ -204,16 +231,22 @@ export default function LandingPage() {
 
         {/* Stats bar */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-center bg-white dark:bg-slate-900/20 border border-slate-200 dark:border-slate-900 p-6 rounded-3xl shadow-sm">
-          <div>
-            <h4 className="text-xl font-black text-slate-900 dark:text-white">40%</h4>
+          <div className="transform hover:scale-105 transition-transform duration-300">
+            <h4 className="text-xl font-black text-slate-900 dark:text-white">
+              <AnimatedCounter value={40} suffix="%" />
+            </h4>
             <p className="text-[9px] text-slate-500 uppercase tracking-wider font-bold mt-1">Reduction in manual ops</p>
           </div>
-          <div>
-            <h4 className="text-xl font-black text-slate-900 dark:text-white">3x Faster</h4>
+          <div className="transform hover:scale-105 transition-transform duration-300">
+            <h4 className="text-xl font-black text-slate-900 dark:text-white">
+              <AnimatedCounter value={3} suffix="x Faster" />
+            </h4>
             <p className="text-[9px] text-slate-500 uppercase tracking-wider font-bold mt-1">Lead Response Time</p>
           </div>
-          <div>
-            <h4 className="text-xl font-black text-slate-900 dark:text-white">Rs 2.3L/mo</h4>
+          <div className="transform hover:scale-105 transition-transform duration-300">
+            <h4 className="text-xl font-black text-slate-900 dark:text-white">
+              <AnimatedCounter value={2.3} decimals={1} prefix="Rs " suffix="L/mo" />
+            </h4>
             <p className="text-[9px] text-slate-500 uppercase tracking-wider font-bold mt-1">Productivity Recovered</p>
           </div>
         </div>
@@ -225,9 +258,9 @@ export default function LandingPage() {
           <Link href="/pricing" className="hover:text-slate-900 dark:hover:text-white transition-colors">Pricing</Link>
           <Link href="/demo" className="hover:text-slate-900 dark:hover:text-white transition-colors">See Demo</Link>
           <Link href="/signup" className="hover:text-slate-900 dark:hover:text-white transition-colors">Start Free Trial</Link>
-          <span className="text-slate-300 dark:text-slate-750">|</span>
+          <span className="text-slate-300 dark:text-slate-700">|</span>
           <span className="text-emerald-600 dark:text-emerald-400">GST Ready | e-Invoice | TDS | PF/ESI | DPDP Act 2023</span>
-          <span className="text-slate-300 dark:text-slate-750">|</span>
+          <span className="text-slate-300 dark:text-slate-700">|</span>
           <Link href="/admin" className="text-rose-600 dark:text-rose-400 hover:text-rose-500 dark:hover:text-rose-300 transition-colors">Vortiq Team Portal</Link>
         </div>
         <p>© 2026 Vortiq Business OS. Made in India 🇮🇳 for Indian businesses.</p>

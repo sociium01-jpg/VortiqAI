@@ -1,6 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
+import { useUser } from '@clerk/nextjs';
+
+import React, { useState, useEffect } from 'react';
 import ConsoleLayout, { formatINR } from '../ConsoleLayout';
 import { 
   PhoneCall, Play, Pause, Sparkles, Brain, Clock, ShieldCheck, 
@@ -10,6 +12,18 @@ import { handlePrint, handleExportPDF } from '../utils/export';
 import ModuleAgentSidebar from '../utils/ModuleAgentSidebar';
 
 export default function SalesPage() {
+  const { user, isLoaded } = useUser();
+  const isDemo = isLoaded && user?.primaryEmailAddress?.emailAddress?.toLowerCase() === 'demo@vortiq.ai';
+
+  useEffect(() => {
+    if (isLoaded && !isDemo) {
+      setCallQueue([]);
+      setRevenueAchieved(0);
+      setTargetAmount(0);
+      setActivities([]);
+    }
+  }, [isLoaded, isDemo]);
+
   // Mock outbound calls queue
   const [callQueue, setCallQueue] = useState([
     { id: 'CALL-001', name: 'Ravi Shah', phone: '+91 98765 43210', company: 'Bharat Forge', status: 'QUEUED', timeRestriction: 'TRAI OK (10 AM - 7 PM IST)', ncprScrubbed: true },
@@ -128,7 +142,7 @@ export default function SalesPage() {
           <div className="border-b border-slate-200 dark:border-slate-900 pb-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
               <h2 className="text-xl font-black text-slate-900 dark:text-white flex items-center gap-2">
-                <PhoneCall className="w-5.5 h-5.5 text-teal-655 text-teal-600 dark:text-teal-400" /> Sales & Calls
+                <PhoneCall className="w-5.5 h-5.5 text-teal-600 text-teal-600 dark:text-teal-400" /> Sales & Calls
               </h2>
               <p className="text-xs text-slate-500 font-semibold mt-0.5">Manage outbound calling compliance, log rep call outcomes, and configure AI scripts.</p>
             </div>
@@ -150,7 +164,7 @@ export default function SalesPage() {
               </button>
               <button 
                 onClick={() => setShowLoggerForm(!showLoggerForm)}
-                className="px-4 py-2.5 bg-teal-600 dark:bg-teal-500 hover:bg-teal-750 dark:hover:bg-teal-450 text-white dark:text-slate-950 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 shadow-md"
+                className="px-4 py-2.5 bg-teal-600 dark:bg-teal-500 hover:bg-teal-700 dark:hover:bg-teal-500 text-white dark:text-slate-950 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 shadow-md"
               >
                 <Plus className="w-4 h-4" /> Log Call Outcome
               </button>
@@ -185,7 +199,7 @@ export default function SalesPage() {
                   <select 
                     value={logOutcome} 
                     onChange={(e) => setLogOutcome(e.target.value)}
-                    className="w-full bg-slate-50 dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-1.5 text-xs text-slate-800 dark:text-slate-350 focus:outline-none"
+                    className="w-full bg-slate-50 dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-1.5 text-xs text-slate-800 dark:text-slate-300 focus:outline-none"
                   >
                     <option value="CONNECTED">Connected & Spoke</option>
                     <option value="NO_ANSWER">No Answer</option>
@@ -199,7 +213,7 @@ export default function SalesPage() {
                   <select 
                     value={logLinkedDeal} 
                     onChange={(e) => setLogLinkedDeal(e.target.value)}
-                    className="w-full bg-slate-50 dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-1.5 text-xs text-slate-850 dark:text-white focus:outline-none"
+                    className="w-full bg-slate-50 dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-1.5 text-xs text-slate-800 dark:text-white focus:outline-none"
                   >
                     <option value="None">None</option>
                     <option value="Raw Sheet Supply Deal">Raw Sheet Supply Deal</option>
@@ -226,7 +240,7 @@ export default function SalesPage() {
                 </div>
               </div>
               <div className="flex gap-2">
-                <button type="submit" className="px-4 py-2 bg-teal-650 hover:bg-teal-750 text-white rounded-lg text-xs font-bold transition-all">
+                <button type="submit" className="px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-lg text-xs font-bold transition-all">
                   Save Log Entry
                 </button>
                 <button type="button" onClick={() => setShowLoggerForm(false)} className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-500 rounded-lg text-xs font-semibold">
@@ -243,32 +257,32 @@ export default function SalesPage() {
             <div className="lg:col-span-2 bg-white dark:bg-slate-900/20 border border-slate-200 dark:border-slate-900 rounded-3xl p-5 shadow-sm space-y-4">
               <div className="flex items-center justify-between">
                 <h3 className="text-xs font-bold text-slate-700 dark:text-slate-200 uppercase tracking-widest flex items-center gap-1.5">
-                  <PhoneCall className="w-4.5 h-4.5 text-teal-650" /> Outbound Call Dispatcher
+                  <PhoneCall className="w-4.5 h-4.5 text-teal-600" /> Outbound Call Dispatcher
                 </h3>
                 <button 
                   onClick={handleTriggerCalls}
                   disabled={callingState === 'CALLING'}
-                  className="px-3.5 py-2 bg-teal-605 dark:bg-teal-500 hover:bg-teal-750 dark:hover:bg-teal-400 disabled:opacity-50 text-white dark:text-slate-955 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 shadow-sm"
+                  className="px-3.5 py-2 bg-teal-605 dark:bg-teal-500 hover:bg-teal-700 dark:hover:bg-teal-400 disabled:opacity-50 text-white dark:text-slate-955 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 shadow-sm"
                 >
                   <Play className="w-3.5 h-3.5 fill-white dark:fill-slate-955" /> {callingState === 'CALLING' ? 'Executing Queue...' : 'Trigger Call Queue'}
                 </button>
               </div>
 
-              <div className="p-3 bg-amber-500/5 dark:bg-slate-950 border border-amber-500/10 dark:border-slate-850 rounded-2xl flex items-start gap-2.5 text-xs text-slate-550 dark:text-slate-400 leading-normal">
+              <div className="p-3 bg-amber-500/5 dark:bg-slate-950 border border-amber-500/10 dark:border-slate-800 rounded-2xl flex items-start gap-2.5 text-xs text-slate-550 dark:text-slate-400 leading-normal">
                 <Clock className="w-4 h-4 text-amber-500 dark:text-teal-400 shrink-0 mt-0.5" />
                 <div>
-                  <p className="font-extrabold text-slate-850 dark:text-white">TRAI Time Compliance (10 AM - 7 PM IST)</p>
+                  <p className="font-extrabold text-slate-800 dark:text-white">TRAI Time Compliance (10 AM - 7 PM IST)</p>
                   <p className="text-[10px] text-slate-500 font-medium">Platform voice dialers restrict commercial tele-calling according to NDNC scrub registry regulations.</p>
                 </div>
               </div>
 
               <div className="space-y-2.5">
                 {callQueue.map((item) => (
-                  <div key={item.id} className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-850 flex items-center justify-between text-xs shadow-sm">
+                  <div key={item.id} className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 flex items-center justify-between text-xs shadow-sm">
                     <div className="space-y-1">
                       <div className="flex items-center gap-2">
                         <span className="font-extrabold text-slate-900 dark:text-white">{item.name} ({item.company})</span>
-                        <span className="text-[10px] text-slate-450 font-semibold">{item.phone}</span>
+                        <span className="text-[10px] text-slate-400 font-semibold">{item.phone}</span>
                       </div>
                       <div className="flex flex-wrap gap-2 text-[10px] font-bold">
                         <span className="text-slate-550">{item.timeRestriction}</span>
@@ -279,7 +293,7 @@ export default function SalesPage() {
                     </div>
                     <span className={`px-2 py-0.5 rounded text-[9px] font-bold border ${
                       item.status === 'COMPLETED' ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/25' :
-                      item.status === 'DND_BLOCKED' ? 'bg-red-500/10 text-red-650 dark:text-red-400 border-red-500/25' :
+                      item.status === 'DND_BLOCKED' ? 'bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/25' :
                       'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/25 animate-pulse'
                     }`}>
                       {item.status}
@@ -292,7 +306,7 @@ export default function SalesPage() {
             {/* AI voice script configurations */}
             <div className="bg-white dark:bg-slate-900/20 border border-slate-200 dark:border-slate-900 rounded-3xl p-5 shadow-sm space-y-5">
               <h3 className="text-xs font-bold text-slate-700 dark:text-slate-205 uppercase tracking-widest flex items-center gap-1.5">
-                <FileText className="w-4.5 h-4.5 text-teal-650" /> AI voice Script configs
+                <FileText className="w-4.5 h-4.5 text-teal-600" /> AI voice Script configs
               </h3>
 
               <div className="flex gap-2">
@@ -302,8 +316,8 @@ export default function SalesPage() {
                     onClick={() => setSelectedScript(sc)}
                     className={`px-3 py-1.5 rounded-lg text-[9px] font-bold border transition-all ${
                       selectedScript === sc 
-                        ? 'bg-teal-500/10 border-teal-500/30 text-teal-650 dark:text-teal-400' 
-                        : 'bg-slate-50 dark:bg-slate-955 border border-slate-200 dark:border-slate-850 text-slate-500'
+                        ? 'bg-teal-500/10 border-teal-500/30 text-teal-600 dark:text-teal-400' 
+                        : 'bg-slate-50 dark:bg-slate-955 border border-slate-200 dark:border-slate-800 text-slate-500'
                     }`}
                   >
                     {sc.replace('_', ' ')}
@@ -311,7 +325,7 @@ export default function SalesPage() {
                 ))}
               </div>
 
-              <div className="p-4 bg-slate-50 dark:bg-slate-955 border border-slate-150 dark:border-slate-850 rounded-2xl text-[11px] text-slate-700 dark:text-slate-350 font-semibold leading-relaxed relative min-h-[120px]">
+              <div className="p-4 bg-slate-50 dark:bg-slate-955 border border-slate-150 dark:border-slate-800 rounded-2xl text-[11px] text-slate-700 dark:text-slate-300 font-semibold leading-relaxed relative min-h-[120px]">
                 <span className="absolute -top-2 right-4 px-2 py-0.5 bg-indigo-500/10 text-indigo-700 dark:text-indigo-400 border border-indigo-500/20 rounded text-[9px] font-bold">
                   Script text
                 </span>
@@ -361,8 +375,8 @@ export default function SalesPage() {
             <h3 className="text-xs font-bold text-slate-700 dark:text-slate-200 uppercase tracking-widest">Calling Activity Log</h3>
             <div className="space-y-3">
               {activities.map((a) => (
-                <div key={a.id} className="p-3 bg-slate-50 dark:bg-slate-955 border border-slate-150 dark:border-slate-900 rounded-xl flex items-center justify-between text-xs font-semibold text-slate-650 dark:text-slate-400 shadow-inner">
-                  <span className="text-slate-800 dark:text-slate-350">{a.desc}</span>
+                <div key={a.id} className="p-3 bg-slate-50 dark:bg-slate-955 border border-slate-150 dark:border-slate-900 rounded-xl flex items-center justify-between text-xs font-semibold text-slate-600 dark:text-slate-400 shadow-inner">
+                  <span className="text-slate-800 dark:text-slate-300">{a.desc}</span>
                   <span className="text-[10px] text-slate-500 shrink-0">{a.time}</span>
                 </div>
               ))}

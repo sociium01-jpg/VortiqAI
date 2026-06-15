@@ -1,6 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
+import { useUser } from '@clerk/nextjs';
+
+import React, { useState, useEffect } from 'react';
 import ConsoleLayout from '../ConsoleLayout';
 import { 
   LifeBuoy, Plus, Sparkles, Brain, AlertTriangle, 
@@ -31,6 +33,17 @@ interface Ticket {
 }
 
 export default function SupportPage() {
+  const { user, isLoaded } = useUser();
+  const isDemo = isLoaded && user?.primaryEmailAddress?.emailAddress?.toLowerCase() === 'demo@vortiq.ai';
+
+  useEffect(() => {
+    if (isLoaded && !isDemo) {
+      setTickets([]);
+      setSelectedTicketId(null);
+      setAiAnalysis("SupportAgent Monitor: Ticket queue is empty. Customer support channels are quiet.");
+    }
+  }, [isLoaded, isDemo]);
+
   const [tickets, setTickets] = useState<Ticket[]>([
     { 
       id: 'TCK-801', 
@@ -232,7 +245,7 @@ export default function SupportPage() {
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white dark:bg-slate-900/40 p-6 rounded-2xl border border-slate-200 dark:border-slate-900 shadow-sm">
           <div>
             <h2 className="text-xl font-black text-slate-900 dark:text-white flex items-center gap-2">
-              <LifeBuoy className="w-5.5 h-5.5 text-teal-655 text-teal-600 dark:text-teal-400" />
+              <LifeBuoy className="w-5.5 h-5.5 text-teal-600 text-teal-600 dark:text-teal-400" />
               Customer Support Desk
             </h2>
             <p className="text-xs text-slate-500 font-semibold mt-1">
@@ -262,11 +275,11 @@ export default function SupportPage() {
               <div className="flex items-center gap-2">
                 <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider flex items-center gap-1">
                   SupportAgent Core
-                  <Clock className="w-3.5 h-3.5 text-teal-650" />
+                  <Clock className="w-3.5 h-3.5 text-teal-600" />
                 </h4>
                 <span className="text-[9px] px-1.5 py-0.5 bg-teal-500/20 text-teal-700 dark:text-teal-400 font-black rounded-full">SLA Watchdog</span>
               </div>
-              <p className="text-xs text-slate-600 dark:text-slate-350 mt-1 font-medium max-w-2xl leading-relaxed">
+              <p className="text-xs text-slate-600 dark:text-slate-300 mt-1 font-medium max-w-2xl leading-relaxed">
                 "{aiAnalysis}"
               </p>
             </div>
@@ -292,7 +305,7 @@ export default function SupportPage() {
                 <input 
                   type="text" required value={newCustomer} onChange={(e) => setNewCustomer(e.target.value)}
                   placeholder="e.g. Amit Desai"
-                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-xl px-3 py-2 text-xs text-slate-800 dark:text-slate-200 focus:outline-none"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-800 dark:text-slate-200 focus:outline-none"
                 />
               </div>
               <div>
@@ -300,7 +313,7 @@ export default function SupportPage() {
                 <input 
                   type="email" value={newEmail} onChange={(e) => setNewEmail(e.target.value)}
                   placeholder="e.g. amit@gmail.com"
-                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-xl px-3 py-2 text-xs text-slate-800 dark:text-slate-200 focus:outline-none"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-800 dark:text-slate-200 focus:outline-none"
                 />
               </div>
             </div>
@@ -310,7 +323,7 @@ export default function SupportPage() {
                 <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Support Category</label>
                 <select 
                   value={newCategory} onChange={(e) => setNewCategory(e.target.value as any)}
-                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-xl px-3 py-2 text-xs"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs"
                 >
                   <option value="INTEGRATION">Integration Setup</option>
                   <option value="FINANCE">Billing & GST</option>
@@ -322,7 +335,7 @@ export default function SupportPage() {
                 <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Priority / SLA Severity</label>
                 <select 
                   value={newPriority} onChange={(e) => setNewPriority(e.target.value as any)}
-                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-xl px-3 py-2 text-xs"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs"
                 >
                   <option value="LOW">Low Severity</option>
                   <option value="MEDIUM">Medium Severity</option>
@@ -337,7 +350,7 @@ export default function SupportPage() {
               <input 
                 type="text" required value={newSubject} onChange={(e) => setNewSubject(e.target.value)}
                 placeholder="e.g. Tally Integration failing with XML error"
-                className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-855 rounded-xl px-3 py-2 text-xs text-slate-800 dark:text-slate-200 focus:outline-none"
+                className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-800 dark:text-slate-200 focus:outline-none"
               />
             </div>
 
@@ -346,7 +359,7 @@ export default function SupportPage() {
               <textarea 
                 rows={4} value={newDesc} onChange={(e) => setNewDesc(e.target.value)}
                 placeholder="Provide detailed description of the customer issue..."
-                className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-855 rounded-xl px-3 py-2 text-xs text-slate-800 dark:text-slate-200 focus:outline-none resize-none"
+                className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-800 dark:text-slate-200 focus:outline-none resize-none"
               />
             </div>
 
@@ -354,7 +367,7 @@ export default function SupportPage() {
               <button type="submit" className="px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white rounded-lg text-xs font-bold transition-all">
                 Open Ticket
               </button>
-              <button type="button" onClick={resetForm} className="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-850 dark:hover:bg-slate-800 text-slate-500 rounded-lg text-xs font-bold transition-all">
+              <button type="button" onClick={resetForm} className="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-800 text-slate-500 rounded-lg text-xs font-bold transition-all">
                 Cancel
               </button>
             </div>
@@ -375,14 +388,14 @@ export default function SupportPage() {
                   placeholder="Search Ticket ID or client name..." 
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-xl pl-9 pr-3 py-2 text-xs"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl pl-9 pr-3 py-2 text-xs"
                 />
                 <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
               </div>
               <div className="flex gap-2 shrink-0">
                 <select 
                   value={priorityFilter} onChange={(e) => setPriorityFilter(e.target.value)}
-                  className="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-xl px-3 py-2 text-xs"
+                  className="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs"
                 >
                   <option value="ALL">All Priorities</option>
                   <option value="URGENT">Urgent Only</option>
@@ -392,7 +405,7 @@ export default function SupportPage() {
                 </select>
                 <select 
                   value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}
-                  className="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-xl px-3 py-2 text-xs"
+                  className="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs"
                 >
                   <option value="ALL">All Statuses</option>
                   <option value="OPEN">Open</option>
@@ -423,15 +436,15 @@ export default function SupportPage() {
                       <tr 
                         key={t.id} 
                         onClick={() => setSelectedTicketId(t.id)}
-                        className={`cursor-pointer hover:bg-slate-50/50 dark:hover:bg-slate-950/10 text-slate-700 dark:text-slate-350 font-medium transition-all ${
+                        className={`cursor-pointer hover:bg-slate-50/50 dark:hover:bg-slate-950/10 text-slate-700 dark:text-slate-300 font-medium transition-all ${
                           active ? 'bg-teal-500/5 dark:bg-teal-400/5 border-l-4 border-l-teal-600' : ''
                         }`}
                       >
                         <td className="p-3 font-mono font-bold text-slate-900 dark:text-slate-100">{t.id}</td>
                         <td className="p-3">
                           <div>
-                            <p className="font-semibold text-slate-850">{t.subject}</p>
-                            <p className="text-[10px] text-slate-450 mt-0.5">{t.customer} • {t.email}</p>
+                            <p className="font-semibold text-slate-800">{t.subject}</p>
+                            <p className="text-[10px] text-slate-400 mt-0.5">{t.customer} • {t.email}</p>
                           </div>
                         </td>
                         <td className="p-3">
@@ -440,8 +453,8 @@ export default function SupportPage() {
                           ) : (
                             <span className={`px-2 py-0.5 rounded text-[9px] font-black border flex items-center gap-1 w-fit ${
                               isSlaBreached 
-                                ? 'bg-red-50 dark:bg-red-950/40 text-red-655 dark:text-red-400 border-red-100 dark:border-red-950 animate-pulse' 
-                                : 'bg-slate-100 dark:bg-slate-800 text-slate-600 border-slate-250 dark:border-slate-750'
+                                ? 'bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400 border-red-100 dark:border-red-950 animate-pulse' 
+                                : 'bg-slate-100 dark:bg-slate-800 text-slate-600 border-slate-250 dark:border-slate-700'
                             }`}>
                               {t.slaMinutesRemaining}m remaining
                             </span>
@@ -449,7 +462,7 @@ export default function SupportPage() {
                         </td>
                         <td className="p-3">
                           <span className={`px-2 py-0.5 rounded text-[9px] font-bold border ${
-                            t.sentiment === 'NEGATIVE' ? 'bg-red-50 text-red-655 border-red-100' :
+                            t.sentiment === 'NEGATIVE' ? 'bg-red-50 text-red-600 border-red-100' :
                             t.sentiment === 'POSITIVE' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
                             'bg-slate-50 text-slate-500 border-slate-200'
                           }`}>
@@ -457,7 +470,7 @@ export default function SupportPage() {
                           </span>
                         </td>
                         <td className="p-3">
-                          <span className="px-1.5 py-0.5 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-650 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-950 text-[9px] font-black rounded">
+                          <span className="px-1.5 py-0.5 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-950 text-[9px] font-black rounded">
                             {t.category}
                           </span>
                         </td>
@@ -486,28 +499,28 @@ export default function SupportPage() {
           <div className="lg:col-span-5 bg-white dark:bg-slate-900/20 border border-slate-200 dark:border-slate-900 p-5 rounded-2xl shadow-sm space-y-4">
             {selectedTicket ? (
               <div className="space-y-4 animate-fadeIn">
-                <div className="flex justify-between items-start border-b border-slate-100 dark:border-slate-850 pb-3">
+                <div className="flex justify-between items-start border-b border-slate-100 dark:border-slate-800 pb-3">
                   <div>
                     <h3 className="text-xs font-black text-slate-400 font-mono uppercase">{selectedTicket.id} Detail</h3>
                     <h4 className="text-sm font-bold text-slate-900 dark:text-slate-100 mt-1">{selectedTicket.subject}</h4>
                     <p className="text-[10px] text-slate-500">From: {selectedTicket.customer} ({selectedTicket.email})</p>
                   </div>
                   <span className={`px-2 py-0.5 rounded text-[9px] font-black border uppercase ${
-                    selectedTicket.status === 'RESOLVED' ? 'bg-slate-100 text-slate-500' : 'bg-teal-50 border-teal-200 text-teal-650'
+                    selectedTicket.status === 'RESOLVED' ? 'bg-slate-100 text-slate-500' : 'bg-teal-50 border-teal-200 text-teal-600'
                   }`}>
                     {selectedTicket.status}
                   </span>
                 </div>
 
-                <div className="bg-slate-50 dark:bg-slate-950 p-4 rounded-xl border border-slate-200 dark:border-slate-850 text-xs text-slate-700 dark:text-slate-350 leading-relaxed font-semibold">
+                <div className="bg-slate-50 dark:bg-slate-950 p-4 rounded-xl border border-slate-200 dark:border-slate-800 text-xs text-slate-700 dark:text-slate-300 leading-relaxed font-semibold">
                   {selectedTicket.description}
                 </div>
 
                 {/* Sentiment Alert */}
-                <div className="flex items-center gap-2 p-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-xl text-xs">
+                <div className="flex items-center gap-2 p-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs">
                   <span className="text-[10px] text-slate-500 uppercase font-black">Client Sentiment:</span>
                   <span className={`px-2 py-0.5 rounded text-[10px] font-black border ${
-                    selectedTicket.sentiment === 'NEGATIVE' ? 'bg-red-50 text-red-655 border-red-100 animate-pulse' : 'bg-slate-50 text-slate-500'
+                    selectedTicket.sentiment === 'NEGATIVE' ? 'bg-red-50 text-red-600 border-red-100 animate-pulse' : 'bg-slate-50 text-slate-500'
                   }`}>
                     {selectedTicket.sentiment}
                   </span>
@@ -522,7 +535,7 @@ export default function SupportPage() {
                       className={`p-3 rounded-lg border text-[11px] ${
                         comment.isInternal 
                           ? 'bg-amber-500/5 border-amber-500/20 text-amber-600' 
-                          : 'bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-850 text-slate-600 dark:text-slate-400'
+                          : 'bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400'
                       }`}
                     >
                       <p className="font-bold mb-0.5">{comment.user} <span className="text-[9px] font-semibold text-slate-400">({comment.time})</span></p>
@@ -533,7 +546,7 @@ export default function SupportPage() {
 
                 {/* Responder Form */}
                 {selectedTicket.status !== 'RESOLVED' && (
-                  <form onSubmit={handleSendReply} className="border-t border-slate-100 dark:border-slate-850 pt-4 space-y-3">
+                  <form onSubmit={handleSendReply} className="border-t border-slate-100 dark:border-slate-800 pt-4 space-y-3">
                     <div className="flex justify-between items-center">
                       <div className="flex gap-2">
                         <button 
@@ -541,7 +554,7 @@ export default function SupportPage() {
                           onClick={() => setIsInternalNote(false)}
                           className={`px-3 py-1 rounded-lg text-[10px] font-bold border transition-colors ${
                             !isInternalNote 
-                              ? 'bg-teal-50 border-teal-200 text-teal-650' 
+                              ? 'bg-teal-50 border-teal-200 text-teal-600' 
                               : 'bg-slate-50 text-slate-500'
                           }`}
                         >
@@ -552,7 +565,7 @@ export default function SupportPage() {
                           onClick={() => setIsInternalNote(true)}
                           className={`px-3 py-1 rounded-lg text-[10px] font-bold border transition-colors ${
                             isInternalNote 
-                              ? 'bg-amber-50 border-amber-250 text-amber-650' 
+                              ? 'bg-amber-50 border-amber-250 text-amber-600' 
                               : 'bg-slate-50 text-slate-500'
                           }`}
                         >
@@ -574,7 +587,7 @@ export default function SupportPage() {
                       onChange={(e) => setReplyText(e.target.value)}
                       rows={3}
                       placeholder={isInternalNote ? "Write internal log (hidden from client)..." : "Write response message to client..."}
-                      className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-xl p-2.5 text-xs text-slate-800 dark:text-slate-200 focus:outline-none resize-none"
+                      className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl p-2.5 text-xs text-slate-800 dark:text-slate-200 focus:outline-none resize-none"
                     />
 
                     <div className="flex justify-end">

@@ -37,7 +37,7 @@ export default function SignupPage() {
               colorTextSecondary: '#94a3b8', // Slate-400
             },
             elements: {
-              card: 'border border-slate-850 shadow-2xl rounded-3xl backdrop-blur-md bg-slate-900/40 p-2 w-full',
+              card: 'border border-slate-800 shadow-2xl rounded-3xl backdrop-blur-md bg-slate-900/40 p-2 w-full',
               socialButtonsBlockButton: 'border border-slate-800 bg-slate-950 hover:bg-slate-900 text-xs py-2.5 rounded-xl font-semibold',
               formButtonPrimary: 'bg-teal-500 hover:bg-teal-400 text-slate-950 font-black py-2.5 rounded-xl transition-all shadow-lg shadow-teal-500/10 text-xs',
               formFieldInput: 'bg-slate-950 border border-slate-800 focus:border-teal-500 rounded-xl py-2.5 text-xs text-white placeholder-slate-600 focus:outline-none transition-all',

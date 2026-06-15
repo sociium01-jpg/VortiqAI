@@ -1,6 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
+import { useUser } from '@clerk/nextjs';
+
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { 
   Building2, Users, CheckSquare, ShieldCheck, Mail, Lock, 
@@ -11,6 +13,20 @@ import { handlePrint, handleExportPDF, handleExportExcel, handleExportWord } fro
 import ModuleAgentSidebar from '../utils/ModuleAgentSidebar';
 
 export default function VortiqAdminPage() {
+  const { user, isLoaded } = useUser();
+  const isDemo = isLoaded && user?.primaryEmailAddress?.emailAddress?.toLowerCase() === 'demo@vortiq.ai';
+
+  useEffect(() => {
+    if (isLoaded && !isDemo) {
+      setClients([]);
+      setTickets([]);
+      setTasks([]);
+      setFinanceEntries([]);
+      setEmployees([]);
+      setFinancials({ paymentsDone: 0, receivables: 0, expenses: 0 });
+    }
+  }, [isLoaded, isDemo]);
+
   const [activeTab, setActiveTab] = useState('dashboard');
   const [showSecret, setShowSecret] = useState<Record<string, boolean>>({});
 
@@ -204,10 +220,10 @@ export default function VortiqAdminPage() {
                   <p className="text-xs text-slate-500 font-semibold mt-0.5">Real-time stats on client trials, payments receivable, and internal support workloads.</p>
                 </div>
                 <div className="flex gap-2">
-                  <button onClick={handlePrint} className="p-2 hover:bg-slate-900 border border-slate-850 rounded-xl text-slate-400 hover:text-white transition-colors" title="Print page">
+                  <button onClick={handlePrint} className="p-2 hover:bg-slate-900 border border-slate-800 rounded-xl text-slate-400 hover:text-white transition-colors" title="Print page">
                     <Printer className="w-4 h-4" />
                   </button>
-                  <button onClick={() => handleExportPDF('Operations Dashboard', [financials])} className="p-2 hover:bg-slate-900 border border-slate-850 rounded-xl text-slate-400 hover:text-white transition-colors" title="Export PDF">
+                  <button onClick={() => handleExportPDF('Operations Dashboard', [financials])} className="p-2 hover:bg-slate-900 border border-slate-800 rounded-xl text-slate-400 hover:text-white transition-colors" title="Export PDF">
                     <Download className="w-4 h-4" />
                   </button>
                 </div>
@@ -215,19 +231,19 @@ export default function VortiqAdminPage() {
 
               {/* Stats metric cards */}
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div className="p-4 bg-slate-900/30 border border-slate-850 rounded-2xl">
+                <div className="p-4 bg-slate-900/30 border border-slate-800 rounded-2xl">
                   <p className="text-[10px] text-slate-500 uppercase tracking-widest font-bold">Payments Done</p>
                   <p className="text-xl font-bold text-white mt-1">Rs {financials.paymentsDone.toLocaleString('en-IN')}</p>
                 </div>
-                <div className="p-4 bg-slate-900/30 border border-slate-850 rounded-2xl">
+                <div className="p-4 bg-slate-900/30 border border-slate-800 rounded-2xl">
                   <p className="text-[10px] text-slate-500 uppercase tracking-widest font-bold">Accounts Receivable</p>
                   <p className="text-xl font-bold text-teal-400 mt-1">Rs {financials.receivables.toLocaleString('en-IN')}</p>
                 </div>
-                <div className="p-4 bg-slate-900/30 border border-slate-850 rounded-2xl">
+                <div className="p-4 bg-slate-900/30 border border-slate-800 rounded-2xl">
                   <p className="text-[10px] text-slate-500 uppercase tracking-widest font-bold">Internal Expenses</p>
                   <p className="text-xl font-bold text-rose-500 mt-1">Rs {financials.expenses.toLocaleString('en-IN')}</p>
                 </div>
-                <div className="p-4 bg-slate-900/30 border border-slate-850 rounded-2xl">
+                <div className="p-4 bg-slate-900/30 border border-slate-800 rounded-2xl">
                   <p className="text-[10px] text-slate-500 uppercase tracking-widest font-bold">Active Trials</p>
                   <p className="text-xl font-bold text-indigo-400 mt-1">{clients.filter(c => c.trialDaysLeft > 0).length} SaaS Clients</p>
                 </div>
@@ -263,7 +279,7 @@ export default function VortiqAdminPage() {
                   <h3 className="text-xs font-bold text-slate-200 uppercase tracking-widest">Operations Checklist</h3>
                   <div className="space-y-2.5 text-xs">
                     {tasks.slice(0, 3).map(t => (
-                      <div key={t.id} className="p-3 bg-slate-950 border border-slate-850 rounded-xl flex items-center justify-between">
+                      <div key={t.id} className="p-3 bg-slate-950 border border-slate-800 rounded-xl flex items-center justify-between">
                         <div>
                           <p className="font-semibold text-slate-300">{t.title}</p>
                           <p className="text-[9px] text-slate-500 mt-0.5">Assigned to: {t.assignedTo}</p>
@@ -376,7 +392,7 @@ export default function VortiqAdminPage() {
 
               <div className="space-y-4">
                 {tickets.map(t => (
-                  <div key={t.id} className="p-5 bg-slate-900/30 border border-slate-850 rounded-2xl space-y-3">
+                  <div key={t.id} className="p-5 bg-slate-900/30 border border-slate-800 rounded-2xl space-y-3">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         <span className={`px-2 py-0.5 text-[9px] font-bold rounded border ${
@@ -394,7 +410,7 @@ export default function VortiqAdminPage() {
                         <input
                           type="text"
                           placeholder="Type response to troubleshoot..."
-                          className="flex-1 bg-slate-950 border border-slate-850 rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:border-teal-500 transition-colors"
+                          className="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:border-teal-500 transition-colors"
                           value={ticketReply[t.id] || ''}
                           onChange={(e) => setTicketReply({ ...ticketReply, [t.id]: e.target.value })}
                         />
@@ -438,7 +454,7 @@ export default function VortiqAdminPage() {
 
                     <div className="space-y-3">
                       {tasks.filter(t => t.status === col).map(t => (
-                        <div key={t.id} className="p-4 bg-slate-950 border border-slate-850 rounded-xl space-y-2 text-xs">
+                        <div key={t.id} className="p-4 bg-slate-950 border border-slate-800 rounded-xl space-y-2 text-xs">
                           <p className="font-semibold text-slate-200 leading-normal">{t.title}</p>
                           <div className="flex items-center justify-between pt-1 border-t border-slate-900">
                             <span className="text-[10px] text-slate-500 font-medium">For: {t.assignedTo}</span>
@@ -491,7 +507,7 @@ export default function VortiqAdminPage() {
                           <th className="py-2.5 px-4 text-right">Amount (INR)</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-slate-900/60 font-semibold text-slate-350">
+                      <tbody className="divide-y divide-slate-900/60 font-semibold text-slate-300">
                         {financeEntries.map(e => (
                           <tr key={e.id} className="hover:bg-slate-900/10">
                             <td className="py-3 px-4 font-mono text-[10px] text-slate-400">{e.id}</td>
@@ -521,7 +537,7 @@ export default function VortiqAdminPage() {
                         type="text"
                         required
                         placeholder="Vercel hosting fee, domain renewal..."
-                        className="w-full bg-slate-950 border border-slate-850 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-rose-500 transition-colors"
+                        className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-rose-500 transition-colors"
                         value={newExpenseDesc}
                         onChange={(e) => setNewExpenseDesc(e.target.value)}
                       />
@@ -533,7 +549,7 @@ export default function VortiqAdminPage() {
                         type="number"
                         required
                         placeholder="Amount in Rupees"
-                        className="w-full bg-slate-950 border border-slate-850 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-rose-500 transition-colors"
+                        className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-rose-500 transition-colors"
                         value={newExpenseAmt}
                         onChange={(e) => setNewExpenseAmt(e.target.value)}
                       />
@@ -575,7 +591,7 @@ export default function VortiqAdminPage() {
                           <th className="py-2.5 px-4 text-right">Status</th>
                         </tr>
                       </thead>
-                      <tbody className="font-semibold text-slate-350">
+                      <tbody className="font-semibold text-slate-300">
                         {employees.map(emp => (
                           <tr key={emp.id} className="border-b border-slate-900/60 hover:bg-slate-900/10">
                             <td className="py-3 px-4 font-mono text-[10px] text-slate-400">{emp.id}</td>
@@ -602,7 +618,7 @@ export default function VortiqAdminPage() {
                         type="text"
                         required
                         placeholder="e.g. Vikram Mehta"
-                        className="w-full bg-slate-950 border border-slate-850 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-rose-500 transition-colors"
+                        className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-rose-500 transition-colors"
                         value={newEmployeeName}
                         onChange={(e) => setNewEmployeeName(e.target.value)}
                       />
@@ -611,7 +627,7 @@ export default function VortiqAdminPage() {
                     <div className="space-y-1">
                       <label className="text-[10px] uppercase font-bold text-slate-400">Assigned Role</label>
                       <select
-                        className="w-full bg-slate-950 border border-slate-850 rounded-xl px-3 py-2 text-xs text-slate-300 focus:outline-none focus:border-rose-500"
+                        className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-300 focus:outline-none focus:border-rose-500"
                         value={newEmployeeRole}
                         onChange={(e) => setNewEmployeeRole(e.target.value)}
                       >
@@ -659,7 +675,7 @@ export default function VortiqAdminPage() {
                           <input 
                             type={showSecret[item.field] ? 'text' : 'password'}
                             placeholder="••••••••••••"
-                            className="w-full bg-slate-950 border border-slate-850 rounded-xl px-4 py-2.5 text-xs text-white placeholder-slate-700 focus:outline-none focus:border-rose-500 pr-10"
+                            className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-white placeholder-slate-700 focus:outline-none focus:border-rose-500 pr-10"
                           />
                           <button 
                             type="button" 

@@ -1,6 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
+import { useUser } from '@clerk/nextjs';
+
+import React, { useState, useEffect } from 'react';
 import ConsoleLayout from '../ConsoleLayout';
 import { 
   PhoneCall, ShieldCheck, History, Code, AlertOctagon, 
@@ -8,6 +10,8 @@ import {
 } from 'lucide-react';
 
 export default function VoiceAgentsPage() {
+  const { user, isLoaded } = useUser();
+  const isDemo = isLoaded && user?.primaryEmailAddress?.emailAddress?.toLowerCase() === 'demo@vortiq.ai';
   const [activeTab, setActiveTab] = useState('history');
   
   // Compliance verification list
@@ -19,17 +23,17 @@ export default function VoiceAgentsPage() {
   ];
 
   // Outbound call queues
-  const outboundQueue = [
+  const outboundQueue = isDemo ? [
     { id: 1, name: 'Ravi Shah', company: 'Bharat Forge', phone: '+919876543210', leadScore: 89, reason: 'Follow-up proposal' },
     { id: 2, name: 'Anjali Verma', company: 'Tata Motors', phone: '+919865432109', leadScore: 78, reason: 'Cold intro raw sheets' }
-  ];
+  ] : [];
 
   // Call history records
-  const callHistory = [
+  const callHistory = isDemo ? [
     { id: 'call-01', name: 'Ravi Shah', phone: '+919876543210', duration: '1m 24s', outcome: 'INTERESTED', date: 'Today, 11:20 AM' },
     { id: 'call-02', name: 'Karan Malhotra', phone: '+919123456789', duration: '0m 45s', outcome: 'NOT_INTERESTED', date: 'Yesterday, 03:40 PM' },
     { id: 'call-03', name: 'Sunita Rao', phone: '+919876123456', duration: '0m 00s', outcome: 'VOICEMAIL_LEFT', date: 'Yesterday, 10:15 AM' }
-  ];
+  ] : [];
 
   return (
     <ConsoleLayout>
@@ -61,7 +65,7 @@ export default function VoiceAgentsPage() {
             </h3>
             <div className="space-y-3">
               {complianceChecks.map((check, idx) => (
-                <div key={idx} className="flex items-center justify-between p-3 rounded-xl bg-slate-950 border border-slate-850">
+                <div key={idx} className="flex items-center justify-between p-3 rounded-xl bg-slate-950 border border-slate-800">
                   <span className="text-xs text-slate-300">{check.title}</span>
                   <CheckCircle2 className="w-4 h-4 text-emerald-400" />
                 </div>
@@ -75,7 +79,7 @@ export default function VoiceAgentsPage() {
               <AlertOctagon className="w-5 h-5 text-red-400" /> DND Scrub Logs (NCPR)
             </h3>
             <div className="space-y-2.5 text-xs">
-              <div className="p-3 bg-slate-950 rounded-xl border border-slate-850 flex items-center justify-between">
+              <div className="p-3 bg-slate-950 rounded-xl border border-slate-800 flex items-center justify-between">
                 <div>
                   <p className="font-bold text-white">+919988776655</p>
                   <span className="text-[10px] text-slate-500">Scrubbed via Cache</span>
@@ -84,7 +88,7 @@ export default function VoiceAgentsPage() {
                   DND BLOCKED
                 </span>
               </div>
-              <div className="p-3 bg-slate-950 rounded-xl border border-slate-850 flex items-center justify-between">
+              <div className="p-3 bg-slate-950 rounded-xl border border-slate-800 flex items-center justify-between">
                 <div>
                   <p className="font-bold text-white">+919876543210</p>
                   <span className="text-[10px] text-slate-500">Scrubbed via NCPR API</span>

@@ -1,6 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
+import { useUser } from '@clerk/nextjs';
+
+import React, { useState, useEffect } from 'react';
 import ConsoleLayout, { formatINR } from '../ConsoleLayout';
 import { 
   Megaphone, Plus, Sparkles, Brain, Eye, Send, 
@@ -24,6 +26,20 @@ interface Campaign {
 }
 
 export default function MarketingPage() {
+  const { user, isLoaded } = useUser();
+  const isDemo = isLoaded && user?.primaryEmailAddress?.emailAddress?.toLowerCase() === 'demo@vortiq.ai';
+
+  useEffect(() => {
+    if (isLoaded && !isDemo) {
+      setPosts([]);
+      setCampaigns([]);
+      setGoogleCPL(0);
+      setMetaCPL(0);
+      setLinkedinCPL(0);
+      setAiAnalysis("Based on active CPL monitoring: No active campaigns running. Start a campaign to track cost per lead metrics.");
+    }
+  }, [isLoaded, isDemo]);
+
   const [activeTab, setActiveTab] = useState<'campaigns' | 'scheduler' | 'approval' | 'ads'>('campaigns');
 
   // Social scheduler posts
@@ -267,7 +283,7 @@ export default function MarketingPage() {
           <button 
             onClick={handleAIAnalyzeAds}
             disabled={aiWorking}
-            className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-900 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-350 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-bold transition-colors flex items-center gap-1.5"
+            className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-900 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-bold transition-colors flex items-center gap-1.5"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${aiWorking ? 'animate-spin' : ''}`} /> Optimize Telemetry
           </button>
@@ -325,7 +341,7 @@ export default function MarketingPage() {
                       value={newCampName}
                       onChange={(e) => setNewCampName(e.target.value)}
                       placeholder="e.g. Pune Autoparts Direct Outbound"
-                      className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-xl px-3 py-2 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-teal-500"
+                      className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-teal-500"
                     />
                   </div>
                   <div>
@@ -333,7 +349,7 @@ export default function MarketingPage() {
                     <select 
                       value={newCampPlatform}
                       onChange={(e) => setNewCampPlatform(e.target.value as any)}
-                      className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-xl px-3 py-2 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-teal-500"
+                      className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-teal-500"
                     >
                       {['LinkedIn', 'Twitter', 'Facebook', 'Instagram', 'Google Ads', 'Meta Ads'].map(p => (
                         <option key={p} value={p}>{p}</option>
@@ -348,7 +364,7 @@ export default function MarketingPage() {
                     <select 
                       value={newCampObjective}
                       onChange={(e) => setNewCampObjective(e.target.value)}
-                      className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-xl px-3 py-2 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-teal-500"
+                      className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-teal-500"
                     >
                       <option value="Lead Generation">Lead Generation</option>
                       <option value="Conversions">Conversions</option>
@@ -361,7 +377,7 @@ export default function MarketingPage() {
                       type="number" 
                       value={newCampBudget}
                       onChange={(e) => setNewCampBudget(Number(e.target.value))}
-                      className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-xl px-3 py-2 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-teal-500"
+                      className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-teal-500"
                     />
                   </div>
                 </div>
@@ -369,7 +385,7 @@ export default function MarketingPage() {
                 <div className="flex justify-end pt-2">
                   <button 
                     onClick={() => setWizardStep(2)}
-                    className="px-4 py-2 bg-slate-100 dark:bg-slate-850 hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 rounded-lg text-xs font-bold transition-all flex items-center gap-1"
+                    className="px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 rounded-lg text-xs font-bold transition-all flex items-center gap-1"
                   >
                     Next Step <ChevronRight className="w-3.5 h-3.5" />
                   </button>
@@ -386,7 +402,7 @@ export default function MarketingPage() {
                     value={newCampAudience}
                     onChange={(e) => setNewCampAudience(e.target.value)}
                     placeholder="e.g. Supply Chain Managers, Mumbai Logistics Managers"
-                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-xl px-3 py-2 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-teal-500"
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-teal-500"
                   />
                 </div>
 
@@ -406,7 +422,7 @@ export default function MarketingPage() {
                     onChange={(e) => setNewCampCopy(e.target.value)}
                     rows={4}
                     placeholder="Provide campaign pitch lines..."
-                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-xl px-3 py-2 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-teal-500 resize-none"
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-teal-500 resize-none"
                   />
                 </div>
 
@@ -419,7 +435,7 @@ export default function MarketingPage() {
                   </button>
                   <button 
                     onClick={() => setWizardStep(3)}
-                    className="px-4 py-2 bg-slate-100 dark:bg-slate-850 hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 rounded-lg text-xs font-bold transition-all flex items-center gap-1"
+                    className="px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 rounded-lg text-xs font-bold transition-all flex items-center gap-1"
                   >
                     Next Step <ChevronRight className="w-3.5 h-3.5" />
                   </button>
@@ -435,11 +451,11 @@ export default function MarketingPage() {
                     type="url" 
                     value={newCampCTA}
                     onChange={(e) => setNewCampCTA(e.target.value)}
-                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-xl px-3 py-2 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-teal-500"
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-teal-500"
                   />
                 </div>
 
-                <div className="bg-slate-50 dark:bg-slate-950 p-4 rounded-xl border border-slate-200 dark:border-slate-850 space-y-2 text-xs text-slate-600 dark:text-slate-400">
+                <div className="bg-slate-50 dark:bg-slate-950 p-4 rounded-xl border border-slate-200 dark:border-slate-800 space-y-2 text-xs text-slate-600 dark:text-slate-400">
                   <p className="font-bold text-slate-800 dark:text-slate-200">Confirmation Summary:</p>
                   <div className="grid grid-cols-2 gap-2 text-[11px]">
                     <p>Name: <span className="font-semibold text-slate-800 dark:text-slate-200">{newCampName || 'Not Set'}</span></p>
@@ -459,7 +475,7 @@ export default function MarketingPage() {
                   <div className="flex gap-2">
                     <button 
                       onClick={() => handleCreateCampaign('DRAFT')}
-                      className="px-4 py-2 bg-slate-200 dark:bg-slate-800 hover:bg-slate-350 text-slate-800 dark:text-slate-200 rounded-lg text-xs font-bold transition-all"
+                      className="px-4 py-2 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 text-slate-800 dark:text-slate-200 rounded-lg text-xs font-bold transition-all"
                     >
                       Save Draft
                     </button>
@@ -521,7 +537,7 @@ export default function MarketingPage() {
                             c.status === 'RUNNING' ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border-emerald-100 dark:border-emerald-950' :
                             c.status === 'APPROVED' ? 'bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 border-blue-100 dark:border-blue-950' :
                             c.status === 'SENT_FOR_APPROVAL' ? 'bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 border-amber-100 dark:border-amber-950' :
-                            'bg-slate-100 dark:bg-slate-800 text-slate-500 border-slate-200 dark:border-slate-750'
+                            'bg-slate-100 dark:bg-slate-800 text-slate-500 border-slate-200 dark:border-slate-700'
                           }`}>
                             {c.status.replace(/_/g, ' ')}
                           </span>
@@ -539,7 +555,7 @@ export default function MarketingPage() {
                                 </button>
                                 <button 
                                   onClick={() => rejectCampaign(c.id)}
-                                  className="p-1 hover:bg-red-50 dark:hover:bg-red-950 rounded text-red-650 dark:text-red-400"
+                                  className="p-1 hover:bg-red-50 dark:hover:bg-red-950 rounded text-red-600 dark:text-red-400"
                                   title="Reject"
                                 >
                                   <X className="w-4 h-4" />
@@ -561,13 +577,13 @@ export default function MarketingPage() {
             {/* Sub copy variants view */}
             <div className="bg-white dark:bg-slate-900/20 border border-slate-200 dark:border-slate-900 p-5 rounded-2xl space-y-3 shadow-sm">
               <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider flex items-center gap-1.5">
-                <Brain className="w-4 h-4 text-teal-650" /> Copy variant repository
+                <Brain className="w-4 h-4 text-teal-600" /> Copy variant repository
               </h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {campaigns.map(c => (
-                  <div key={c.id} className="p-4 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-850 space-y-2 text-xs">
+                  <div key={c.id} className="p-4 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-2 text-xs">
                     <p className="font-extrabold text-slate-800 dark:text-slate-200">{c.name}</p>
-                    <div className="space-y-1.5 border-t border-slate-200 dark:border-slate-850 pt-2 text-slate-500">
+                    <div className="space-y-1.5 border-t border-slate-200 dark:border-slate-800 pt-2 text-slate-500">
                       {c.copyVariants.map((varText, idx) => (
                         <p key={idx} className="italic">"{varText}"</p>
                       ))}
@@ -590,14 +606,14 @@ export default function MarketingPage() {
                   </h3>
                   <button 
                     onClick={() => setIsAddingPost(!isAddingPost)}
-                    className="text-xs text-teal-650 dark:text-teal-400 font-bold hover:underline"
+                    className="text-xs text-teal-600 dark:text-teal-400 font-bold hover:underline"
                   >
                     + Add New Post
                   </button>
                 </div>
 
                 {isAddingPost && (
-                  <form onSubmit={handleCreatePost} className="p-4 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-xl space-y-3">
+                  <form onSubmit={handleCreatePost} className="p-4 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl space-y-3">
                     <div className="flex justify-between items-center">
                       <span className="text-[10px] font-bold text-slate-500 uppercase">Schedule Post Details</span>
                       <button 
@@ -637,7 +653,7 @@ export default function MarketingPage() {
                     />
 
                     <div className="flex gap-2">
-                      <button type="submit" className="px-3 py-1.5 bg-teal-655 bg-teal-600 text-white rounded text-xs font-bold hover:bg-teal-500">
+                      <button type="submit" className="px-3 py-1.5 bg-teal-600 bg-teal-600 text-white rounded text-xs font-bold hover:bg-teal-500">
                         Schedule Post
                       </button>
                       <button type="button" onClick={() => setIsAddingPost(false)} className="px-3 py-1.5 bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded text-xs font-bold">
@@ -649,19 +665,19 @@ export default function MarketingPage() {
 
                 <div className="space-y-3">
                   {posts.map((post) => (
-                    <div key={post.id} className="p-4 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-850 space-y-3 text-xs">
-                      <div className="flex justify-between items-center border-b border-slate-200 dark:border-slate-850 pb-2">
+                    <div key={post.id} className="p-4 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-3 text-xs">
+                      <div className="flex justify-between items-center border-b border-slate-200 dark:border-slate-800 pb-2">
                         <span className="font-extrabold text-[10px] uppercase text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-100 dark:border-indigo-950 px-2 py-0.5 rounded">
                           {post.platform}
                         </span>
                         <span className="text-[10px] text-slate-500 font-semibold">{post.scheduledFor}</span>
                       </div>
-                      <p className="text-slate-700 dark:text-slate-350 leading-relaxed font-semibold">"{post.copy}"</p>
+                      <p className="text-slate-700 dark:text-slate-300 leading-relaxed font-semibold">"{post.copy}"</p>
                       <div className="flex justify-between items-center text-[10px] font-bold">
                         <span className="text-slate-400">ID: {post.id}</span>
                         <span className={`px-2 py-0.5 rounded border ${
                           post.status === 'SCHEDULED' ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border-emerald-100 dark:border-emerald-950' :
-                          'bg-slate-100 dark:bg-slate-800 text-slate-500 border-slate-200 dark:border-slate-750'
+                          'bg-slate-100 dark:bg-slate-800 text-slate-500 border-slate-200 dark:border-slate-700'
                         }`}>
                           {post.status}
                         </span>
@@ -676,15 +692,15 @@ export default function MarketingPage() {
               <div className="bg-white dark:bg-slate-900/20 border border-slate-200 dark:border-slate-900 p-5 rounded-2xl shadow-sm space-y-3">
                 <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider">Social Integrations Check</h4>
                 <div className="space-y-3 text-xs">
-                  <div className="flex justify-between items-center p-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-xl">
+                  <div className="flex justify-between items-center p-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl">
                     <span className="font-semibold">LinkedIn Business Page</span>
                     <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded border border-emerald-100 dark:border-emerald-950">CONNECTED</span>
                   </div>
-                  <div className="flex justify-between items-center p-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-xl">
+                  <div className="flex justify-between items-center p-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl">
                     <span className="font-semibold">Facebook Ad Account</span>
                     <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded border border-emerald-100 dark:border-emerald-950">CONNECTED</span>
                   </div>
-                  <div className="flex justify-between items-center p-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-xl">
+                  <div className="flex justify-between items-center p-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl">
                     <span className="font-semibold">Google Search Console</span>
                     <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 px-2 py-0.5 rounded border border-amber-100 dark:border-amber-950">RE-AUTH REQUIRED</span>
                   </div>
@@ -707,7 +723,7 @@ export default function MarketingPage() {
               ) : (
                 <div className="space-y-4">
                   {campaigns.filter(c => c.status === 'SENT_FOR_APPROVAL').map((c) => (
-                    <div key={c.id} className="p-5 border border-slate-200 dark:border-slate-850 rounded-xl bg-slate-50 dark:bg-slate-950 space-y-4">
+                    <div key={c.id} className="p-5 border border-slate-200 dark:border-slate-800 rounded-xl bg-slate-50 dark:bg-slate-950 space-y-4">
                       <div className="flex justify-between items-center">
                         <div>
                           <h4 className="text-xs font-bold text-slate-900 dark:text-slate-100">{c.name}</h4>
@@ -716,15 +732,15 @@ export default function MarketingPage() {
                         <span className="px-2 py-0.5 rounded text-[9px] font-bold bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 border border-amber-100 dark:border-amber-950 uppercase tracking-wider">Awaiting Verification</span>
                       </div>
 
-                      <div className="space-y-1.5 bg-white dark:bg-slate-900 p-3 rounded-lg border border-slate-200 dark:border-slate-850 text-xs">
+                      <div className="space-y-1.5 bg-white dark:bg-slate-900 p-3 rounded-lg border border-slate-200 dark:border-slate-800 text-xs">
                         <span className="text-[9px] font-black text-slate-400 uppercase">Draft Copy Variant</span>
-                        <p className="italic text-slate-650 dark:text-slate-350">"{c.copyVariants[0]}"</p>
+                        <p className="italic text-slate-600 dark:text-slate-300">"{c.copyVariants[0]}"</p>
                       </div>
 
-                      <div className="flex justify-end gap-2 pt-2 border-t border-slate-200 dark:border-slate-850">
+                      <div className="flex justify-end gap-2 pt-2 border-t border-slate-200 dark:border-slate-800">
                         <button 
                           onClick={() => rejectCampaign(c.id)}
-                          className="px-3 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-red-650 dark:text-red-400 text-xs font-bold rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"
+                          className="px-3 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-red-600 dark:text-red-400 text-xs font-bold rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"
                         >
                           Reject Copy
                         </button>
@@ -760,7 +776,7 @@ export default function MarketingPage() {
                   </span>
                 </div>
                 <p className="text-[11px] text-slate-500 font-semibold leading-relaxed">High search intent keyword bid adjustments executing automatically via n8n cron hook.</p>
-                <div className="pt-2 border-t border-slate-100 dark:border-slate-850 grid grid-cols-2 gap-2 text-center text-[10px] font-bold text-slate-500">
+                <div className="pt-2 border-t border-slate-100 dark:border-slate-800 grid grid-cols-2 gap-2 text-center text-[10px] font-bold text-slate-500">
                   <div>
                     <p>Total Spent</p>
                     <p className="text-slate-800 dark:text-slate-200 mt-0.5">Rs 1.45L</p>
@@ -784,7 +800,7 @@ export default function MarketingPage() {
                   </span>
                 </div>
                 <p className="text-[11px] text-slate-500 font-semibold leading-relaxed">Visual content variants scoring high on engagement. Cost adjustments advised by MarketingAgent.</p>
-                <div className="pt-2 border-t border-slate-100 dark:border-slate-850 grid grid-cols-2 gap-2 text-center text-[10px] font-bold text-slate-500">
+                <div className="pt-2 border-t border-slate-100 dark:border-slate-800 grid grid-cols-2 gap-2 text-center text-[10px] font-bold text-slate-500">
                   <div>
                     <p>Total Spent</p>
                     <p className="text-slate-800 dark:text-slate-200 mt-0.5">Rs 1.20L</p>
@@ -803,12 +819,12 @@ export default function MarketingPage() {
                     <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">LinkedIn Account Managed</span>
                     <h4 className="text-xl font-bold text-slate-900 dark:text-white mt-1">Rs {linkedinCPL}</h4>
                   </div>
-                  <span className="text-[10px] text-slate-500 font-bold bg-slate-50 dark:bg-slate-950/40 px-2 py-0.5 rounded border border-slate-200 dark:border-slate-855 flex items-center gap-0.5">
+                  <span className="text-[10px] text-slate-500 font-bold bg-slate-50 dark:bg-slate-950/40 px-2 py-0.5 rounded border border-slate-200 dark:border-slate-800 flex items-center gap-0.5">
                     -- stable CPL
                   </span>
                 </div>
                 <p className="text-[11px] text-slate-500 font-semibold leading-relaxed">Premium target audience (C-Suite executives in Bangalore/Mumbai). High CPL is expected here.</p>
-                <div className="pt-2 border-t border-slate-100 dark:border-slate-850 grid grid-cols-2 gap-2 text-center text-[10px] font-bold text-slate-500">
+                <div className="pt-2 border-t border-slate-100 dark:border-slate-800 grid grid-cols-2 gap-2 text-center text-[10px] font-bold text-slate-500">
                   <div>
                     <p>Total Spent</p>
                     <p className="text-slate-800 dark:text-slate-200 mt-0.5">Rs 97,000</p>
@@ -827,13 +843,13 @@ export default function MarketingPage() {
               <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider">Relative Cost-Per-Lead Comparison Grid</h4>
               <div className="h-40 flex items-end gap-6 pt-4 px-4 border-b border-l border-slate-250 dark:border-slate-800">
                 <div className="w-full bg-teal-500/20 dark:bg-teal-500/10 border-t-2 border-teal-500 flex flex-col justify-end items-center" style={{ height: '45%' }}>
-                  <span className="text-[9px] font-bold text-slate-700 dark:text-slate-350 mb-1">Google (Rs 180)</span>
+                  <span className="text-[9px] font-bold text-slate-700 dark:text-slate-300 mb-1">Google (Rs 180)</span>
                 </div>
                 <div className="w-full bg-indigo-500/20 dark:bg-indigo-500/10 border-t-2 border-indigo-500 flex flex-col justify-end items-center" style={{ height: '60%' }}>
-                  <span className="text-[9px] font-bold text-slate-700 dark:text-slate-350 mb-1">Meta (Rs 240)</span>
+                  <span className="text-[9px] font-bold text-slate-700 dark:text-slate-300 mb-1">Meta (Rs 240)</span>
                 </div>
                 <div className="w-full bg-amber-500/20 dark:bg-amber-500/10 border-t-2 border-amber-500 flex flex-col justify-end items-center" style={{ height: '80%' }}>
-                  <span className="text-[9px] font-bold text-slate-700 dark:text-slate-350 mb-1">LinkedIn (Rs 310)</span>
+                  <span className="text-[9px] font-bold text-slate-700 dark:text-slate-300 mb-1">LinkedIn (Rs 310)</span>
                 </div>
               </div>
             </div>

@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useUser } from '@clerk/nextjs';
 import { 
   LayoutDashboard, Users, PhoneCall, Megaphone, Package, Landmark, 
   UserCheck, CheckSquare, LifeBuoy, Settings, BarChart3, MessageSquare, 
@@ -80,6 +81,9 @@ export default function ConsoleLayout({ children }: ConsoleLayoutProps) {
   ];
 
   useEffect(() => {
+    if (typeof window !== 'undefined' && window.innerWidth < 1024) {
+      setIsSidebarOpen(false);
+    }
     const activeTheme = document.documentElement.classList.contains('dark') ? 'dark' : 'light';
     setTheme(activeTheme);
     
@@ -222,7 +226,7 @@ export default function ConsoleLayout({ children }: ConsoleLayoutProps) {
           </div>
           <div>
             <h1 className="text-md font-bold tracking-tight bg-gradient-to-r from-slate-900 to-slate-600 dark:from-white dark:to-slate-400 bg-clip-text text-transparent">VORTIQ</h1>
-            <p className="text-[10px] text-slate-400 dark:text-slate-505 font-semibold uppercase tracking-wider">Business OS</p>
+            <p className="text-[10px] text-slate-400 dark:text-slate-500 font-semibold uppercase tracking-wider">Business OS</p>
           </div>
         </div>
 
@@ -236,7 +240,7 @@ export default function ConsoleLayout({ children }: ConsoleLayoutProps) {
               onChange={(e) => setCommandText(e.target.value)}
               placeholder={aiMode === 'manual' ? 'AI disabled in Manual Mode...' : 'Ask AI / compile workflow (e.g. "remind unpaid clients")...'}
               disabled={aiMode === 'manual'}
-              className="w-full pl-9 pr-20 py-2 bg-slate-100 dark:bg-slate-950 border border-slate-250 dark:border-slate-850 rounded-xl text-xs font-semibold focus:outline-none focus:border-teal-500 focus:bg-white dark:focus:bg-slate-900 disabled:opacity-50 transition-all"
+              className="w-full pl-9 pr-20 py-2 bg-slate-100 dark:bg-slate-950 border border-slate-250 dark:border-slate-800 rounded-xl text-xs font-semibold focus:outline-none focus:border-teal-500 focus:bg-white dark:focus:bg-slate-900 disabled:opacity-50 transition-all"
             />
             <button 
               type="submit"
@@ -254,14 +258,14 @@ export default function ConsoleLayout({ children }: ConsoleLayoutProps) {
             onClick={toggleAiMode}
             className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs font-black transition-all ${
               aiMode === 'ai-assisted' 
-                ? 'bg-teal-500/10 border-teal-500/20 text-teal-650 dark:text-teal-400 hover:bg-teal-500/15' 
-                : 'bg-rose-500/10 border-rose-500/20 text-rose-650 dark:text-rose-455 hover:bg-rose-500/15'
+                ? 'bg-teal-500/10 border-teal-500/20 text-teal-600 dark:text-teal-400 hover:bg-teal-500/15' 
+                : 'bg-rose-500/10 border-rose-500/20 text-rose-600 dark:text-rose-500 hover:bg-rose-500/15'
             }`}
           >
             <span className={`w-2 h-2 rounded-full ${aiMode === 'ai-assisted' ? 'bg-teal-500 animate-pulse' : 'bg-rose-500'}`} />
             {aiMode === 'ai-assisted' ? 'AI-Assisted Mode' : 'Manual Mode'}
           </button>
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-600 dark:text-amber-450 font-semibold">
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-600 dark:text-amber-500 font-semibold">
             <ShieldAlert className="w-4 h-4 text-amber-500" />
             {reviewQueue.length} approvals
           </div>
@@ -277,7 +281,7 @@ export default function ConsoleLayout({ children }: ConsoleLayoutProps) {
             {theme === 'light' ? <Moon className="w-4.5 h-4.5" /> : <Sun className="w-4.5 h-4.5" />}
           </button>
 
-          <span className="px-3 py-1 text-[10px] rounded-full bg-slate-100 dark:bg-slate-800 text-slate-650 dark:text-slate-300 border border-slate-200 dark:border-slate-750 font-bold uppercase tracking-wide">
+          <span className="px-3 py-1 text-[10px] rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 font-bold uppercase tracking-wide">
             Growth Tier
           </span>
           <div className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center font-bold text-white text-xs shadow-inner">
@@ -289,10 +293,29 @@ export default function ConsoleLayout({ children }: ConsoleLayoutProps) {
       {/* Main Layout Area */}
       <div className="flex flex-1 relative overflow-hidden">
         
+        {/* Left Sidebar Backdrop Overlay */}
+        {isSidebarOpen && (
+          <div 
+            className="fixed inset-0 z-40 bg-slate-950/40 backdrop-blur-xs lg:hidden"
+            onClick={() => setIsSidebarOpen(false)}
+          />
+        )}
+
         {/* Left Sidebar */}
-        <aside className={`border-r border-slate-200 dark:border-slate-900 bg-white dark:bg-slate-900/20 backdrop-blur-sm transition-all duration-300 ${
-          isSidebarOpen ? 'w-64' : 'w-0 -translate-x-full overflow-hidden border-r-0'
+        <aside className={`fixed inset-y-0 left-0 z-50 w-64 border-r border-slate-200 dark:border-slate-900 bg-white dark:bg-slate-950 transition-transform duration-300 transform lg:relative lg:translate-x-0 ${
+          isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:w-0 lg:overflow-hidden lg:border-r-0'
         } flex flex-col shrink-0`}>
+          {/* Close button header on mobile */}
+          <div className="flex items-center justify-between lg:hidden p-4 border-b border-slate-200 dark:border-slate-900">
+            <span className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-slate-200">Navigation Menu</span>
+            <button 
+              onClick={() => setIsSidebarOpen(false)}
+              className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-500"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+
           <div className="flex-1 py-4 overflow-y-auto space-y-1 px-3">
             <p className="text-[10px] uppercase font-bold text-slate-400 dark:text-slate-600 px-3 tracking-widest mb-2">Modules</p>
             {menuItems.map((item) => {
@@ -302,13 +325,18 @@ export default function ConsoleLayout({ children }: ConsoleLayoutProps) {
                 <Link 
                   key={item.name} 
                   href={item.path}
+                  onClick={() => {
+                    if (window.innerWidth < 1024) {
+                      setIsSidebarOpen(false);
+                    }
+                  }}
                   className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold transition-all duration-200 ${
                     isActive 
-                      ? 'bg-teal-500/10 dark:bg-teal-500/15 border border-teal-500/20 text-teal-650 dark:text-teal-300' 
+                      ? 'bg-teal-500/10 dark:bg-teal-500/15 border border-teal-500/20 text-teal-600 dark:text-teal-300' 
                       : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-900/50 border border-transparent'
                   }`}
                 >
-                  <Icon className={`w-4 h-4 ${isActive ? 'text-teal-600 dark:text-teal-405' : 'text-slate-400'}`} />
+                  <Icon className={`w-4 h-4 ${isActive ? 'text-teal-600 dark:text-teal-400' : 'text-slate-400'}`} />
                   {item.name}
                 </Link>
               );
@@ -319,17 +347,17 @@ export default function ConsoleLayout({ children }: ConsoleLayoutProps) {
           <div className="p-4 border-t border-slate-200 dark:border-slate-900 bg-slate-50 dark:bg-slate-950/40 text-[10px] space-y-2 text-slate-500">
             <div className="flex justify-between font-semibold">
               <span>Leads Captured:</span>
-              <span className="text-slate-800 dark:text-slate-350">{leadsCount}</span>
+              <span className="text-slate-800 dark:text-slate-300">{leadsCount}</span>
             </div>
             <div className="flex justify-between font-semibold">
               <span>Human approvals:</span>
-              <span className="text-slate-800 dark:text-slate-350">{tasksCompleted} completed</span>
+              <span className="text-slate-800 dark:text-slate-300">{tasksCompleted} completed</span>
             </div>
           </div>
         </aside>
 
         {/* Middle Core Content Frame */}
-        <main className="flex-1 overflow-y-auto p-6 relative">
+        <main className="flex-1 overflow-y-auto p-6 pb-28 lg:pb-6 relative">
           <div className="max-w-7xl mx-auto space-y-6">
             {children}
           </div>
@@ -356,10 +384,10 @@ export default function ConsoleLayout({ children }: ConsoleLayoutProps) {
             ) : (
               <div className="space-y-3">
                 {reviewQueue.map((item) => (
-                  <div key={item.id} className="p-3.5 rounded-2xl bg-white dark:bg-slate-900/50 border border-slate-255 dark:border-slate-850 hover:border-slate-300 dark:hover:border-slate-800 transition-all space-y-2 text-xs shadow-sm">
+                  <div key={item.id} className="p-3.5 rounded-2xl bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-800 transition-all space-y-2 text-xs shadow-sm">
                     <div className="flex items-center justify-between">
                       <span className={`font-extrabold text-[10px] uppercase border px-2 py-0.5 rounded ${
-                        aiMode === 'manual' ? 'bg-slate-500/10 border-slate-500/20 text-slate-500' : 'bg-teal-500/5 border-teal-500/20 text-teal-650 dark:text-teal-405'
+                        aiMode === 'manual' ? 'bg-slate-500/10 border-slate-500/20 text-slate-500' : 'bg-teal-500/5 border-teal-500/20 text-teal-600 dark:text-teal-400'
                       }`}>
                         {item.agent}
                       </span>
@@ -375,7 +403,7 @@ export default function ConsoleLayout({ children }: ConsoleLayoutProps) {
                       </button>
                       <button 
                         onClick={() => handleReject(item.id)}
-                        className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white border border-slate-200 dark:border-slate-750 transition-all"
+                        className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white border border-slate-200 dark:border-slate-700 transition-all"
                       >
                         <X className="w-3.5 h-3.5" />
                       </button>
@@ -397,12 +425,12 @@ export default function ConsoleLayout({ children }: ConsoleLayoutProps) {
                   <div className="flex items-center gap-2">
                     <span className={`w-2 h-2 rounded-full ${
                       aiMode === 'manual' ? 'bg-slate-400' :
-                      agent.status === 'RUNNING' ? 'bg-teal-500 dark:bg-teal-405 animate-pulse' :
+                      agent.status === 'RUNNING' ? 'bg-teal-500 dark:bg-teal-400 animate-pulse' :
                       agent.status === 'AWAITING_APPROVAL' ? 'bg-amber-500 dark:bg-amber-405' : 'bg-slate-400 dark:bg-slate-600'
                     }`} />
                     <span className={`font-semibold ${aiMode === 'manual' ? 'text-slate-400 line-through' : 'text-slate-700 dark:text-slate-305'}`}>{agent.name}</span>
                   </div>
-                  <span className="text-[10px] text-slate-450 dark:text-slate-505 font-semibold">{agent.status}</span>
+                  <span className="text-[10px] text-slate-400 dark:text-slate-500 font-semibold">{agent.status}</span>
                 </div>
               ))}
             </div>
@@ -431,7 +459,7 @@ export default function ConsoleLayout({ children }: ConsoleLayoutProps) {
 
             <div className="space-y-3">
               <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">User Prompt Input</span>
-              <div className="p-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-855 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-300 italic">
+              <div className="p-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-300 italic">
                 "{workflowTitle}"
               </div>
             </div>
@@ -470,20 +498,20 @@ export default function ConsoleLayout({ children }: ConsoleLayoutProps) {
                       key={idx} 
                       className={`p-3 border rounded-2xl text-xs flex items-center justify-between gap-3 ${
                         step.status === 'COMPLETED' ? 'bg-emerald-500/5 border-emerald-500/10 text-emerald-700 dark:text-emerald-400' :
-                        step.status === 'AWAITING_APPROVAL' ? 'bg-amber-500/5 border-amber-500/10 text-amber-700 dark:text-amber-450' :
-                        'bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-855 text-slate-650 dark:text-slate-400'
+                        step.status === 'AWAITING_APPROVAL' ? 'bg-amber-500/5 border-amber-500/10 text-amber-700 dark:text-amber-500' :
+                        'bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400'
                       }`}
                     >
                       <div className="flex items-center gap-2.5">
                         <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${
                           step.status === 'COMPLETED' ? 'bg-emerald-500 text-white' :
                           step.status === 'AWAITING_APPROVAL' ? 'bg-amber-500 text-white' :
-                          'bg-slate-200 dark:bg-slate-800 text-slate-650 dark:text-slate-400'
+                          'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
                         }`}>
                           {idx + 1}
                         </div>
                         <div>
-                          <p className="font-extrabold text-[10px] uppercase text-indigo-650 dark:text-indigo-400">{step.agent}</p>
+                          <p className="font-extrabold text-[10px] uppercase text-indigo-600 dark:text-indigo-400">{step.agent}</p>
                           <p className="font-semibold mt-0.5">{step.action}</p>
                         </div>
                       </div>
@@ -534,7 +562,7 @@ export default function ConsoleLayout({ children }: ConsoleLayoutProps) {
                       alert('Manual workflow fallback active. Auto tasks dismissed.');
                       setIsCommandModalOpen(false);
                     }}
-                    className="px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-350 border border-slate-200 dark:border-slate-755 rounded-xl transition-all"
+                    className="px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-755 rounded-xl transition-all"
                   >
                     Manual Fallback
                   </button>
@@ -553,6 +581,34 @@ export default function ConsoleLayout({ children }: ConsoleLayoutProps) {
           </div>
         </div>
       )}
+
+      {/* Sticky Bottom Navigation Bar for Mobile/Tablet */}
+      <nav className="fixed bottom-0 left-0 right-0 z-40 lg:hidden bg-white/90 dark:bg-slate-950/90 backdrop-blur-md border-t border-slate-200 dark:border-slate-900 px-2 py-2 flex justify-around items-center shadow-lg pb-safe">
+        {[
+          { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
+          { name: 'CRM', path: '/crm', icon: Users },
+          { name: 'Sales', path: '/sales', icon: PhoneCall },
+          { name: 'Support', path: '/support', icon: LifeBuoy },
+          { name: 'Settings', path: '/settings', icon: Settings },
+        ].map((item) => {
+          const Icon = item.icon;
+          const isActive = pathname === item.path;
+          return (
+            <Link 
+              key={item.name} 
+              href={item.path}
+              className={`flex flex-col items-center justify-center py-1 px-3 rounded-xl transition-all duration-200 ${
+                isActive 
+                  ? 'text-teal-600 dark:text-teal-400 font-extrabold scale-105' 
+                  : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 font-semibold'
+              }`}
+            >
+              <Icon className="w-5 h-5" />
+              <span className="text-[9px] mt-0.5">{item.name}</span>
+            </Link>
+          );
+        })}
+      </nav>
 
     </div>
   );

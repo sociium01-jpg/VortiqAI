@@ -1,6 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
+import { useUser } from '@clerk/nextjs';
+
+import React, { useState, useEffect } from 'react';
 import ConsoleLayout from '../ConsoleLayout';
 import { 
   Target, Sparkles, Filter, Check, X, ShieldAlert,
@@ -19,6 +21,16 @@ interface ICPFilters {
 }
 
 export default function LeadEnginePage() {
+  const { user, isLoaded } = useUser();
+  const isDemo = isLoaded && user?.primaryEmailAddress?.emailAddress?.toLowerCase() === 'demo@vortiq.ai';
+
+  useEffect(() => {
+    if (isLoaded && !isDemo) {
+      setLeads([]);
+      setCreditsUsed(0);
+    }
+  }, [isLoaded, isDemo]);
+
   const [icpPrompt, setIcpPrompt] = useState(
     "We want B2B procurement managers and supply chain directors in manufacturing hubs like Pune and Chennai, working at mid-to-large-size automotive parts suppliers."
   );
@@ -233,7 +245,7 @@ export default function LeadEnginePage() {
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white dark:bg-slate-900/40 p-6 rounded-2xl border border-slate-200 dark:border-slate-900 shadow-sm">
             <div>
               <h2 className="text-xl font-black text-slate-900 dark:text-white flex items-center gap-2">
-                <Target className="w-5.5 h-5.5 text-teal-655 text-teal-600 dark:text-teal-400" />
+                <Target className="w-5.5 h-5.5 text-teal-600 text-teal-600 dark:text-teal-400" />
                 Autonomous Lead Engine
               </h2>
               <p className="text-xs text-slate-500 font-semibold mt-1">
@@ -246,7 +258,7 @@ export default function LeadEnginePage() {
               <div className="text-right">
                 <p className="text-[10px] text-slate-500 uppercase tracking-wider font-bold">Credits Remaining</p>
                 <p className="text-lg font-bold text-teal-605 text-teal-600 dark:text-teal-400 mt-0.5">
-                  {maxCredits - creditsUsed} <span className="text-xs text-slate-450">/ {maxCredits}</span>
+                  {maxCredits - creditsUsed} <span className="text-xs text-slate-400">/ {maxCredits}</span>
                 </p>
               </div>
               <div className="w-20 bg-slate-200 dark:bg-slate-900 rounded-full h-2">
@@ -267,7 +279,7 @@ export default function LeadEnginePage() {
               </h3>
               
               <textarea
-                className="w-full bg-slate-50 dark:bg-slate-955 border border-slate-200 dark:border-slate-850 rounded-xl p-4 text-xs text-slate-700 dark:text-slate-350 focus:outline-none focus:border-teal-500 resize-none h-24 transition-colors font-medium"
+                className="w-full bg-slate-50 dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl p-4 text-xs text-slate-700 dark:text-slate-300 focus:outline-none focus:border-teal-500 resize-none h-24 transition-colors font-medium"
                 placeholder="Describe your ideal client..."
                 value={icpPrompt}
                 onChange={(e) => setIcpPrompt(e.target.value)}
@@ -280,7 +292,7 @@ export default function LeadEnginePage() {
                 <button
                   onClick={handleParseICP}
                   disabled={parsing}
-                  className="px-4 py-2 bg-gradient-to-r from-teal-500 to-indigo-650 hover:from-teal-400 hover:to-indigo-500 text-xs font-semibold rounded-xl text-white shadow-lg shadow-teal-500/10 flex items-center gap-2 transition-all duration-200 disabled:opacity-50"
+                  className="px-4 py-2 bg-gradient-to-r from-teal-500 to-indigo-600 hover:from-teal-400 hover:to-indigo-500 text-xs font-semibold rounded-xl text-white shadow-lg shadow-teal-500/10 flex items-center gap-2 transition-all duration-200 disabled:opacity-50"
                 >
                   {parsing ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
                   Parse with AI
@@ -290,7 +302,7 @@ export default function LeadEnginePage() {
               {/* Parsed Chips and tags */}
               {filters && (
                 <div className="pt-4 border-t border-slate-200 dark:border-slate-900 space-y-3">
-                  <p className="text-[10px] text-slate-450 font-bold uppercase tracking-wider">Active Filters</p>
+                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Active Filters</p>
                   <div className="space-y-2">
                     <div className="flex flex-wrap gap-1.5 items-center">
                       <span className="text-[10px] text-slate-500 dark:text-slate-400 font-bold w-16">Industries:</span>
@@ -313,7 +325,7 @@ export default function LeadEnginePage() {
                     <div className="flex flex-wrap gap-1.5 items-center">
                       <span className="text-[10px] text-slate-500 dark:text-slate-400 font-bold w-16">Locations:</span>
                       {filters.locations.map(loc => (
-                        <span key={loc} className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-650 dark:text-slate-300 border border-slate-200 dark:border-slate-750 text-[10px] font-semibold">
+                        <span key={loc} className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 text-[10px] font-semibold">
                           {loc}
                           <button onClick={() => removeFilterTag('locations', loc)} className="hover:text-red-500"><X className="w-2.5 h-2.5" /></button>
                         </span>
@@ -327,31 +339,31 @@ export default function LeadEnginePage() {
             {/* Rule Configurations & Actions */}
             <div className="bg-white dark:bg-slate-900/20 border border-slate-200 dark:border-slate-900 p-6 rounded-2xl flex flex-col justify-between space-y-4 shadow-sm">
               <div>
-                <h3 className="text-sm font-bold text-slate-855 dark:text-slate-200">Rule Configurations & Actions</h3>
+                <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200">Rule Configurations & Actions</h3>
                 <div className="mt-3 space-y-3">
                   <div className="space-y-1">
                     <label className="text-[9px] uppercase font-bold text-slate-500">Auto-Assignment rules</label>
                     <select 
                       value={assignmentRule} 
                       onChange={(e) => setAssignmentRule(e.target.value)}
-                      className="w-full bg-slate-50 dark:bg-slate-955 border border-slate-200 dark:border-slate-850 rounded-lg px-2 py-1.5 text-xs text-slate-800 dark:text-slate-350 focus:outline-none"
+                      className="w-full bg-slate-50 dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-lg px-2 py-1.5 text-xs text-slate-800 dark:text-slate-300 focus:outline-none"
                     >
                       <option value="ROUND_ROBIN">Round Robin</option>
                       <option value="HIGH_SCORE_LEAD">High Scorer to Lead Rep</option>
                       <option value="GEOGRAPHICAL">Geographical Match</option>
                     </select>
                   </div>
-                  <div className="flex items-center justify-between gap-2 border-t border-slate-105 dark:border-slate-850 pt-2.5">
+                  <div className="flex items-center justify-between gap-2 border-t border-slate-105 dark:border-slate-800 pt-2.5">
                     <button 
                       onClick={triggerDuplicateScan}
                       disabled={scanningDuplicates}
-                      className="text-[10px] text-teal-650 dark:text-teal-400 font-bold hover:underline"
+                      className="text-[10px] text-teal-600 dark:text-teal-400 font-bold hover:underline"
                     >
                       {scanningDuplicates ? 'Scanning...' : 'Scan Duplicates'}
                     </button>
                     <button 
                       onClick={() => setShowManualForm(!showManualForm)}
-                      className="text-[10px] text-indigo-650 dark:text-indigo-400 font-bold hover:underline flex items-center gap-0.5"
+                      className="text-[10px] text-indigo-600 dark:text-indigo-400 font-bold hover:underline flex items-center gap-0.5"
                     >
                       <Plus className="w-3 h-3" /> Manual Lead
                     </button>
@@ -362,7 +374,7 @@ export default function LeadEnginePage() {
                 </div>
               </div>
 
-              <div className="py-2 text-center border-t border-slate-105 dark:border-slate-850 pt-4">
+              <div className="py-2 text-center border-t border-slate-105 dark:border-slate-800 pt-4">
                 {estimatedLeads !== null ? (
                   <div>
                     <p className="text-3xl font-black text-slate-800 dark:text-white">
@@ -371,7 +383,7 @@ export default function LeadEnginePage() {
                     <p className="text-[9px] text-slate-500 uppercase tracking-widest font-bold mt-1">Matching profiles found</p>
                   </div>
                 ) : (
-                  <div className="text-slate-500 dark:text-slate-605 text-xs font-semibold">
+                  <div className="text-slate-500 dark:text-slate-600 text-xs font-semibold">
                     Click "Parse with AI" to estimate lead volume
                   </div>
                 )}
@@ -380,7 +392,7 @@ export default function LeadEnginePage() {
               <button
                 onClick={handleFindLeads}
                 disabled={searching || !filters}
-                className="w-full py-3 bg-teal-605 hover:bg-teal-750 dark:bg-teal-500 dark:hover:bg-teal-400 text-white dark:text-slate-955 font-bold text-xs rounded-xl shadow-lg flex items-center justify-center gap-2 transition-all duration-205 disabled:opacity-40"
+                className="w-full py-3 bg-teal-605 hover:bg-teal-700 dark:bg-teal-500 dark:hover:bg-teal-400 text-white dark:text-slate-955 font-bold text-xs rounded-xl shadow-lg flex items-center justify-center gap-2 transition-all duration-205 disabled:opacity-40"
               >
                 {searching ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Target className="w-4 h-4" />}
                 Find Leads
@@ -395,7 +407,7 @@ export default function LeadEnginePage() {
                 <Plus className="w-4 h-4" /> Manual Target Entry
               </h3>
               {validationError && (
-                <div className="p-3 bg-red-500/5 border border-red-500/15 text-red-650 dark:text-red-400 text-[10px] font-semibold rounded-lg flex items-center gap-1.5">
+                <div className="p-3 bg-red-500/5 border border-red-500/15 text-red-600 dark:text-red-400 text-[10px] font-semibold rounded-lg flex items-center gap-1.5">
                   <AlertCircle className="w-4 h-4" /> {validationError}
                 </div>
               )}
@@ -426,7 +438,7 @@ export default function LeadEnginePage() {
                   value={manualPhone}
                   onChange={(e) => setManualPhone(e.target.value)}
                   placeholder="Phone Mobile" 
-                  className="bg-slate-50 dark:bg-slate-955 border border-slate-200 dark:border-slate-850 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-teal-500"
+                  className="bg-slate-50 dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-teal-500"
                 />
               </div>
               <div className="flex gap-2">
@@ -449,7 +461,7 @@ export default function LeadEnginePage() {
                 
                 {/* Score threshold */}
                 <div className="flex items-center gap-2">
-                  <span className="text-xs text-slate-500 dark:text-slate-450 font-medium">Min AI Score:</span>
+                  <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">Min AI Score:</span>
                   <input 
                     type="range" 
                     min="50" 
@@ -469,7 +481,7 @@ export default function LeadEnginePage() {
                     onChange={(e) => setVerifyEmailFilter(e.target.checked)}
                     className="rounded border-slate-300 dark:border-slate-800 text-teal-500 focus:ring-teal-500/50 bg-white dark:bg-slate-950 w-3.5 h-3.5"
                   />
-                  <span className="text-xs text-slate-505 dark:text-slate-400 font-semibold">Verified Email</span>
+                  <span className="text-xs text-slate-500 dark:text-slate-400 font-semibold">Verified Email</span>
                 </label>
 
                 <label className="flex items-center gap-2 cursor-pointer">
@@ -479,12 +491,12 @@ export default function LeadEnginePage() {
                     onChange={(e) => setVerifyPhoneFilter(e.target.checked)}
                     className="rounded border-slate-300 dark:border-slate-800 text-teal-505 focus:ring-teal-500/50 bg-white dark:bg-slate-950 w-3.5 h-3.5"
                   />
-                  <span className="text-xs text-slate-505 dark:text-slate-400 font-semibold">Verified Mobile</span>
+                  <span className="text-xs text-slate-500 dark:text-slate-400 font-semibold">Verified Mobile</span>
                 </label>
 
                 {/* Status filter */}
                 <select
-                  className="bg-slate-50 dark:bg-slate-955 border border-slate-200 dark:border-slate-850 rounded-lg text-xs text-slate-705 dark:text-slate-300 py-1.5 px-3 focus:outline-none"
+                  className="bg-slate-50 dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-705 dark:text-slate-300 py-1.5 px-3 focus:outline-none"
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value)}
                 >
@@ -504,7 +516,7 @@ export default function LeadEnginePage() {
                     </span>
                     <button
                       onClick={handleBulkImport}
-                      className="px-2.5 py-1 bg-teal-650 dark:bg-teal-500 hover:bg-teal-750 dark:hover:bg-teal-400 text-white dark:text-slate-950 text-[10px] font-bold rounded-lg transition-all"
+                      className="px-2.5 py-1 bg-teal-600 dark:bg-teal-500 hover:bg-teal-700 dark:hover:bg-teal-400 text-white dark:text-slate-950 text-[10px] font-bold rounded-lg transition-all"
                     >
                       Bulk Import
                     </button>
@@ -519,7 +531,7 @@ export default function LeadEnginePage() {
 
                 <button 
                   onClick={() => alert('Exported lead list to CSV')}
-                  className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-955 dark:hover:bg-slate-900 border border-slate-250 dark:border-slate-850 text-slate-650 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white rounded-lg text-[10px] font-bold transition-all flex items-center gap-1 shadow-sm"
+                  className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-955 dark:hover:bg-slate-900 border border-slate-250 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white rounded-lg text-[10px] font-bold transition-all flex items-center gap-1 shadow-sm"
                 >
                   <Download className="w-3.5 h-3.5" /> CSV Export
                 </button>
@@ -530,13 +542,13 @@ export default function LeadEnginePage() {
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs leading-normal">
                 <thead>
-                  <tr className="border-b border-slate-200 dark:border-slate-900 text-slate-405 font-bold uppercase tracking-wider bg-slate-50/20">
+                  <tr className="border-b border-slate-200 dark:border-slate-900 text-slate-400 font-bold uppercase tracking-wider bg-slate-50/20">
                     <th className="py-2.5 px-4 w-10">
                       <input 
                         type="checkbox"
                         checked={filteredLeads.length > 0 && filteredLeads.every(l => l.selected)}
                         onChange={toggleSelectAll}
-                        className="rounded border-slate-350 dark:border-slate-850 bg-white dark:bg-slate-950 text-teal-500 focus:ring-teal-500/50 w-3.5 h-3.5"
+                        className="rounded border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 text-teal-500 focus:ring-teal-500/50 w-3.5 h-3.5"
                       />
                     </th>
                     <th className="py-2.5 px-3">Company Target</th>
@@ -554,7 +566,7 @@ export default function LeadEnginePage() {
                           type="checkbox"
                           checked={l.selected}
                           onChange={() => toggleSelectLead(l.id)}
-                          className="rounded border-slate-350 dark:border-slate-850 bg-white dark:bg-slate-950 text-teal-500 focus:ring-teal-500/50 w-3.5 h-3.5"
+                          className="rounded border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 text-teal-500 focus:ring-teal-500/50 w-3.5 h-3.5"
                         />
                       </td>
                       <td className="py-3 px-3">
@@ -576,11 +588,11 @@ export default function LeadEnginePage() {
                         ) : (
                           <div>
                             <p className="font-extrabold text-slate-400 blur-[3px] select-none select-all-none">rajesh.k@indoautotech.in</p>
-                            <p className="text-[10px] text-teal-655 dark:text-teal-400 mt-0.5 font-bold">Click Import to unlock contacts details</p>
+                            <p className="text-[10px] text-teal-600 dark:text-teal-400 mt-0.5 font-bold">Click Import to unlock contacts details</p>
                           </div>
                         )}
                       </td>
-                      <td className="py-3 px-3 font-extrabold text-slate-850 dark:text-slate-200">
+                      <td className="py-3 px-3 font-extrabold text-slate-800 dark:text-slate-200">
                         {l.score}/100
                       </td>
                       <td className="py-3 px-3 text-right">
@@ -596,14 +608,14 @@ export default function LeadEnginePage() {
                           <div className="flex justify-end gap-1.5">
                             <button
                               onClick={() => handleImportLead(l.id)}
-                              className="p-1.5 bg-teal-500/10 text-teal-650 dark:text-teal-400 hover:bg-teal-500/20 border border-teal-500/25 rounded-lg transition-colors"
+                              className="p-1.5 bg-teal-500/10 text-teal-600 dark:text-teal-400 hover:bg-teal-500/20 border border-teal-500/25 rounded-lg transition-colors"
                               title="Import to CRM"
                             >
                               <Check className="w-3.5 h-3.5" />
                             </button>
                             <button
                               onClick={() => handleRejectLead(l.id)}
-                              className="p-1.5 bg-slate-100 hover:bg-slate-200 text-slate-505 rounded-lg transition-colors"
+                              className="p-1.5 bg-slate-100 hover:bg-slate-200 text-slate-500 rounded-lg transition-colors"
                               title="Reject Target"
                             >
                               <X className="w-3.5 h-3.5" />

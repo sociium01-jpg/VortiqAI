@@ -1,5 +1,7 @@
 'use client';
 
+import { useUser } from '@clerk/nextjs';
+
 import React, { useState, useEffect } from 'react';
 import ConsoleLayout from '../ConsoleLayout';
 import { 
@@ -23,6 +25,32 @@ interface WorkflowTemplate {
 }
 
 export default function SettingsPage() {
+  const { user, isLoaded } = useUser();
+  const isDemo = isLoaded && user?.primaryEmailAddress?.emailAddress?.toLowerCase() === 'demo@vortiq.ai';
+
+  useEffect(() => {
+    if (isLoaded && !isDemo) {
+      setBrandName("My Business");
+      setLogoUrl("");
+      setAddress("");
+      setCity("");
+      setState("");
+      setPincode("");
+      setAnthropicKey("");
+      setOpenAIKey("");
+      setElevenlabsKey("");
+      setGeminiKey("");
+      setWorkflows([]);
+      setMemoryStats([
+        { tier: 'Company Memory', scope: 'Brand tone, corporate structures, SOP rules', vectors: 0 },
+        { tier: 'Module Memory', scope: 'Kanban stages configs, lead scorers, calling rules', vectors: 0 },
+        { tier: 'User Memory', scope: 'Reps dashboard preferences, email copies templates', vectors: 0 },
+        { tier: 'Record-Level Memory', scope: 'Timeline transcripts, customer touchpoints, activity history', vectors: 0 }
+      ]);
+      setAiAnalysis("SettingsAgent: Setup complete. Add your API keys and configure modules.");
+    }
+  }, [isLoaded, isDemo]);
+
   const [activeSubTab, setActiveSubTab] = useState<'profile' | 'keys' | 'voice' | 'n8n' | 'modules' | 'ai-safety'>('profile');
   const [showSecret, setShowSecret] = useState<Record<string, boolean>>({});
 
@@ -212,7 +240,7 @@ export default function SettingsPage() {
                 </h4>
                 <span className="text-[9px] px-1.5 py-0.5 bg-teal-500/20 text-teal-700 dark:text-teal-400 font-black rounded-full">Automated</span>
               </div>
-              <p className="text-xs text-slate-650 dark:text-slate-350 mt-1 font-medium max-w-2xl leading-relaxed">
+              <p className="text-xs text-slate-600 dark:text-slate-300 mt-1 font-medium max-w-2xl leading-relaxed">
                 "{aiAnalysis}"
               </p>
             </div>
@@ -240,7 +268,7 @@ export default function SettingsPage() {
                   onClick={() => setActiveSubTab(tab.id as any)}
                   className={`w-full flex items-center gap-2.5 px-4 py-3 rounded-xl text-xs font-bold transition-all border ${
                     active 
-                      ? 'bg-teal-500/10 dark:bg-slate-900 border-teal-200 dark:border-slate-800 text-teal-650 dark:text-teal-400 font-extrabold' 
+                      ? 'bg-teal-500/10 dark:bg-slate-900 border-teal-200 dark:border-slate-800 text-teal-600 dark:text-teal-400 font-extrabold' 
                       : 'border-transparent text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900/50 hover:text-slate-700'
                   }`}
                 >
@@ -258,7 +286,7 @@ export default function SettingsPage() {
             {activeSubTab === 'profile' && (
               <div className="space-y-6 animate-fadeIn">
                 <div>
-                  <h3 className="text-sm font-bold text-slate-855 dark:text-slate-200">Corporate Profile</h3>
+                  <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200">Corporate Profile</h3>
                   <p className="text-xs text-slate-400 mt-1">Configure trading names and logo URLs. Legal identifiers (GSTIN/Company details) are read-only for security reasons.</p>
                 </div>
 
@@ -284,31 +312,31 @@ export default function SettingsPage() {
                     <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Trading / Brand Name</label>
                     <input 
                       type="text" value={brandName} onChange={(e) => setBrandName(e.target.value)}
-                      className="w-full bg-slate-50 dark:bg-slate-955 border border-slate-200 dark:border-slate-850 rounded-xl px-3 py-2 text-xs text-slate-850 focus:outline-none focus:border-teal-500"
+                      className="w-full bg-slate-50 dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-teal-500"
                     />
                   </div>
                   <div>
                     <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Brand Logo URL</label>
                     <input 
                       type="text" value={logoUrl} onChange={(e) => setLogoUrl(e.target.value)}
-                      className="w-full bg-slate-50 dark:bg-slate-955 border border-slate-200 dark:border-slate-850 rounded-xl px-3 py-2 text-xs text-slate-850 focus:outline-none focus:border-teal-500"
+                      className="w-full bg-slate-50 dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-teal-500"
                     />
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 border-t border-slate-100 dark:border-slate-850 pt-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 border-t border-slate-100 dark:border-slate-800 pt-4">
                   <div className="md:col-span-2">
                     <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Street Address</label>
                     <input 
                       type="text" value={address} onChange={(e) => setAddress(e.target.value)}
-                      className="w-full bg-slate-50 dark:bg-slate-955 border border-slate-200 dark:border-slate-855 rounded-xl px-3 py-2 text-xs text-slate-850"
+                      className="w-full bg-slate-50 dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-800"
                     />
                   </div>
                   <div>
                     <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">City</label>
                     <input 
                       type="text" value={city} onChange={(e) => setCity(e.target.value)}
-                      className="w-full bg-slate-50 dark:bg-slate-955 border border-slate-200 dark:border-slate-855 rounded-xl px-3 py-2 text-xs text-slate-850"
+                      className="w-full bg-slate-50 dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-800"
                     />
                   </div>
                 </div>
@@ -318,14 +346,14 @@ export default function SettingsPage() {
                     <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">State</label>
                     <input 
                       type="text" value={state} onChange={(e) => setState(e.target.value)}
-                      className="w-full bg-slate-50 dark:bg-slate-955 border border-slate-200 dark:border-slate-855 rounded-xl px-3 py-2 text-xs text-slate-855"
+                      className="w-full bg-slate-50 dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-800"
                     />
                   </div>
                   <div>
                     <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Pincode</label>
                     <input 
                       type="text" value={pincode} onChange={(e) => setPincode(e.target.value)}
-                      className="w-full bg-slate-50 dark:bg-slate-955 border border-slate-200 dark:border-slate-855 rounded-xl px-3 py-2 text-xs text-slate-855"
+                      className="w-full bg-slate-50 dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-800"
                     />
                   </div>
                 </div>
@@ -343,7 +371,7 @@ export default function SettingsPage() {
             {activeSubTab === 'keys' && (
               <div className="space-y-6 animate-fadeIn">
                 <div>
-                  <h3 className="text-sm font-bold text-slate-850 dark:text-slate-205">Bring Your Own Key (BYOK)</h3>
+                  <h3 className="text-sm font-bold text-slate-800 dark:text-slate-205">Bring Your Own Key (BYOK)</h3>
                   <p className="text-xs text-slate-400 mt-1">Direct LLM access billing. Key parameters are strictly stored on secure client sessions.</p>
                 </div>
 
@@ -353,7 +381,7 @@ export default function SettingsPage() {
                     <select 
                       value={selectedProvider} 
                       onChange={(e) => setSelectedProvider(e.target.value)}
-                      className="w-full bg-slate-50 dark:bg-slate-955 border border-slate-200 dark:border-slate-850 rounded-xl px-3 py-2 text-xs text-slate-850 focus:outline-none"
+                      className="w-full bg-slate-50 dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-none"
                     >
                       <option value="GEMINI">Google Gemini Pro (Recommended)</option>
                       <option value="OPENAI">OpenAI GPT-4o</option>
@@ -374,12 +402,12 @@ export default function SettingsPage() {
                           type={showSecret[item.field] ? 'text' : 'password'}
                           value={item.value}
                           onChange={(e) => item.setter(e.target.value)}
-                          className="w-full bg-slate-50 dark:bg-slate-955 border border-slate-200 dark:border-slate-855 rounded-xl px-3 py-2 text-xs pr-10 focus:outline-none"
+                          className="w-full bg-slate-50 dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs pr-10 focus:outline-none"
                         />
                         <button 
                           type="button" 
                           onClick={() => toggleShowSecret(item.field)}
-                          className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-650"
+                          className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600"
                         >
                           {showSecret[item.field] ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                         </button>
@@ -397,7 +425,7 @@ export default function SettingsPage() {
                   </button>
                   <button 
                     onClick={() => alert('Ping connection to ' + selectedProvider + ' successful. Latency: 120ms')}
-                    className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-850 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-bold transition-all border border-slate-200 dark:border-slate-750"
+                    className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-bold transition-all border border-slate-200 dark:border-slate-700"
                   >
                     Test Connection
                   </button>
@@ -409,14 +437,14 @@ export default function SettingsPage() {
             {activeSubTab === 'ai-safety' && (
               <div className="space-y-6 animate-fadeIn">
                 <div>
-                  <h3 className="text-sm font-bold text-slate-855 dark:text-slate-200">AI Integration & Safety Controls</h3>
+                  <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200">AI Integration & Safety Controls</h3>
                   <p className="text-xs text-slate-400 mt-1">Manage tenant dual-mode switches, configure human approval checkpoints for sensitive actions, and administer memory scopes.</p>
                 </div>
 
                 {/* Global Toggle */}
                 <div className="p-4 bg-teal-500/5 border border-teal-500/10 rounded-2xl flex items-center justify-between gap-4">
                   <div className="text-xs">
-                    <p className="font-extrabold text-teal-700 dark:text-teal-405">AI-Assisted Mode Status</p>
+                    <p className="font-extrabold text-teal-700 dark:text-teal-400">AI-Assisted Mode Status</p>
                     <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium mt-0.5">
                       Toggle between Manual Mode (AI deactivated, strictly standard forms) and AI-Assisted Mode.
                     </p>
@@ -425,8 +453,8 @@ export default function SettingsPage() {
                     onClick={handleToggleAiMode}
                     className={`flex items-center gap-1.5 px-4 py-2 rounded-xl border text-xs font-black transition-all ${
                       aiModeEnabled 
-                        ? 'bg-teal-550/10 dark:bg-teal-500/15 border-teal-500/25 text-teal-650 dark:text-teal-400 font-black' 
-                        : 'bg-slate-100 dark:bg-slate-850 border-slate-200 dark:border-slate-800 text-slate-400'
+                        ? 'bg-teal-500/10 dark:bg-teal-500/15 border-teal-500/25 text-teal-600 dark:text-teal-400 font-black' 
+                        : 'bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-800 text-slate-400'
                     }`}
                   >
                     {aiModeEnabled ? 'AI Enabled' : 'AI Disabled (Manual)'}
@@ -438,7 +466,7 @@ export default function SettingsPage() {
                   <h4 className="text-xs font-bold text-slate-700 dark:text-slate-250 uppercase tracking-widest flex items-center gap-1.5">
                     <Shield className="w-4.5 h-4.5 text-indigo-500" /> Human Approval Checkpoints (Safety Guardrails)
                   </h4>
-                  <div className="p-4 bg-slate-50 dark:bg-slate-955 border border-slate-200 dark:border-slate-850 rounded-2xl space-y-3.5 text-xs">
+                  <div className="p-4 bg-slate-50 dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-2xl space-y-3.5 text-xs">
                     {[
                       { label: 'Require confirmation before sending client WhatsApp briefings or campaign updates', key: 'sendWhatsApp' },
                       { label: 'Require approval before releasing outreach emails or posting social calendar cards', key: 'sendEmail' },
@@ -469,33 +497,33 @@ export default function SettingsPage() {
                   <h4 className="text-xs font-bold text-slate-700 dark:text-slate-250 uppercase tracking-widest flex items-center gap-1.5">
                     <Database className="w-4.5 h-4.5 text-teal-600 dark:text-teal-400" /> Memory Scopes Manager
                   </h4>
-                  <div className="overflow-hidden border border-slate-200 dark:border-slate-855 rounded-2xl bg-slate-50 dark:bg-slate-950/20 text-xs">
+                  <div className="overflow-hidden border border-slate-200 dark:border-slate-800 rounded-2xl bg-slate-50 dark:bg-slate-950/20 text-xs">
                     <table className="w-full text-left border-collapse">
                       <thead>
-                        <tr className="bg-slate-100 dark:bg-slate-950 border-b border-slate-200 dark:border-slate-850 text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                        <tr className="bg-slate-100 dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800 text-[10px] font-bold uppercase tracking-wider text-slate-500">
                           <th className="p-3">Memory Tier</th>
                           <th className="p-3">Scope Scope</th>
                           <th className="p-3 text-center">Stored Vectors</th>
                           <th className="p-3 text-right">Actions</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-slate-100 dark:divide-slate-855 font-semibold text-slate-700 dark:text-slate-300">
+                      <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-semibold text-slate-700 dark:text-slate-300">
                         {memoryStats.map(stat => (
                           <tr key={stat.tier} className="hover:bg-slate-100/50 dark:hover:bg-slate-900/30 transition-all">
                             <td className="p-3 font-extrabold">{stat.tier}</td>
                             <td className="p-3 text-slate-500 dark:text-slate-400 font-medium">{stat.scope}</td>
-                            <td className="p-3 text-center font-bold text-indigo-600 dark:text-teal-450">{stat.vectors} entries</td>
+                            <td className="p-3 text-center font-bold text-indigo-600 dark:text-teal-500">{stat.vectors} entries</td>
                             <td className="p-3 text-right space-x-1.5 shrink-0">
                               <button 
                                 onClick={() => handleClearMemory(stat.tier)}
-                                className="p-1.5 rounded-lg bg-red-500/10 text-red-650 hover:bg-red-500/20 dark:text-red-400 transition-all"
+                                className="p-1.5 rounded-lg bg-red-500/10 text-red-600 hover:bg-red-500/20 dark:text-red-400 transition-all"
                                 title="Clear memory"
                               >
                                 <Trash2 className="w-3.5 h-3.5" />
                               </button>
                               <button 
                                 onClick={() => alert('Exporting ' + stat.tier + ' context files...')}
-                                className="p-1.5 rounded-lg bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-650 dark:text-slate-300 transition-all"
+                                className="p-1.5 rounded-lg bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition-all"
                                 title="Export memory context"
                               >
                                 <Download className="w-3.5 h-3.5" />
@@ -514,15 +542,15 @@ export default function SettingsPage() {
             {activeSubTab === 'voice' && (
               <div className="space-y-6 animate-fadeIn">
                 <div>
-                  <h3 className="text-sm font-bold text-slate-850 dark:text-slate-205">Voice & Outbound Rules</h3>
+                  <h3 className="text-sm font-bold text-slate-800 dark:text-slate-205">Voice & Outbound Rules</h3>
                   <p className="text-xs text-slate-400 mt-1">Outbound telemarketing restrictions enforced client-side via DLT caller headers.</p>
                 </div>
 
                 <div className="space-y-4">
-                  <div className="flex items-center gap-3 p-4 bg-slate-50 dark:bg-slate-955 border border-slate-200 dark:border-slate-850 rounded-xl">
-                    <input type="checkbox" defaultChecked disabled className="w-4 h-4 rounded text-teal-650" />
+                  <div className="flex items-center gap-3 p-4 bg-slate-50 dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl">
+                    <input type="checkbox" defaultChecked disabled className="w-4 h-4 rounded text-teal-600" />
                     <div className="text-xs">
-                      <p className="font-bold text-slate-855 dark:text-slate-200">Enforce TRAI Compliant Calling Hours</p>
+                      <p className="font-bold text-slate-800 dark:text-slate-200">Enforce TRAI Compliant Calling Hours</p>
                       <p className="text-[10px] text-slate-400 mt-0.5">Locks dialer commands during non-permissible slots (07:00 PM - 10:00 AM IST).</p>
                     </div>
                   </div>
@@ -531,7 +559,7 @@ export default function SettingsPage() {
                     <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">DLT Registered Caller ID</label>
                     <input 
                       type="text" defaultValue="+91 1409920192"
-                      className="w-full bg-slate-50 dark:bg-slate-955 border border-slate-200 dark:border-slate-855 rounded-xl px-3 py-2 text-xs font-mono"
+                      className="w-full bg-slate-50 dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs font-mono"
                     />
                     <span className="text-[10px] text-slate-400 mt-1 block">Caller ID header must belong to 140/160 series telemarketing allocation.</span>
                   </div>
@@ -543,14 +571,14 @@ export default function SettingsPage() {
             {activeSubTab === 'n8n' && (
               <div className="space-y-6 animate-fadeIn">
                 <div>
-                  <h3 className="text-sm font-bold text-slate-855 dark:text-slate-205">n8n Plug-and-Play Workflows</h3>
+                  <h3 className="text-sm font-bold text-slate-800 dark:text-slate-205">n8n Plug-and-Play Workflows</h3>
                   <p className="text-xs text-slate-400 mt-1">Connect your workspace webhook nodes to execute external automation pipelines.</p>
                 </div>
 
                 {/* Workflow list */}
                 <div className="space-y-3">
                   {workflows.map(wf => (
-                    <div key={wf.id} className="p-4 border border-slate-200 dark:border-slate-850 rounded-xl bg-slate-50 dark:bg-slate-955 flex flex-col md:flex-row items-start md:items-center justify-between gap-3 text-xs">
+                    <div key={wf.id} className="p-4 border border-slate-200 dark:border-slate-800 rounded-xl bg-slate-50 dark:bg-slate-955 flex flex-col md:flex-row items-start md:items-center justify-between gap-3 text-xs">
                       <div>
                         <h4 className="font-extrabold text-slate-905 dark:text-slate-200">{wf.name}</h4>
                         <p className="text-[10px] text-slate-500 mt-1">Webhook URL: <span className="font-mono bg-white dark:bg-slate-900 border dark:border-slate-800 px-1 rounded">{wf.webhookUrl}</span></p>
@@ -560,7 +588,7 @@ export default function SettingsPage() {
                       <button 
                         onClick={() => handleToggleWorkflow(wf.id)}
                         className={`px-3 py-1.5 border rounded-lg text-xs font-bold transition-all ${
-                          wf.isActive ? 'bg-teal-550/10 border-teal-200 text-teal-650' : 'bg-slate-100 border-slate-200 text-slate-400'
+                          wf.isActive ? 'bg-teal-500/10 border-teal-200 text-teal-600' : 'bg-slate-100 border-slate-200 text-slate-400'
                         }`}
                       >
                         {wf.isActive ? 'Trigger Active' : 'Disabled'}
@@ -570,9 +598,9 @@ export default function SettingsPage() {
                 </div>
 
                 {/* NLP Automation compiler */}
-                <div className="border-t border-slate-100 dark:border-slate-855 pt-4 space-y-4">
-                  <h4 className="text-xs font-bold text-slate-850 dark:text-slate-200 uppercase tracking-wider flex items-center gap-1.5">
-                    <Code className="w-4 h-4 text-teal-650" /> NLP automation parser
+                <div className="border-t border-slate-100 dark:border-slate-800 pt-4 space-y-4">
+                  <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider flex items-center gap-1.5">
+                    <Code className="w-4 h-4 text-teal-600" /> NLP automation parser
                   </h4>
 
                   <form onSubmit={handleCompileNlp} className="space-y-3">
@@ -580,7 +608,7 @@ export default function SettingsPage() {
                       value={nlpPrompt} onChange={(e) => setNlpPrompt(e.target.value)}
                       rows={3}
                       placeholder="e.g. When a new lead fits, trigger n8n hook..."
-                      className="w-full bg-slate-50 dark:bg-slate-955 border border-slate-200 dark:border-slate-855 rounded-xl p-3 text-xs resize-none focus:outline-none"
+                      className="w-full bg-slate-50 dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl p-3 text-xs resize-none focus:outline-none"
                     />
 
                     <div className="flex justify-end">
@@ -611,22 +639,22 @@ export default function SettingsPage() {
             {activeSubTab === 'modules' && (
               <div className="space-y-6 animate-fadeIn">
                 <div>
-                  <h3 className="text-sm font-bold text-slate-855 dark:text-slate-255">Module Visibility Customizer</h3>
+                  <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200">Module Visibility Customizer</h3>
                   <p className="text-xs text-slate-400 mt-1">Enable or disable specific modules. Disabled modules will be hidden from the sidebar menu.</p>
                 </div>
 
                 <div className="space-y-3">
                   {modules.map(mod => (
-                    <div key={mod.id} className="p-4 border border-slate-200 dark:border-slate-850 rounded-xl bg-slate-50 dark:bg-slate-955 flex items-center justify-between text-xs">
+                    <div key={mod.id} className="p-4 border border-slate-200 dark:border-slate-800 rounded-xl bg-slate-50 dark:bg-slate-955 flex items-center justify-between text-xs">
                       <div>
                         <h4 className="font-extrabold text-slate-900 dark:text-white">{mod.name}</h4>
-                        <p className="text-[10px] text-slate-450 mt-0.5">{mod.description}</p>
+                        <p className="text-[10px] text-slate-400 mt-0.5">{mod.description}</p>
                       </div>
 
                       <button 
                         onClick={() => handleToggleModule(mod.id)}
                         className={`p-1 rounded-full transition-all ${
-                          mod.isEnabled ? 'text-teal-600' : 'text-slate-350 dark:text-slate-700'
+                          mod.isEnabled ? 'text-teal-600' : 'text-slate-300 dark:text-slate-700'
                         }`}
                       >
                         {mod.isEnabled ? <ToggleRight className="w-9 h-9" /> : <ToggleLeft className="w-9 h-9" />}

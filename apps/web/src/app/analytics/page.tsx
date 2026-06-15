@@ -1,6 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
+import { useUser } from '@clerk/nextjs';
+
+import React, { useState, useEffect } from 'react';
 import ConsoleLayout from '../ConsoleLayout';
 import { 
   BarChart3, Brain, FileText, Calendar, Search, ArrowRight, TrendingUp,
@@ -18,6 +20,16 @@ const formatINR = (amount: number): string => {
 };
 
 export default function AnalyticsPage() {
+  const { user, isLoaded } = useUser();
+  const isDemo = isLoaded && user?.primaryEmailAddress?.emailAddress?.toLowerCase() === 'demo@vortiq.ai';
+
+  useEffect(() => {
+    if (isLoaded && !isDemo) {
+      setQueryResult(null);
+      setAiAnalysis("AnalyticsAgent: Pipeline reporting ready. Connect data connectors to compile business analytics dashboards.");
+    }
+  }, [isLoaded, isDemo]);
+
   const [nlQuery, setNlQuery] = useState('Show all B2B contacts with lead score greater than 80 in Pune');
   const [sqlQuery, setSqlQuery] = useState('');
   const [queryResult, setQueryResult] = useState<any>(null);
@@ -102,7 +114,7 @@ export default function AnalyticsPage() {
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white dark:bg-slate-900/40 p-6 rounded-2xl border border-slate-200 dark:border-slate-900 shadow-sm">
           <div>
             <h2 className="text-xl font-black text-slate-900 dark:text-white flex items-center gap-2">
-              <BarChart3 className="w-5.5 h-5.5 text-teal-655 text-teal-600 dark:text-teal-400" />
+              <BarChart3 className="w-5.5 h-5.5 text-teal-600 text-teal-600 dark:text-teal-400" />
               Autonomous Business Intelligence (BI)
             </h2>
             <p className="text-xs text-slate-500 font-semibold mt-1">
@@ -133,7 +145,7 @@ export default function AnalyticsPage() {
                 </h4>
                 <span className="text-[9px] px-1.5 py-0.5 bg-teal-500/20 text-teal-700 dark:text-teal-400 font-black rounded-full">Automated</span>
               </div>
-              <p className="text-xs text-slate-600 dark:text-slate-350 mt-1 font-medium max-w-2xl leading-relaxed">
+              <p className="text-xs text-slate-600 dark:text-slate-300 mt-1 font-medium max-w-2xl leading-relaxed">
                 "{aiAnalysis}"
               </p>
             </div>
@@ -142,8 +154,8 @@ export default function AnalyticsPage() {
 
         {/* Natural Language to SQL Console */}
         <div className="bg-white dark:bg-slate-900/20 border border-slate-200 dark:border-slate-900 p-6 rounded-2xl shadow-sm space-y-4">
-          <h3 className="text-xs font-bold text-slate-850 dark:text-slate-200 uppercase tracking-widest flex items-center gap-1.5">
-            <Database className="w-4 h-4 text-teal-650" /> NLP-to-SQL Database Console
+          <h3 className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-widest flex items-center gap-1.5">
+            <Database className="w-4 h-4 text-teal-600" /> NLP-to-SQL Database Console
           </h3>
 
           <form onSubmit={handleQuerySubmit} className="flex gap-2">
@@ -152,7 +164,7 @@ export default function AnalyticsPage() {
               value={nlQuery}
               onChange={(e) => setNlQuery(e.target.value)}
               placeholder="e.g. Show all contacts in Pune with lead score > 80"
-              className="flex-1 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-855 rounded-xl px-4 py-3 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-teal-500"
+              className="flex-1 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-3 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-teal-500"
             />
             <button type="submit" className="px-5 py-3 bg-teal-600 hover:bg-teal-500 text-white rounded-xl text-xs font-bold transition-all flex items-center gap-1 shadow-sm">
               Compile & Run <Play className="w-3.5 h-3.5 fill-current" />
@@ -172,14 +184,14 @@ export default function AnalyticsPage() {
               <div className="lg:col-span-7 space-y-2">
                 <div className="flex justify-between items-center">
                   <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Executed Results ({queryResult?.rowCount} rows in {queryResult?.executionTimeMs}ms)</span>
-                  <button className="text-[10px] text-teal-650 dark:text-teal-400 font-bold hover:underline flex items-center gap-0.5">
+                  <button className="text-[10px] text-teal-600 dark:text-teal-400 font-bold hover:underline flex items-center gap-0.5">
                     <Download className="w-3 h-3" /> Export CSV
                   </button>
                 </div>
-                <div className="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-xl overflow-hidden">
+                <div className="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden">
                   <table className="w-full text-left text-[11px]">
                     <thead>
-                      <tr className="border-b border-slate-200 dark:border-slate-850 bg-slate-100/50 dark:bg-slate-900/50 font-bold text-slate-500">
+                      <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-100/50 dark:bg-slate-900/50 font-bold text-slate-500">
                         {queryResult && Object.keys(queryResult.rows[0] || {}).map(key => (
                           <th key={key} className="p-3 uppercase">{key.replace(/_/g, ' ')}</th>
                         ))}
@@ -206,7 +218,7 @@ export default function AnalyticsPage() {
           
           {/* Chart Display Widget */}
           <div className="lg:col-span-7 bg-white dark:bg-slate-900/20 border border-slate-200 dark:border-slate-900 p-5 rounded-2xl shadow-sm space-y-4">
-            <div className="flex justify-between items-center border-b border-slate-100 dark:border-slate-850 pb-3">
+            <div className="flex justify-between items-center border-b border-slate-100 dark:border-slate-800 pb-3">
               <h3 className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-widest">Interactive BI Charts</h3>
               
               <div className="flex gap-1.5">
@@ -220,7 +232,7 @@ export default function AnalyticsPage() {
                     onClick={() => setActiveChart(opt.id as any)}
                     className={`px-2.5 py-1 rounded-lg text-[10px] font-bold border transition-colors ${
                       activeChart === opt.id 
-                        ? 'bg-teal-50 border-teal-200 text-teal-650' 
+                        ? 'bg-teal-50 border-teal-200 text-teal-600' 
                         : 'bg-slate-50 border-slate-200 text-slate-500 hover:text-slate-700'
                     }`}
                   >
@@ -241,7 +253,7 @@ export default function AnalyticsPage() {
                     <span className="text-[9px] text-slate-500 mb-1">May (Rs 12.0L)</span>
                   </div>
                   <div className="w-1/4 bg-teal-500/30 dark:bg-teal-500/15 border-t-2 border-teal-605 flex flex-col justify-end items-center" style={{ height: '80%' }}>
-                    <span className="text-[9px] font-bold text-teal-650 mb-1">June (Rs 18.5L)</span>
+                    <span className="text-[9px] font-bold text-teal-600 mb-1">June (Rs 18.5L)</span>
                   </div>
                 </>
               )}
@@ -255,7 +267,7 @@ export default function AnalyticsPage() {
                     <span className="text-[9px] text-slate-500 mb-1">Qualified (580)</span>
                   </div>
                   <div className="w-1/4 bg-indigo-500/30 dark:bg-indigo-500/15 border-t-2 border-indigo-605 flex flex-col justify-end items-center" style={{ height: '15%' }}>
-                    <span className="text-[9px] font-bold text-indigo-650 mb-1">Deals (88)</span>
+                    <span className="text-[9px] font-bold text-indigo-600 mb-1">Deals (88)</span>
                   </div>
                 </>
               )}
@@ -269,7 +281,7 @@ export default function AnalyticsPage() {
                     <span className="text-[9px] text-slate-500 mb-1">Meta (Rs 240)</span>
                   </div>
                   <div className="w-1/4 bg-amber-500/30 dark:bg-amber-500/15 border-t-2 border-amber-605 flex flex-col justify-end items-center" style={{ height: '75%' }}>
-                    <span className="text-[9px] font-bold text-amber-650 mb-1">LinkedIn (Rs 310)</span>
+                    <span className="text-[9px] font-bold text-amber-600 mb-1">LinkedIn (Rs 310)</span>
                   </div>
                 </>
               )}
@@ -279,29 +291,29 @@ export default function AnalyticsPage() {
           {/* Propensity Forecast Detail Widget */}
           <div className="lg:col-span-5 bg-white dark:bg-slate-900/20 border border-slate-200 dark:border-slate-900 p-5 rounded-2xl shadow-sm space-y-4">
             <h3 className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-widest flex items-center gap-1.5">
-              <TrendingUp className="w-4.5 h-4.5 text-teal-650" /> Propensity Forecasting Model
+              <TrendingUp className="w-4.5 h-4.5 text-teal-600" /> Propensity Forecasting Model
             </h3>
 
             <div className="space-y-4 text-xs font-semibold text-slate-600 dark:text-slate-400">
-              <div className="flex justify-between border-b border-slate-100 dark:border-slate-850 pb-2">
+              <div className="flex justify-between border-b border-slate-100 dark:border-slate-800 pb-2">
                 <span>Month Target Target:</span>
-                <span className="text-slate-850">Rs 20,000,000</span>
+                <span className="text-slate-800">Rs 20,000,000</span>
               </div>
-              <div className="flex justify-between border-b border-slate-100 dark:border-slate-855 pb-2">
+              <div className="flex justify-between border-b border-slate-100 dark:border-slate-800 pb-2">
                 <span>Achieved MTD:</span>
                 <span className="text-emerald-600">Rs 18,50,000</span>
               </div>
-              <div className="flex justify-between border-b border-slate-100 dark:border-slate-855 pb-2">
+              <div className="flex justify-between border-b border-slate-100 dark:border-slate-800 pb-2">
                 <span>AI Predicted Total:</span>
                 <span className="text-teal-600 font-extrabold">Rs 22,10,000</span>
               </div>
-              <div className="flex justify-between border-b border-slate-100 dark:border-slate-855 pb-2">
+              <div className="flex justify-between border-b border-slate-100 dark:border-slate-800 pb-2">
                 <span>June Target Target success probability:</span>
                 <span className="text-amber-600 font-extrabold">84% Success odds</span>
               </div>
             </div>
 
-            <div className="p-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-xl text-[11px] leading-relaxed italic text-slate-500">
+            <div className="p-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-[11px] leading-relaxed italic text-slate-500">
               "Note: Success likelihood increased from 73% following Tata Motors invoice draft approval."
             </div>
           </div>
@@ -320,12 +332,12 @@ export default function AnalyticsPage() {
               { name: 'Q3 Outbound Call Script Analytics.pdf', desc: 'Transcripts & keywords metrics', size: '1.4 MB' },
               { name: 'June Staff Attendance Scorecard.xlsx', desc: 'Clock-in geo audit sheet', size: '620 KB' }
             ].map((doc, idx) => (
-              <div key={idx} className="p-4 border border-slate-200 dark:border-slate-850 rounded-xl bg-slate-50 dark:bg-slate-950 flex items-center justify-between text-xs font-semibold">
+              <div key={idx} className="p-4 border border-slate-200 dark:border-slate-800 rounded-xl bg-slate-50 dark:bg-slate-950 flex items-center justify-between text-xs font-semibold">
                 <div>
                   <p className="text-slate-800 dark:text-slate-200">{doc.name}</p>
                   <p className="text-[10px] text-slate-400 mt-0.5">{doc.desc}</p>
                 </div>
-                <button className="p-2 bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 text-slate-605 rounded flex items-center gap-1 font-bold text-[10px]">
+                <button className="p-2 bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 text-slate-600 rounded flex items-center gap-1 font-bold text-[10px]">
                   <Download className="w-3.5 h-3.5" /> {doc.size}
                 </button>
               </div>

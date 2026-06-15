@@ -1,6 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
+import { useUser } from '@clerk/nextjs';
+
+import React, { useState, useEffect } from 'react';
 import ConsoleLayout from '../ConsoleLayout';
 import { 
   Mail, MessageSquare, Send, CheckCircle2, AlertCircle, Clock, Settings,
@@ -30,6 +32,17 @@ interface BroadcastLog {
 }
 
 export default function BriefingsPage() {
+  const { user, isLoaded } = useUser();
+  const isDemo = isLoaded && user?.primaryEmailAddress?.emailAddress?.toLowerCase() === 'demo@vortiq.ai';
+
+  useEffect(() => {
+    if (isLoaded && !isDemo) {
+      setRules([]);
+      setLogs([]);
+      setAiAnalysis("BriefingAgent: WhatsApp notification scheduler offline. Define briefing targets to begin.");
+    }
+  }, [isLoaded, isDemo]);
+
   const [activeTab, setActiveTab] = useState<'scheduler' | 'logs' | 'sandbox'>('scheduler');
 
   // Scheduled Briefings
@@ -159,7 +172,7 @@ export default function BriefingsPage() {
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white dark:bg-slate-900/40 p-6 rounded-2xl border border-slate-200 dark:border-slate-900 shadow-sm">
           <div>
             <h2 className="text-xl font-black text-slate-900 dark:text-white flex items-center gap-2">
-              <Clock className="w-5.5 h-5.5 text-teal-655 text-teal-600 dark:text-teal-400" />
+              <Clock className="w-5.5 h-5.5 text-teal-600 text-teal-600 dark:text-teal-400" />
               WhatsApp & Telegram Scorecard Briefings
             </h2>
             <p className="text-xs text-slate-500 font-semibold mt-1">
@@ -189,11 +202,11 @@ export default function BriefingsPage() {
               <div className="flex items-center gap-2">
                 <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider flex items-center gap-1">
                   BriefingAgent Dispatch
-                  <Clock className="w-3.5 h-3.5 text-teal-650" />
+                  <Clock className="w-3.5 h-3.5 text-teal-600" />
                 </h4>
                 <span className="text-[9px] px-1.5 py-0.5 bg-teal-500/20 text-teal-700 dark:text-teal-400 font-black rounded-full">Cloud Scheduler</span>
               </div>
-              <p className="text-xs text-slate-600 dark:text-slate-350 mt-1 font-medium max-w-2xl leading-relaxed">
+              <p className="text-xs text-slate-600 dark:text-slate-300 mt-1 font-medium max-w-2xl leading-relaxed">
                 "{aiAnalysis}"
               </p>
             </div>
@@ -237,7 +250,7 @@ export default function BriefingsPage() {
         {/* Briefing Creation Form */}
         {isAdding && (
           <form onSubmit={handleCreateRule} className="bg-white dark:bg-slate-900/60 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-4 max-w-2xl animate-fadeIn shadow-sm">
-            <h3 className="text-sm font-bold text-slate-850 dark:text-slate-200">Register Auto Briefing Schedule</h3>
+            <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200">Register Auto Briefing Schedule</h3>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
@@ -245,7 +258,7 @@ export default function BriefingsPage() {
                 <input 
                   type="text" required value={newName} onChange={(e) => setNewName(e.target.value)}
                   placeholder="e.g. CEO Morning Scorecard Update"
-                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-xl px-3 py-2 text-xs text-slate-800 dark:text-slate-200 focus:outline-none"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-800 dark:text-slate-200 focus:outline-none"
                 />
               </div>
               <div>
@@ -253,7 +266,7 @@ export default function BriefingsPage() {
                 <input 
                   type="tel" required value={newPhone} onChange={(e) => setNewPhone(e.target.value)}
                   placeholder="e.g. +91 98765 43210"
-                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-xl px-3 py-2 text-xs text-slate-800 dark:text-slate-200 focus:outline-none"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-800 dark:text-slate-200 focus:outline-none"
                 />
               </div>
             </div>
@@ -263,7 +276,7 @@ export default function BriefingsPage() {
                 <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Recipient Role</label>
                 <select 
                   value={newRole} onChange={(e) => setNewRole(e.target.value as any)}
-                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-xl px-3 py-2 text-xs"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs"
                 >
                   <option value="CEO">CEO</option>
                   <option value="CFO">CFO</option>
@@ -276,7 +289,7 @@ export default function BriefingsPage() {
                 <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Daily Delivery Time</label>
                 <select 
                   value={newTime} onChange={(e) => setNewTime(e.target.value)}
-                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-xl px-3 py-2 text-xs"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs"
                 >
                   <option value="07:30 AM">07:30 AM IST</option>
                   <option value="08:00 AM">08:00 AM IST</option>
@@ -289,7 +302,7 @@ export default function BriefingsPage() {
                 <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Template Package</label>
                 <select 
                   value={newTemplate} onChange={(e) => setNewTemplate(e.target.value as any)}
-                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-xl px-3 py-2 text-xs text-slate-850"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-800"
                 >
                   <option value="Combined Scorecard">Combined Scorecard</option>
                   <option value="Finance Summary">Finance Summary</option>
@@ -299,7 +312,7 @@ export default function BriefingsPage() {
               </div>
             </div>
 
-            <div className="border-t border-slate-100 dark:border-slate-850 pt-4 space-y-2">
+            <div className="border-t border-slate-100 dark:border-slate-800 pt-4 space-y-2">
               <label className="block text-[10px] font-bold text-slate-500 uppercase">Select Modules to Include</label>
               <div className="flex flex-wrap gap-2">
                 {['Finance', 'Sales', 'HR', 'Support', 'Inventory'].map(mod => {
@@ -311,8 +324,8 @@ export default function BriefingsPage() {
                       onClick={() => handleToggleModuleSelection(mod)}
                       className={`px-3 py-1.5 border rounded-lg text-xs font-bold transition-all ${
                         selected 
-                          ? 'bg-teal-50 border-teal-200 text-teal-650' 
-                          : 'bg-slate-50 border-slate-200 text-slate-450 hover:bg-slate-100'
+                          ? 'bg-teal-50 border-teal-200 text-teal-600' 
+                          : 'bg-slate-50 border-slate-200 text-slate-400 hover:bg-slate-100'
                       }`}
                     >
                       {mod}
@@ -326,7 +339,7 @@ export default function BriefingsPage() {
               <button type="submit" className="px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white rounded-lg text-xs font-bold transition-all">
                 Save Schedule
               </button>
-              <button type="button" onClick={resetForm} className="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-850 dark:hover:bg-slate-800 text-slate-500 rounded-lg text-xs font-bold transition-all">
+              <button type="button" onClick={resetForm} className="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-800 text-slate-500 rounded-lg text-xs font-bold transition-all">
                 Cancel
               </button>
             </div>
@@ -357,11 +370,11 @@ export default function BriefingsPage() {
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-900 text-xs">
                   {rules.map((rule) => (
-                    <tr key={rule.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-950/10 text-slate-700 dark:text-slate-350">
+                    <tr key={rule.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-950/10 text-slate-700 dark:text-slate-300">
                       <td className="p-4 font-mono font-bold text-slate-900 dark:text-slate-100">{rule.id}</td>
-                      <td className="p-4 font-bold text-slate-850">{rule.name}</td>
+                      <td className="p-4 font-bold text-slate-800">{rule.name}</td>
                       <td className="p-4">
-                        <span className="px-2 py-0.5 rounded bg-indigo-50 dark:bg-indigo-950/40 text-indigo-650 dark:text-indigo-400 text-[10px] font-black border border-indigo-100 dark:border-indigo-950">
+                        <span className="px-2 py-0.5 rounded bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 text-[10px] font-black border border-indigo-100 dark:border-indigo-950">
                           {rule.recipientRole}
                         </span>
                       </td>
@@ -382,7 +395,7 @@ export default function BriefingsPage() {
                           onClick={() => toggleRule(rule.id)}
                           className={`px-3 py-1.5 border rounded-lg text-xs font-bold transition-all ${
                             rule.isActive 
-                              ? 'bg-teal-50 border-teal-200 text-teal-650' 
+                              ? 'bg-teal-50 border-teal-200 text-teal-600' 
                               : 'bg-slate-105 border-slate-200 text-slate-400 bg-slate-100'
                           }`}
                         >
@@ -418,7 +431,7 @@ export default function BriefingsPage() {
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-900 text-xs">
                   {logs.map((log) => (
-                    <tr key={log.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-950/10 text-slate-700 dark:text-slate-350">
+                    <tr key={log.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-950/10 text-slate-700 dark:text-slate-300">
                       <td className="p-4 font-mono font-bold text-slate-900 dark:text-slate-100">{log.id}</td>
                       <td className="p-4 text-slate-400">{log.timestamp}</td>
                       <td className="p-4 font-semibold text-slate-800 dark:text-slate-200">{log.recipient} ({log.role})</td>
@@ -427,7 +440,7 @@ export default function BriefingsPage() {
                         <span className={`px-2 py-0.5 rounded text-[10px] font-black border ${
                           log.status === 'DELIVERED' ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border-emerald-100 dark:border-emerald-950' :
                           log.status === 'SENT' ? 'bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 border-blue-100 dark:border-blue-950' :
-                          'bg-red-50 dark:bg-red-950/40 text-red-655 dark:text-red-400 border-red-100 dark:border-red-950'
+                          'bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400 border-red-100 dark:border-red-950'
                         }`}>
                           {log.status}
                         </span>
@@ -447,8 +460,8 @@ export default function BriefingsPage() {
             
             {/* Control Playground */}
             <div className="lg:col-span-6 bg-white dark:bg-slate-900/20 border border-slate-200 dark:border-slate-900 p-6 rounded-2xl shadow-sm space-y-4 animate-fadeIn">
-              <h3 className="text-xs font-bold text-slate-850 dark:text-slate-200 uppercase tracking-widest flex items-center gap-1.5">
-                <Sparkles className="w-4 h-4 text-teal-650" /> Test Cloud API Webhook
+              <h3 className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-widest flex items-center gap-1.5">
+                <Sparkles className="w-4 h-4 text-teal-600" /> Test Cloud API Webhook
               </h3>
               
               <div className="space-y-4">
@@ -458,18 +471,18 @@ export default function BriefingsPage() {
                     rows={4} 
                     value={testText}
                     onChange={(e) => setTestText(e.target.value)}
-                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-855 rounded-xl p-3 text-xs focus:outline-none resize-none"
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl p-3 text-xs focus:outline-none resize-none"
                   />
                 </div>
 
                 <div className="flex gap-3">
                   <div className="flex-1">
                     <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Target Phone</label>
-                    <input type="text" defaultValue="+91 98765 43210" disabled className="w-full bg-slate-100 border border-slate-200 dark:border-slate-855 rounded-xl px-3 py-2 text-xs" />
+                    <input type="text" defaultValue="+91 98765 43210" disabled className="w-full bg-slate-100 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs" />
                   </div>
                   <div className="flex-1">
                     <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Channel</label>
-                    <input type="text" defaultValue="WhatsApp Cloud API" disabled className="w-full bg-slate-100 border border-slate-200 dark:border-slate-855 rounded-xl px-3 py-2 text-xs" />
+                    <input type="text" defaultValue="WhatsApp Cloud API" disabled className="w-full bg-slate-100 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs" />
                   </div>
                 </div>
 
@@ -493,7 +506,7 @@ export default function BriefingsPage() {
                   {sandboxResponse}
                 </pre>
               ) : (
-                <div className="h-40 border border-dashed border-slate-200 dark:border-slate-850 rounded-xl flex items-center justify-center text-xs text-slate-450 text-slate-400">
+                <div className="h-40 border border-dashed border-slate-200 dark:border-slate-800 rounded-xl flex items-center justify-center text-xs text-slate-400 text-slate-400">
                   Execute the webhook trigger to inspect payload logs.
                 </div>
               )}

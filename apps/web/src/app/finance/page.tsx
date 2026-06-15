@@ -1,6 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
+import { useUser } from '@clerk/nextjs';
+
+import React, { useState, useEffect } from 'react';
 import ConsoleLayout, { formatINR } from '../ConsoleLayout';
 import { 
   Landmark, Plus, Sparkles, Brain, AlertTriangle, 
@@ -42,6 +44,19 @@ interface JournalEntry {
 }
 
 export default function FinancePage() {
+  const { user, isLoaded } = useUser();
+  const isDemo = isLoaded && user?.primaryEmailAddress?.emailAddress?.toLowerCase() === 'demo@vortiq.ai';
+
+  useEffect(() => {
+    if (isLoaded && !isDemo) {
+      setInvoices([]);
+      setLedger([]);
+      setReminders([]);
+      setAnomalies([]);
+      setAiAnalysis("Finance Audit: Ledger is in balance. No transaction activity detected.");
+    }
+  }, [isLoaded, isDemo]);
+
   const [activeTab, setActiveTab] = useState<'invoices' | 'ledger' | 'gst' | 'reminders'>('invoices');
 
   // Invoices list
@@ -270,7 +285,7 @@ export default function FinancePage() {
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white dark:bg-slate-900/40 p-6 rounded-2xl border border-slate-200 dark:border-slate-900 shadow-sm">
           <div>
             <h2 className="text-xl font-black text-slate-900 dark:text-white flex items-center gap-2">
-              <Landmark className="w-5.5 h-5.5 text-teal-650 dark:text-teal-400" />
+              <Landmark className="w-5.5 h-5.5 text-teal-600 dark:text-teal-400" />
               Corporate Finance & GST Ledger
             </h2>
             <p className="text-xs text-slate-500 font-semibold mt-1">
@@ -300,11 +315,11 @@ export default function FinancePage() {
               <div className="flex items-center gap-2">
                 <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider flex items-center gap-1">
                   FinanceAgent Audits 
-                  <ShieldCheck className="w-3.5 h-3.5 text-teal-650" />
+                  <ShieldCheck className="w-3.5 h-3.5 text-teal-600" />
                 </h4>
                 <span className="text-[9px] px-1.5 py-0.5 bg-indigo-500/20 text-indigo-700 dark:text-indigo-400 font-black rounded-full">Secure Ledger</span>
               </div>
-              <p className="text-xs text-slate-600 dark:text-slate-350 mt-1 font-medium max-w-2xl leading-relaxed">
+              <p className="text-xs text-slate-600 dark:text-slate-300 mt-1 font-medium max-w-2xl leading-relaxed">
                 "{aiAnalysis}"
               </p>
             </div>
@@ -313,7 +328,7 @@ export default function FinancePage() {
           <button 
             onClick={handleRunAudit}
             disabled={aiWorking}
-            className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-900 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-350 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-bold transition-colors flex items-center gap-1.5 whitespace-nowrap"
+            className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-900 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-bold transition-colors flex items-center gap-1.5 whitespace-nowrap"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${aiWorking ? 'animate-spin' : ''}`} /> Scan Anomalies
           </button>
@@ -322,7 +337,7 @@ export default function FinancePage() {
         {/* Profit and Loss Snapshot Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="bg-white dark:bg-slate-900/20 border border-slate-200 dark:border-slate-900 p-5 rounded-2xl shadow-sm">
-            <span className="text-[10px] font-black text-slate-405 text-slate-400 uppercase tracking-wider">Gross Revenues</span>
+            <span className="text-[10px] font-black text-slate-400 text-slate-400 uppercase tracking-wider">Gross Revenues</span>
             <div className="flex justify-between items-end mt-2">
               <h4 className="text-2xl font-black text-slate-900 dark:text-white">Rs 18,50,000</h4>
               <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded border border-emerald-100 dark:border-emerald-950 flex items-center gap-0.5">
@@ -386,7 +401,7 @@ export default function FinancePage() {
                 <input 
                   type="text" required value={newCustomer} onChange={(e) => setNewCustomer(e.target.value)}
                   placeholder="e.g. Tata Motors"
-                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-xl px-3 py-2 text-xs text-slate-800 dark:text-slate-200 focus:outline-none"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-800 dark:text-slate-200 focus:outline-none"
                 />
               </div>
               <div>
@@ -394,25 +409,25 @@ export default function FinancePage() {
                 <input 
                   type="text" required value={newGstin} onChange={(e) => setNewGstin(e.target.value)}
                   placeholder="e.g. 27AAAAA1111A1Z1"
-                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-xl px-3 py-2 text-xs text-slate-800 dark:text-slate-200 focus:outline-none uppercase"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-800 dark:text-slate-200 focus:outline-none uppercase"
                 />
               </div>
             </div>
 
-            <div className="border-t border-slate-100 dark:border-slate-850 pt-4 space-y-3">
-              <span className="text-[11px] font-bold text-slate-700 dark:text-slate-350">Invoice Line Item Details</span>
+            <div className="border-t border-slate-100 dark:border-slate-800 pt-4 space-y-3">
+              <span className="text-[11px] font-bold text-slate-700 dark:text-slate-300">Invoice Line Item Details</span>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <input 
                   type="text" required placeholder="Item description" value={newItemDesc} onChange={(e) => setNewItemDesc(e.target.value)}
-                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-xl px-3 py-2 text-xs"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs"
                 />
                 <input 
                   type="text" required placeholder="HSN Code" value={newItemHsn} onChange={(e) => setNewItemHsn(e.target.value)}
-                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-xl px-3 py-2 text-xs"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs"
                 />
                 <select 
                   value={newItemGstRate} onChange={(e) => setNewItemGstRate(Number(e.target.value))}
-                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-xl px-3 py-2 text-xs text-slate-850"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-800"
                 >
                   <option value={5}>GST 5%</option>
                   <option value={12}>GST 12%</option>
@@ -423,15 +438,15 @@ export default function FinancePage() {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <input 
                   type="number" placeholder="Quantity" value={newItemQty} onChange={(e) => setNewItemQty(Number(e.target.value))}
-                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-xl px-3 py-2 text-xs"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs"
                 />
                 <input 
                   type="number" placeholder="Rate / Price (INR)" value={newItemRate} onChange={(e) => setNewItemRate(Number(e.target.value))}
-                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-xl px-3 py-2 text-xs"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs"
                 />
                 <input 
                   type="number" placeholder="Discount %" value={newItemDiscount} onChange={(e) => setNewItemDiscount(Number(e.target.value))}
-                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-xl px-3 py-2 text-xs"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs"
                 />
               </div>
             </div>
@@ -440,7 +455,7 @@ export default function FinancePage() {
               <button type="submit" className="px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white rounded-lg text-xs font-bold transition-all">
                 Save Invoice Draft
               </button>
-              <button type="button" onClick={resetForm} className="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-850 dark:hover:bg-slate-800 text-slate-500 rounded-lg text-xs font-bold transition-all">
+              <button type="button" onClick={resetForm} className="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-800 text-slate-500 rounded-lg text-xs font-bold transition-all">
                 Cancel
               </button>
             </div>
@@ -479,7 +494,7 @@ export default function FinancePage() {
                       const sgst = getInvoiceTax(inv.items, 'SGST');
                       const total = sub + getInvoiceTax(inv.items, 'TOTAL');
                       return (
-                        <tr key={inv.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-950/10 text-slate-700 dark:text-slate-350">
+                        <tr key={inv.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-950/10 text-slate-700 dark:text-slate-300">
                           <td className="p-4 font-mono font-bold text-slate-900 dark:text-slate-100">{inv.id}</td>
                           <td className="p-4">
                             <div>
@@ -504,9 +519,9 @@ export default function FinancePage() {
                           <td className="p-4">
                             <span className={`px-2 py-0.5 rounded text-[9px] font-black border ${
                               inv.paymentStatus === 'PAID' ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border-emerald-100 dark:border-emerald-950' :
-                              inv.paymentStatus === 'OVERDUE' ? 'bg-red-50 dark:bg-red-950/40 text-red-655 dark:text-red-400 border-red-100 dark:border-red-950' :
+                              inv.paymentStatus === 'OVERDUE' ? 'bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400 border-red-100 dark:border-red-950' :
                               inv.paymentStatus === 'SENT' ? 'bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 border-blue-100 dark:border-blue-950' :
-                              'bg-slate-100 dark:bg-slate-800 text-slate-500 border-slate-200 dark:border-slate-750'
+                              'bg-slate-100 dark:bg-slate-800 text-slate-500 border-slate-200 dark:border-slate-700'
                             }`}>
                               {inv.paymentStatus}
                             </span>
@@ -535,7 +550,7 @@ export default function FinancePage() {
                 <span className="font-extrabold text-red-700 dark:text-red-400 flex items-center gap-1.5">
                   <ShieldAlert className="w-4 h-4" /> Duplicate Transaction Flagged
                 </span>
-                <p className="text-slate-650 dark:text-slate-350">{anomalies[0].description}</p>
+                <p className="text-slate-600 dark:text-slate-300">{anomalies[0].description}</p>
               </div>
             )}
           </div>
@@ -564,7 +579,7 @@ export default function FinancePage() {
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-900 text-xs">
                   {ledger.map((j) => (
-                    <tr key={j.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-950/10 text-slate-700 dark:text-slate-350 font-medium">
+                    <tr key={j.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-950/10 text-slate-700 dark:text-slate-300 font-medium">
                       <td className="p-4 font-mono font-bold text-slate-900 dark:text-slate-100">{j.entryNumber}</td>
                       <td className="p-4 text-slate-400">{j.date}</td>
                       <td className="p-4 text-slate-500">{j.description}</td>
@@ -576,7 +591,7 @@ export default function FinancePage() {
                         {j.credit > 0 ? formatINR(j.credit) : '--'}
                       </td>
                       <td className="p-4">
-                        <span className="px-1.5 py-0.5 rounded text-[9px] font-black bg-indigo-50 dark:bg-indigo-950/40 text-indigo-650 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-950">
+                        <span className="px-1.5 py-0.5 rounded text-[9px] font-black bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-950">
                           {j.status}
                         </span>
                       </td>
@@ -593,7 +608,7 @@ export default function FinancePage() {
           <div className="bg-white dark:bg-slate-900/20 border border-slate-200 dark:border-slate-900 p-6 rounded-2xl shadow-sm space-y-4">
             <h3 className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-widest">GSTR-1 Tax File Assembler</h3>
             
-            <div className="p-4 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-850 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+            <div className="p-4 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
               <div>
                 <p className="font-extrabold text-slate-900 dark:text-white">GSTR-1 Offline Schema (June 2026)</p>
                 <p className="text-[10px] text-slate-500 mt-1">Ready for file uploads on GST portal. Auto calculated SGST/CGST split ledger totals.</p>
@@ -604,14 +619,14 @@ export default function FinancePage() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
-              <div className="p-4 border border-slate-200 dark:border-slate-850 rounded-xl space-y-2">
+              <div className="p-4 border border-slate-200 dark:border-slate-800 rounded-xl space-y-2">
                 <span className="text-[10px] text-slate-400 uppercase font-black">Outward Supplies (B2B)</span>
-                <p className="text-sm font-bold text-slate-850">2 Invoices filed with IRN</p>
+                <p className="text-sm font-bold text-slate-800">2 Invoices filed with IRN</p>
                 <p className="text-[11px] text-slate-500">Total Taxable Value: Rs 12,01,170</p>
               </div>
-              <div className="p-4 border border-slate-200 dark:border-slate-850 rounded-xl space-y-2">
+              <div className="p-4 border border-slate-200 dark:border-slate-800 rounded-xl space-y-2">
                 <span className="text-[10px] text-slate-400 uppercase font-black">Tax Liabilities Summary</span>
-                <p className="text-sm font-bold text-slate-850">SGST/CGST: Rs 30,780 each</p>
+                <p className="text-sm font-bold text-slate-800">SGST/CGST: Rs 30,780 each</p>
                 <p className="text-[11px] text-slate-500">IGST: Rs 0 (All regional intra-state supplies)</p>
               </div>
             </div>
@@ -625,7 +640,7 @@ export default function FinancePage() {
             
             <div className="space-y-4">
               {reminders.map((r) => (
-                <div key={r.id} className="p-4 border border-slate-200 dark:border-slate-850 rounded-xl bg-slate-50 dark:bg-slate-950 space-y-3">
+                <div key={r.id} className="p-4 border border-slate-200 dark:border-slate-800 rounded-xl bg-slate-50 dark:bg-slate-950 space-y-3">
                   <div className="flex justify-between items-center">
                     <div>
                       <span className="text-[9px] font-black text-indigo-600 dark:text-indigo-400 uppercase bg-indigo-50 dark:bg-indigo-950/40 px-2 py-0.5 rounded border border-indigo-100 dark:border-indigo-950">
@@ -637,14 +652,14 @@ export default function FinancePage() {
                       onClick={() => setReminders(prev => prev.map(item => item.id === r.id ? { ...item, isActive: !item.isActive } : item))}
                       className={`px-3 py-1 text-[10px] font-bold rounded-lg transition-colors border ${
                         r.isActive 
-                          ? 'bg-teal-50 border-teal-200 text-teal-650' 
-                          : 'bg-slate-100 border-slate-200 text-slate-450'
+                          ? 'bg-teal-50 border-teal-200 text-teal-600' 
+                          : 'bg-slate-100 border-slate-200 text-slate-400'
                       }`}
                     >
                       {r.isActive ? 'Rule Active' : 'Rule Disabled'}
                     </button>
                   </div>
-                  <p className="text-xs font-mono text-slate-500 bg-white dark:bg-slate-900 p-3 rounded-lg border border-slate-200 dark:border-slate-850">
+                  <p className="text-xs font-mono text-slate-500 bg-white dark:bg-slate-900 p-3 rounded-lg border border-slate-200 dark:border-slate-800">
                     {r.template}
                   </p>
                 </div>

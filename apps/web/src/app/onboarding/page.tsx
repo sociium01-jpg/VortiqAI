@@ -133,7 +133,7 @@ export default function OnboardingPage() {
       </div>
 
       {/* Main Wizard Form Card */}
-      <div className="w-full max-w-xl bg-slate-900/40 border border-slate-850 p-6 md:p-8 rounded-3xl backdrop-blur-md shadow-2xl space-y-6">
+      <div className="w-full max-w-xl bg-slate-900/40 border border-slate-800 p-6 md:p-8 rounded-3xl backdrop-blur-md shadow-2xl space-y-6">
 
         {/* Step 1 Content: Business Details */}
         {currentStep === 1 && (
@@ -244,12 +244,12 @@ export default function OnboardingPage() {
                   className={`p-4 rounded-2xl border cursor-pointer transition-all flex items-center justify-between ${
                     selectedPlan === plan.id 
                       ? 'bg-slate-900 border-teal-500 shadow-lg shadow-teal-500/5' 
-                      : 'bg-slate-950/40 border-slate-850 hover:border-slate-800'
+                      : 'bg-slate-950/40 border-slate-800 hover:border-slate-800'
                   }`}
                 >
                   <div className="flex items-center gap-3">
                     <div className={`w-4 h-4 rounded-full border flex items-center justify-center ${
-                      selectedPlan === plan.id ? 'border-teal-400' : 'border-slate-750'
+                      selectedPlan === plan.id ? 'border-teal-400' : 'border-slate-700'
                     }`}>
                       {selectedPlan === plan.id && <div className="w-2 h-2 rounded-full bg-teal-400" />}
                     </div>
@@ -313,7 +313,7 @@ export default function OnboardingPage() {
                     type="button" 
                     onClick={handleTestKey}
                     disabled={!apiKey.trim() || testStatus === 'TESTING'}
-                    className="px-4 bg-slate-800 hover:bg-slate-750 disabled:bg-slate-800/40 text-xs font-bold rounded-xl border border-slate-700 text-slate-300 transition-all flex items-center justify-center shrink-0 min-w-[100px]"
+                    className="px-4 bg-slate-800 hover:bg-slate-700 disabled:bg-slate-800/40 text-xs font-bold rounded-xl border border-slate-700 text-slate-300 transition-all flex items-center justify-center shrink-0 min-w-[100px]"
                   >
                     {testStatus === 'TESTING' ? 'Testing...' :
                      testStatus === 'SUCCESS' ? 'Passed ✓' : 'Test Key'}
@@ -368,12 +368,12 @@ export default function OnboardingPage() {
         )}
 
         {/* Form Actions footer */}
-        <div className="flex items-center justify-between border-t border-slate-850 pt-5 mt-6">
+        <div className="flex items-center justify-between border-t border-slate-800 pt-5 mt-6">
           <button 
             type="button" 
             onClick={handlePrevStep}
             disabled={currentStep === 1}
-            className="px-5 py-3 bg-slate-850 hover:bg-slate-800 disabled:opacity-0 text-slate-300 rounded-xl text-xs font-bold transition-all border border-slate-750 flex items-center gap-1.5"
+            className="px-5 py-3 bg-slate-800 hover:bg-slate-800 disabled:opacity-0 text-slate-300 rounded-xl text-xs font-bold transition-all border border-slate-700 flex items-center gap-1.5"
           >
             <ArrowLeft className="w-4 h-4" /> Back
           </button>

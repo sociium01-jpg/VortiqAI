@@ -102,7 +102,7 @@ export default function DemoPage() {
           return (
             <div 
               key={p.id}
-              className="bg-slate-900/40 border border-slate-850 rounded-3xl p-6 flex flex-col justify-between hover:border-slate-800 transition-all shadow-2xl relative overflow-hidden backdrop-blur-md"
+              className="bg-slate-900/40 border border-slate-800 rounded-3xl p-6 flex flex-col justify-between hover:border-slate-800 transition-all shadow-2xl relative overflow-hidden backdrop-blur-md"
             >
               <div className="space-y-6">
                 
@@ -137,7 +137,7 @@ export default function DemoPage() {
 
               </div>
 
-              <div className="pt-8 border-t border-slate-850 mt-8">
+              <div className="pt-8 border-t border-slate-800 mt-8">
                 <Link 
                   href={`/dashboard?demo=${p.id}`}
                   className={`w-full py-3.5 rounded-xl text-center text-xs font-black transition-all flex items-center justify-center gap-1.5 shadow-lg ${p.buttonBg}`}

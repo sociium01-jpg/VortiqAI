@@ -1,5 +1,7 @@
 'use client';
 
+import { useUser } from '@clerk/nextjs';
+
 import React, { useState, useEffect } from 'react';
 import ConsoleLayout, { formatINR } from '../ConsoleLayout';
 import { 
@@ -10,6 +12,18 @@ import { handlePrint, handleExportPDF } from '../utils/export';
 import ModuleAgentSidebar from '../utils/ModuleAgentSidebar';
 
 export default function CRMPage() {
+  const { user, isLoaded } = useUser();
+  const isDemo = isLoaded && user?.primaryEmailAddress?.emailAddress?.toLowerCase() === 'demo@vortiq.ai';
+
+  useEffect(() => {
+    if (isLoaded && !isDemo) {
+      setContacts([]);
+      setCompanies([]);
+      setDeals([]);
+      setMeetings([]);
+    }
+  }, [isLoaded, isDemo]);
+
   // Tabs: 'contacts' | 'companies' | 'deals' | 'meetings'
   const [activeTab, setActiveTab] = useState<'contacts' | 'companies' | 'deals' | 'meetings'>('contacts');
 
@@ -33,7 +47,7 @@ export default function CRMPage() {
   ]);
 
   // Simulated Companies
-  const [companies] = useState([
+  const [companies, setCompanies] = useState([
     { id: 'COM-01', name: 'Bharat Forge', industry: 'Automotive Components', contacts: 1, dealsValue: 12000000 },
     { id: 'COM-02', name: 'Reliance Retail', industry: 'Retail & Consumer Goods', contacts: 1, dealsValue: 2200000 },
     { id: 'COM-03', name: 'Tata Motors', industry: 'Automotive Manufacturing', contacts: 1, dealsValue: 750000 },
@@ -49,10 +63,10 @@ export default function CRMPage() {
   ]);
 
   // Simulated Meetings
-  const meetings = [
+  const [meetings, setMeetings] = useState([
     { id: 'M-501', title: 'Pricing negotiation call', company: 'Bharat Forge', time: 'Tomorrow, 11:30 AM', rep: 'Rahul Sharma' },
     { id: 'M-502', title: 'Product review demo meeting', company: 'Tata Motors', time: '18 June 2026, 04:00 PM', rep: 'Amit Verma' }
-  ];
+  ]);
 
   // Forms state
   const [isAdding, setIsAdding] = useState(false);
@@ -176,7 +190,7 @@ export default function CRMPage() {
           <div className="border-b border-slate-200 dark:border-slate-900 pb-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
               <h2 className="text-xl font-black text-slate-900 dark:text-white flex items-center gap-2">
-                <Users className="w-5.5 h-5.5 text-teal-655 text-teal-600 dark:text-teal-400" /> CRM & Pipelines
+                <Users className="w-5.5 h-5.5 text-teal-600 text-teal-600 dark:text-teal-400" /> CRM & Pipelines
               </h2>
               <p className="text-xs text-slate-500 font-semibold mt-0.5">Manage customer directory, companies, deals pipelines, and schedule follow-ups.</p>
             </div>
@@ -198,7 +212,7 @@ export default function CRMPage() {
               </button>
               <button 
                 onClick={() => setIsAdding(!isAdding)}
-                className="px-4 py-2.5 bg-teal-600 dark:bg-teal-500 hover:bg-teal-750 dark:hover:bg-teal-450 text-white dark:text-slate-950 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 shadow-md"
+                className="px-4 py-2.5 bg-teal-600 dark:bg-teal-500 hover:bg-teal-700 dark:hover:bg-teal-500 text-white dark:text-slate-950 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 shadow-md"
               >
                 <UserPlus className="w-4 h-4" /> Add Lead
               </button>
@@ -206,11 +220,11 @@ export default function CRMPage() {
           </div>
 
           {/* CRM Sub Navigation Tabs */}
-          <div className="flex border-b border-slate-200 dark:border-slate-900 gap-6 text-xs font-bold text-slate-450">
+          <div className="flex border-b border-slate-200 dark:border-slate-900 gap-6 text-xs font-bold text-slate-400">
             <button 
               onClick={() => { setActiveTab('contacts'); setSelectedContact(null); }}
               className={`pb-3 transition-colors flex items-center gap-1.5 border-b-2 ${
-                activeTab === 'contacts' ? 'border-teal-500 text-teal-650' : 'border-transparent hover:text-slate-900 dark:hover:text-white'
+                activeTab === 'contacts' ? 'border-teal-500 text-teal-600' : 'border-transparent hover:text-slate-900 dark:hover:text-white'
               }`}
             >
               <Users className="w-4 h-4" /> Contacts
@@ -218,7 +232,7 @@ export default function CRMPage() {
             <button 
               onClick={() => { setActiveTab('companies'); setSelectedContact(null); }}
               className={`pb-3 transition-colors flex items-center gap-1.5 border-b-2 ${
-                activeTab === 'companies' ? 'border-teal-500 text-teal-650' : 'border-transparent hover:text-slate-900 dark:hover:text-white'
+                activeTab === 'companies' ? 'border-teal-500 text-teal-600' : 'border-transparent hover:text-slate-900 dark:hover:text-white'
               }`}
             >
               <Target className="w-4 h-4" /> Companies
@@ -226,7 +240,7 @@ export default function CRMPage() {
             <button 
               onClick={() => { setActiveTab('deals'); setSelectedContact(null); }}
               className={`pb-3 transition-colors flex items-center gap-1.5 border-b-2 ${
-                activeTab === 'deals' ? 'border-teal-500 text-teal-650' : 'border-transparent hover:text-slate-900 dark:hover:text-white'
+                activeTab === 'deals' ? 'border-teal-500 text-teal-600' : 'border-transparent hover:text-slate-900 dark:hover:text-white'
               }`}
             >
               <Layers className="w-4 h-4" /> Deals Pipeline
@@ -234,7 +248,7 @@ export default function CRMPage() {
             <button 
               onClick={() => { setActiveTab('meetings'); setSelectedContact(null); }}
               className={`pb-3 transition-colors flex items-center gap-1.5 border-b-2 ${
-                activeTab === 'meetings' ? 'border-teal-500 text-teal-650' : 'border-transparent hover:text-slate-900 dark:hover:text-white'
+                activeTab === 'meetings' ? 'border-teal-500 text-teal-600' : 'border-transparent hover:text-slate-900 dark:hover:text-white'
               }`}
             >
               <Calendar className="w-4 h-4" /> Meetings & Follow-ups
@@ -282,7 +296,7 @@ export default function CRMPage() {
                   <select 
                     value={newRep} 
                     onChange={(e) => setNewRep(e.target.value)}
-                    className="w-full bg-slate-50 dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-850 dark:text-white focus:outline-none"
+                    className="w-full bg-slate-50 dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-800 dark:text-white focus:outline-none"
                   >
                     {salesReps.map(r => <option key={r} value={r}>{r}</option>)}
                   </select>
@@ -363,7 +377,7 @@ export default function CRMPage() {
                             <td className="py-3 px-3">
                               <div>
                                 <p className="font-extrabold text-slate-900 dark:text-white">{c.name}</p>
-                                <p className="text-[10px] text-slate-450 mt-0.5">{c.email}</p>
+                                <p className="text-[10px] text-slate-400 mt-0.5">{c.email}</p>
                               </div>
                             </td>
                             <td className="py-3 px-3 font-semibold">{c.companyName}</td>
@@ -371,11 +385,11 @@ export default function CRMPage() {
                             <td className="py-3 px-3">
                               <div className="flex items-center gap-1.5">
                                 <span className="font-bold">{c.score}/100</span>
-                                {c.enriched && <span className="text-[8px] bg-teal-550/10 text-teal-650 dark:text-teal-400 px-1 py-0.5 rounded-full font-bold">Enriched</span>}
+                                {c.enriched && <span className="text-[8px] bg-teal-500/10 text-teal-600 dark:text-teal-400 px-1 py-0.5 rounded-full font-bold">Enriched</span>}
                               </div>
                             </td>
                             <td className="py-3 px-3 text-right">
-                              <ChevronRight className="w-4 h-4 text-slate-350 inline-block" />
+                              <ChevronRight className="w-4 h-4 text-slate-300 inline-block" />
                             </td>
                           </tr>
                         ))}
@@ -405,7 +419,7 @@ export default function CRMPage() {
                         <td className="py-3 px-3 font-extrabold text-slate-900 dark:text-white">{com.name}</td>
                         <td className="py-3 px-3 font-semibold text-slate-550">{com.industry}</td>
                         <td className="py-3 px-3 font-bold">{com.contacts}</td>
-                        <td className="py-3 px-3 text-right font-black text-teal-650 dark:text-teal-400">{formatINR(com.dealsValue)}</td>
+                        <td className="py-3 px-3 text-right font-black text-teal-600 dark:text-teal-400">{formatINR(com.dealsValue)}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -429,12 +443,12 @@ export default function CRMPage() {
 
                         <div className="space-y-2.5">
                           {stageDeals.map((d) => (
-                            <div key={d.id} className="p-3 bg-white dark:bg-slate-900/40 border border-slate-200 dark:border-slate-850 hover:border-slate-300 dark:hover:border-slate-850 rounded-xl space-y-2 text-xs shadow-sm">
+                            <div key={d.id} className="p-3 bg-white dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-800 rounded-xl space-y-2 text-xs shadow-sm">
                               <div>
                                 <h4 className="font-extrabold text-slate-900 dark:text-white">{d.name}</h4>
                                 <p className="text-[10px] text-slate-500 mt-0.5">{d.company}</p>
                               </div>
-                              <p className="font-extrabold text-teal-650 dark:text-teal-405">{formatINR(d.amount)}</p>
+                              <p className="font-extrabold text-teal-600 dark:text-teal-400">{formatINR(d.amount)}</p>
                             </div>
                           ))}
                         </div>
@@ -451,12 +465,12 @@ export default function CRMPage() {
                 <h3 className="text-xs font-bold text-slate-700 dark:text-slate-200 uppercase tracking-widest">Scheduled Rep Meetings</h3>
                 <div className="space-y-3">
                   {meetings.map((m) => (
-                    <div key={m.id} className="p-4 rounded-2xl bg-white dark:bg-slate-900/40 border border-slate-200 dark:border-slate-850 flex items-center justify-between text-xs shadow-sm">
+                    <div key={m.id} className="p-4 rounded-2xl bg-white dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 flex items-center justify-between text-xs shadow-sm">
                       <div className="space-y-1">
                         <h4 className="font-extrabold text-slate-900 dark:text-white">{m.title}</h4>
                         <p className="text-[10px] text-slate-500">Client: {m.company} | Owner: {m.rep}</p>
                       </div>
-                      <span className="px-3 py-1 bg-slate-100 dark:bg-slate-805 text-slate-650 dark:text-slate-300 rounded-lg font-bold flex items-center gap-1">
+                      <span className="px-3 py-1 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-lg font-bold flex items-center gap-1">
                         <Clock className="w-3.5 h-3.5" /> {m.time}
                       </span>
                     </div>
@@ -472,8 +486,8 @@ export default function CRMPage() {
             <div className="bg-white dark:bg-slate-900/40 border border-slate-200 dark:border-slate-900 rounded-3xl p-5 shadow-lg space-y-5 flex flex-col justify-between">
               <div className="space-y-4">
                 <div className="flex items-center justify-between border-b border-slate-105 dark:border-slate-900 pb-3">
-                  <span className="text-xs font-black uppercase text-slate-450 tracking-wider">Contact Profile File</span>
-                  <button onClick={() => setSelectedContact(null)} className="p-1 hover:bg-slate-100 dark:hover:bg-slate-900 rounded-lg text-slate-450 dark:text-slate-500">
+                  <span className="text-xs font-black uppercase text-slate-400 tracking-wider">Contact Profile File</span>
+                  <button onClick={() => setSelectedContact(null)} className="p-1 hover:bg-slate-100 dark:hover:bg-slate-900 rounded-lg text-slate-400 dark:text-slate-500">
                     <X className="w-4 h-4" />
                   </button>
                 </div>
@@ -486,7 +500,7 @@ export default function CRMPage() {
                     <div className="flex items-center justify-between text-xs text-slate-600 dark:text-slate-400">
                       <span className={`px-2 py-0.5 rounded text-[9px] font-bold border ${
                         selectedContact.status === 'CUSTOMER' ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/25' :
-                        selectedContact.status === 'QUALIFIED' ? 'bg-teal-500/10 text-teal-650 dark:text-teal-400 border-teal-500/25' :
+                        selectedContact.status === 'QUALIFIED' ? 'bg-teal-500/10 text-teal-600 dark:text-teal-400 border-teal-500/25' :
                         'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/25'
                       }`}>
                         {selectedContact.status}
@@ -495,7 +509,7 @@ export default function CRMPage() {
                     </div>
 
                     {/* Manual Rating Fallback Selector */}
-                    <div className="flex items-center gap-1.5 border-t border-slate-200 dark:border-slate-850 pt-2">
+                    <div className="flex items-center gap-1.5 border-t border-slate-200 dark:border-slate-800 pt-2">
                       <span className="text-[9px] text-slate-500 font-extrabold uppercase block">Manual Rating:</span>
                       <div className="flex gap-0.5 text-amber-500 text-sm">
                         {[1, 2, 3, 4, 5].map((star) => (
@@ -518,7 +532,7 @@ export default function CRMPage() {
                 </div>
 
                 {/* Local SalesAgent enrichment triggers */}
-                <div className="p-3 bg-teal-500/5 dark:bg-teal-500/10 border border-teal-500/15 rounded-xl space-y-2 text-[11px] font-medium text-slate-600 dark:text-slate-350">
+                <div className="p-3 bg-teal-500/5 dark:bg-teal-500/10 border border-teal-500/15 rounded-xl space-y-2 text-[11px] font-medium text-slate-600 dark:text-slate-300">
                   <div className="flex items-center justify-between">
                     <span className="text-[9px] uppercase font-bold text-teal-600 dark:text-teal-400 flex items-center gap-1">
                       <Brain className="w-3.5 h-3.5" /> SalesAgent Copilot
@@ -526,7 +540,7 @@ export default function CRMPage() {
                     {!selectedContact.enriched && (
                       <button 
                         onClick={() => handleAIEnrich(selectedContact.id)}
-                        className="text-[9px] underline text-teal-650 dark:text-teal-400 font-bold"
+                        className="text-[9px] underline text-teal-600 dark:text-teal-400 font-bold"
                       >
                         Enrich details
                       </button>
@@ -544,26 +558,26 @@ export default function CRMPage() {
                 <div className="space-y-2 text-xs font-semibold text-slate-500 dark:text-slate-400">
                   <div className="flex justify-between border-b border-slate-100 dark:border-slate-900 pb-1">
                     <span>GSTIN Number:</span>
-                    <span className="text-slate-850 dark:text-slate-250">{selectedContact.gst}</span>
+                    <span className="text-slate-800 dark:text-slate-250">{selectedContact.gst}</span>
                   </div>
                   <div className="flex justify-between border-b border-slate-100 dark:border-slate-900 pb-1">
                     <span>Phone Mobile:</span>
-                    <span className="text-slate-850 dark:text-slate-250">{selectedContact.phone}</span>
+                    <span className="text-slate-800 dark:text-slate-250">{selectedContact.phone}</span>
                   </div>
                   <div className="flex justify-between border-b border-slate-100 dark:border-slate-900 pb-1">
                     <span>Sourced From:</span>
-                    <span className="text-slate-850 dark:text-slate-250">{selectedContact.source}</span>
+                    <span className="text-slate-800 dark:text-slate-250">{selectedContact.source}</span>
                   </div>
                   <div className="flex flex-col border-b border-slate-100 dark:border-slate-900 pb-1.5 gap-0.5">
                     <span>Office Address:</span>
-                    <span className="text-[10px] text-slate-850 dark:text-slate-250 leading-relaxed font-normal">{selectedContact.address}</span>
+                    <span className="text-[10px] text-slate-800 dark:text-slate-250 leading-relaxed font-normal">{selectedContact.address}</span>
                   </div>
                   <div className="flex flex-col gap-1">
                     <span>Assigned Rep:</span>
                     <select 
                       value={selectedContact.rep} 
                       onChange={(e) => handleRepChange(selectedContact.id, e.target.value)}
-                      className="bg-slate-50 dark:bg-slate-950 border border-slate-250 dark:border-slate-850 rounded-lg px-2 py-1.5 text-xs text-slate-800 dark:text-slate-350 focus:outline-none"
+                      className="bg-slate-50 dark:bg-slate-950 border border-slate-250 dark:border-slate-800 rounded-lg px-2 py-1.5 text-xs text-slate-800 dark:text-slate-300 focus:outline-none"
                     >
                       {salesReps.map(r => <option key={r} value={r}>{r}</option>)}
                     </select>
@@ -572,7 +586,7 @@ export default function CRMPage() {
 
                 {/* Notes Feed section */}
                 <div className="space-y-2 border-t border-slate-100 dark:border-slate-900 pt-4">
-                  <span className="text-[10px] font-black uppercase text-slate-450 tracking-wider">Notes Thread</span>
+                  <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Notes Thread</span>
                   
                   {/* Add note inline form */}
                   <form onSubmit={handleAddNote} className="flex gap-2">
@@ -583,7 +597,7 @@ export default function CRMPage() {
                       placeholder="Add manual trace note..." 
                       className="flex-1 bg-slate-50 dark:bg-slate-955 border border-slate-200 dark:border-slate-900 rounded-xl px-3 py-1.5 text-xs text-slate-800 dark:text-white focus:outline-none focus:border-teal-500"
                     />
-                    <button type="submit" className="p-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-650 dark:text-white rounded-xl">
+                    <button type="submit" className="p-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-white rounded-xl">
                       <Send className="w-3.5 h-3.5" />
                     </button>
                   </form>
@@ -603,18 +617,18 @@ export default function CRMPage() {
 
                 {/* Attachments Section */}
                 <div className="space-y-2 border-t border-slate-100 dark:border-slate-900 pt-4">
-                  <span className="text-[10px] font-black uppercase text-slate-450 tracking-wider">Attachments</span>
+                  <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Attachments</span>
                   <div className="space-y-1.5">
                     {selectedContact.attachments.map((file: string, idx: number) => (
-                      <div key={idx} className="p-2 bg-slate-50 dark:bg-slate-900/20 border border-slate-200 dark:border-slate-900 rounded-lg flex items-center justify-between text-[10px] text-slate-750 dark:text-slate-350">
+                      <div key={idx} className="p-2 bg-slate-50 dark:bg-slate-900/20 border border-slate-200 dark:border-slate-900 rounded-lg flex items-center justify-between text-[10px] text-slate-700 dark:text-slate-300">
                         <span className="flex items-center gap-1 font-semibold">
                           <Paperclip className="w-3 h-3 text-slate-400" /> {file}
                         </span>
-                        <a href="#" className="underline text-teal-650 dark:text-teal-400 font-bold">Download</a>
+                        <a href="#" className="underline text-teal-600 dark:text-teal-400 font-bold">Download</a>
                       </div>
                     ))}
                     {selectedContact.attachments.length === 0 && (
-                      <p className="text-[10px] text-slate-450 italic">No files uploaded.</p>
+                      <p className="text-[10px] text-slate-400 italic">No files uploaded.</p>
                     )}
                   </div>
                 </div>

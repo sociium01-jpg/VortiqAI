@@ -1,6 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
+import { useUser } from '@clerk/nextjs';
+
+import React, { useState, useEffect } from 'react';
 import ConsoleLayout from '../ConsoleLayout';
 import { 
   CheckSquare, Plus, Sparkles, Brain, Trash2, 
@@ -23,6 +25,18 @@ interface Task {
 }
 
 export default function TasksPage() {
+  const { user, isLoaded } = useUser();
+  const isDemo = isLoaded && user?.primaryEmailAddress?.emailAddress?.toLowerCase() === 'demo@vortiq.ai';
+
+  useEffect(() => {
+    if (isLoaded && !isDemo) {
+      setTasks([]);
+      setRecurringTemplates([]);
+      setDelegateRules([]);
+      setAiAnalysis("TaskAgent Monitor: Workspace is clean. No active tasks logged.");
+    }
+  }, [isLoaded, isDemo]);
+
   const [activeTab, setActiveTab] = useState<'board' | 'recurring' | 'delegation'>('board');
 
   // Tasks list
@@ -199,7 +213,7 @@ export default function TasksPage() {
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white dark:bg-slate-900/40 p-6 rounded-2xl border border-slate-200 dark:border-slate-900 shadow-sm">
           <div>
             <h2 className="text-xl font-black text-slate-900 dark:text-white flex items-center gap-2">
-              <CheckSquare className="w-5.5 h-5.5 text-teal-655 text-teal-600 dark:text-teal-400" />
+              <CheckSquare className="w-5.5 h-5.5 text-teal-600 text-teal-600 dark:text-teal-400" />
               Operational Tasks & Schedules
             </h2>
             <p className="text-xs text-slate-500 font-semibold mt-1">
@@ -229,11 +243,11 @@ export default function TasksPage() {
               <div className="flex items-center gap-2">
                 <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider flex items-center gap-1">
                   TaskAgent Manager
-                  <Clock className="w-3.5 h-3.5 text-teal-650" />
+                  <Clock className="w-3.5 h-3.5 text-teal-600" />
                 </h4>
                 <span className="text-[9px] px-1.5 py-0.5 bg-teal-500/20 text-teal-700 dark:text-teal-400 font-black rounded-full">Automated</span>
               </div>
-              <p className="text-xs text-slate-600 dark:text-slate-350 mt-1 font-medium max-w-2xl leading-relaxed">
+              <p className="text-xs text-slate-600 dark:text-slate-300 mt-1 font-medium max-w-2xl leading-relaxed">
                 "{aiAnalysis}"
               </p>
             </div>
@@ -285,14 +299,14 @@ export default function TasksPage() {
                 <input 
                   type="text" required value={newName} onChange={(e) => setNewName(e.target.value)}
                   placeholder="e.g. Verify June Ledger Totals"
-                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-xl px-3 py-2 text-xs text-slate-800 dark:text-slate-200 focus:outline-none"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-800 dark:text-slate-200 focus:outline-none"
                 />
               </div>
               <div>
                 <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Assignee</label>
                 <select 
                   value={newAssignee} onChange={(e) => setNewAssignee(e.target.value)}
-                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-xl px-3 py-2 text-xs"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs"
                 >
                   <option value="Amit Sharma">Amit Sharma (Sales)</option>
                   <option value="Priya Patel">Priya Patel (Ops)</option>
@@ -307,7 +321,7 @@ export default function TasksPage() {
                 <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Priority</label>
                 <select 
                   value={newPriority} onChange={(e) => setNewPriority(e.target.value as any)}
-                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-xl px-3 py-2 text-xs"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs"
                 >
                   <option value="P1">P1 (Urgent)</option>
                   <option value="P2">P2 (High)</option>
@@ -321,7 +335,7 @@ export default function TasksPage() {
                 <input 
                   type="text" value={newDueDate} onChange={(e) => setNewDueDate(e.target.value)}
                   placeholder="e.g. Tomorrow or 20 Jun"
-                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-xl px-3 py-2 text-xs text-slate-800 dark:text-slate-200"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-800 dark:text-slate-200"
                 />
               </div>
 
@@ -329,7 +343,7 @@ export default function TasksPage() {
                 <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Depends On (Prerequisite)</label>
                 <select 
                   value={newDependency} onChange={(e) => setNewDependency(e.target.value)}
-                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-xl px-3 py-2 text-xs"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs"
                 >
                   <option value="">None</option>
                   {tasks.map(t => (
@@ -339,7 +353,7 @@ export default function TasksPage() {
               </div>
             </div>
 
-            <div className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-xl">
+            <div className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl">
               <input 
                 type="checkbox" checked={isRecurring} onChange={(e) => setIsRecurring(e.target.checked)}
                 className="w-4 h-4 rounded text-teal-600"
@@ -365,7 +379,7 @@ export default function TasksPage() {
               <button type="submit" className="px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white rounded-lg text-xs font-bold transition-all">
                 Save Task
               </button>
-              <button type="button" onClick={resetForm} className="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-850 dark:hover:bg-slate-800 text-slate-500 rounded-lg text-xs font-bold transition-all">
+              <button type="button" onClick={resetForm} className="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-800 text-slate-500 rounded-lg text-xs font-bold transition-all">
                 Cancel
               </button>
             </div>
@@ -380,10 +394,10 @@ export default function TasksPage() {
               {(['TODO', 'IN_PROGRESS', 'DONE'] as const).map(stage => {
                 const stageTasks = tasks.filter(t => t.stage === stage);
                 return (
-                  <div key={stage} className="bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-850 p-4 rounded-xl space-y-4">
-                    <div className="flex justify-between items-center border-b border-slate-200 dark:border-slate-850 pb-2">
+                  <div key={stage} className="bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 p-4 rounded-xl space-y-4">
+                    <div className="flex justify-between items-center border-b border-slate-200 dark:border-slate-800 pb-2">
                       <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{stage.replace(/_/g, ' ')}</span>
-                      <span className="text-[10px] font-bold text-slate-650 bg-white dark:bg-slate-900 px-2 py-0.5 rounded border border-slate-250 dark:border-slate-800">
+                      <span className="text-[10px] font-bold text-slate-600 bg-white dark:bg-slate-900 px-2 py-0.5 rounded border border-slate-250 dark:border-slate-800">
                         {stageTasks.length}
                       </span>
                     </div>
@@ -392,18 +406,18 @@ export default function TasksPage() {
                       {stageTasks.map(t => {
                         const isBlocked = t.dependencyId && tasks.some(parent => parent.id === t.dependencyId && parent.stage !== 'DONE');
                         return (
-                          <div key={t.id} className="bg-white dark:bg-slate-900/60 p-4 rounded-xl border border-slate-200 dark:border-slate-850 space-y-3 text-xs shadow-sm">
+                          <div key={t.id} className="bg-white dark:bg-slate-900/60 p-4 rounded-xl border border-slate-200 dark:border-slate-800 space-y-3 text-xs shadow-sm">
                             <div className="flex justify-between items-start gap-1">
                               <div>
                                 <div className="flex items-center gap-1.5 flex-wrap">
                                   <span className="text-[9px] font-black text-slate-400 font-mono">{t.id}</span>
                                   <span className={`px-1 rounded text-[8px] font-black ${
-                                    t.priority === 'P1' ? 'bg-red-50 text-red-655' :
+                                    t.priority === 'P1' ? 'bg-red-50 text-red-600' :
                                     t.priority === 'P2' ? 'bg-amber-50 text-amber-600' :
                                     'bg-blue-50 text-blue-600'
                                   }`}>{t.priority}</span>
                                 </div>
-                                <p className={`font-semibold mt-1 text-slate-850 ${isBlocked ? 'line-through text-slate-400' : ''}`}>
+                                <p className={`font-semibold mt-1 text-slate-800 ${isBlocked ? 'line-through text-slate-400' : ''}`}>
                                   {t.name}
                                 </p>
                               </div>
@@ -421,10 +435,10 @@ export default function TasksPage() {
 
                             {/* Comments list */}
                             {t.comments.length > 0 && (
-                              <div className="space-y-1 pt-2 border-t border-slate-100 dark:border-slate-850">
+                              <div className="space-y-1 pt-2 border-t border-slate-100 dark:border-slate-800">
                                 {t.comments.map((c, idx) => (
                                   <div key={idx} className="text-[10px] text-slate-500 font-medium">
-                                    <span className="font-extrabold text-slate-700 dark:text-slate-350">{c.user}: </span>
+                                    <span className="font-extrabold text-slate-700 dark:text-slate-300">{c.user}: </span>
                                     "{c.text}" <span className="text-[9px] text-slate-400">({c.time})</span>
                                   </div>
                                 ))}
@@ -432,7 +446,7 @@ export default function TasksPage() {
                             )}
 
                             {/* Add comment form */}
-                            <div className="flex gap-1 pt-2 border-t border-slate-100 dark:border-slate-850">
+                            <div className="flex gap-1 pt-2 border-t border-slate-100 dark:border-slate-800">
                               <input 
                                 type="text" 
                                 placeholder="Add note..."
@@ -494,7 +508,7 @@ export default function TasksPage() {
             
             <div className="space-y-3">
               {recurringTemplates.map(tpl => (
-                <div key={tpl.id} className="p-4 border border-slate-200 dark:border-slate-850 rounded-xl bg-slate-50 dark:bg-slate-950 flex justify-between items-center text-xs">
+                <div key={tpl.id} className="p-4 border border-slate-200 dark:border-slate-800 rounded-xl bg-slate-50 dark:bg-slate-950 flex justify-between items-center text-xs">
                   <div>
                     <span className="text-[9px] font-black text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40 px-2 py-0.5 rounded border border-indigo-100 dark:border-indigo-950">
                       {tpl.frequency}
@@ -506,7 +520,7 @@ export default function TasksPage() {
                   <button 
                     onClick={() => setRecurringTemplates(prev => prev.map(t => t.id === tpl.id ? { ...t, isActive: !t.isActive } : t))}
                     className={`px-3 py-1.5 border rounded-lg text-xs font-bold transition-all ${
-                      tpl.isActive ? 'bg-teal-50 border-teal-200 text-teal-650' : 'bg-slate-100 border-slate-200 text-slate-400'
+                      tpl.isActive ? 'bg-teal-50 border-teal-200 text-teal-600' : 'bg-slate-100 border-slate-200 text-slate-400'
                     }`}
                   >
                     {tpl.isActive ? 'Template Active' : 'Suspended'}
@@ -524,7 +538,7 @@ export default function TasksPage() {
             
             <div className="space-y-3">
               {delegateRules.map(rule => (
-                <div key={rule.id} className="p-4 border border-slate-200 dark:border-slate-850 rounded-xl bg-slate-50 dark:bg-slate-950 flex justify-between items-center text-xs">
+                <div key={rule.id} className="p-4 border border-slate-200 dark:border-slate-800 rounded-xl bg-slate-50 dark:bg-slate-950 flex justify-between items-center text-xs">
                   <div>
                     <h4 className="font-extrabold text-slate-900 dark:text-white">{rule.category}</h4>
                     <p className="text-[10px] text-slate-500 mt-1">Rule filter: <span className="font-mono text-[11px] bg-white dark:bg-slate-900 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-800">{rule.condition}</span></p>
@@ -534,7 +548,7 @@ export default function TasksPage() {
                   <button 
                     onClick={() => setDelegateRules(prev => prev.map(r => r.id === rule.id ? { ...r, isActive: !r.isActive } : r))}
                     className={`px-3 py-1.5 border rounded-lg text-xs font-bold transition-all ${
-                      rule.isActive ? 'bg-teal-50 border-teal-200 text-teal-655' : 'bg-slate-100 border-slate-200 text-slate-400'
+                      rule.isActive ? 'bg-teal-50 border-teal-200 text-teal-600' : 'bg-slate-100 border-slate-200 text-slate-400'
                     }`}
                   >
                     {rule.isActive ? 'Auto-Route Active' : 'Suspended'}
