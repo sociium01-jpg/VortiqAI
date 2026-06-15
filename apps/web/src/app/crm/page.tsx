@@ -11,16 +11,76 @@ import {
 import { handlePrint, handleExportPDF } from '../utils/export';
 import ModuleAgentSidebar from '../utils/ModuleAgentSidebar';
 
+import { vortiqClient } from '../utils/vortiqClient';
+
 export default function CRMPage() {
   const { user, isLoaded } = useUser();
   const isDemo = isLoaded && user?.primaryEmailAddress?.emailAddress?.toLowerCase() === 'demo@vortiq.ai';
 
   useEffect(() => {
     if (isLoaded && !isDemo) {
-      setContacts([]);
-      setCompanies([]);
-      setDeals([]);
-      setMeetings([]);
+      // 1. Fetch contacts
+      vortiqClient.callQuery('crm.contactsList', { limit: 100 }).then(res => {
+        if (res && res.contacts) {
+          setContacts(res.contacts.map((c: any) => ({
+            id: c.id,
+            name: `${c.firstName} ${c.lastName}`,
+            companyName: c.companyName || 'Self',
+            email: c.email || '',
+            phone: c.phone || '',
+            status: c.status,
+            score: c.leadScore || 50,
+            enriched: c.consentStatus === 'GIVEN',
+            rep: 'Rahul Sharma',
+            source: c.source || 'Manual Add',
+            gst: 'Awaiting',
+            industry: 'Custom Services',
+            address: 'Corporate office, India',
+            notes: [],
+            attachments: [],
+            manualRating: 3
+          })));
+        }
+      }).catch(e => console.error('Error fetching contacts:', e));
+
+      // 2. Fetch companies
+      vortiqClient.callQuery('crm.companiesList').then(res => {
+        if (res) {
+          setCompanies(res.map((c: any) => ({
+            id: c.id,
+            name: c.name,
+            industry: c.industry || 'General',
+            contacts: 1,
+            dealsValue: 0
+          })));
+        }
+      }).catch(e => console.error('Error fetching companies:', e));
+
+      // 3. Fetch deals
+      vortiqClient.callQuery('crm.dealsList').then(res => {
+        if (res) {
+          setDeals(res.map((d: any) => ({
+            id: d.id,
+            name: d.title,
+            company: d.companyId || 'Unknown',
+            amount: d.value,
+            stage: d.stage?.name || 'PROSPECT'
+          })));
+        }
+      }).catch(e => console.error('Error fetching deals:', e));
+
+      // 4. Fetch meetings
+      vortiqClient.callQuery('crm.meetingsList').then(res => {
+        if (res) {
+          setMeetings(res.map((m: any) => ({
+            id: m.id,
+            title: m.title,
+            company: m.description || 'General Meeting',
+            time: m.dueAt ? new Date(m.dueAt).toLocaleString() : 'Today',
+            rep: 'Rahul Sharma'
+          })));
+        }
+      }).catch(e => console.error('Error fetching meetings:', e));
     }
   }, [isLoaded, isDemo]);
 
@@ -82,30 +142,75 @@ export default function CRMPage() {
   const handleAddContact = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newName.trim()) return;
-    const newC = {
-      id: `C-00${contacts.length + 1}`,
-      name: newName,
-      companyName: newCompany || 'Self',
-      email: newEmail || `${newName.toLowerCase().replace(' ', '')}@vortiq-temp.in`,
-      phone: newPhone || '+91 90000 00000',
-      status: 'LEAD',
-      score: 50,
-      enriched: false,
-      rep: newRep,
-      source: 'Manual Add',
-      gst: 'Awaiting',
-      industry: 'Custom Services',
-      address: 'Corporate office, India',
-      notes: [],
-      attachments: [],
-      manualRating: 3
-    };
-    setContacts([newC, ...contacts]);
-    setNewName('');
-    setNewCompany('');
-    setNewEmail('');
-    setNewPhone('');
-    setIsAdding(false);
+
+    const names = newName.trim().split(' ');
+    const firstName = names[0];
+    const lastName = names.slice(1).join(' ') || 'User';
+
+    const cleanPhone = newPhone.replace(/[\s-]/g, '');
+    const formattedPhone = cleanPhone.startsWith('+91') ? cleanPhone : `+91${cleanPhone || '9000000000'}`;
+
+    if (!isDemo) {
+      vortiqClient.callMutation('crm.contactsCreate', {
+        firstName,
+        lastName,
+        email: newEmail || undefined,
+        phone: formattedPhone,
+        status: 'LEAD' as const
+      }).then(c => {
+        const newC = {
+          id: c.id,
+          name: `${c.firstName} ${c.lastName}`,
+          companyName: newCompany || 'Self',
+          email: c.email || '',
+          phone: c.phone || '',
+          status: c.status,
+          score: c.leadScore || 50,
+          enriched: c.consentStatus === 'GIVEN',
+          rep: newRep,
+          source: 'Manual Add',
+          gst: 'Awaiting',
+          industry: 'Custom Services',
+          address: 'Corporate office, India',
+          notes: [],
+          attachments: [],
+          manualRating: 3
+        };
+        setContacts(prev => [newC, ...prev]);
+        setNewName('');
+        setNewCompany('');
+        setNewEmail('');
+        setNewPhone('');
+        setIsAdding(false);
+      }).catch(err => {
+        alert(err.message || 'Failed to add contact');
+      });
+    } else {
+      const newC = {
+        id: `C-00${contacts.length + 1}`,
+        name: newName,
+        companyName: newCompany || 'Self',
+        email: newEmail || `${newName.toLowerCase().replace(' ', '')}@vortiq-temp.in`,
+        phone: newPhone || '+91 90000 00000',
+        status: 'LEAD',
+        score: 50,
+        enriched: false,
+        rep: newRep,
+        source: 'Manual Add',
+        gst: 'Awaiting',
+        industry: 'Custom Services',
+        address: 'Corporate office, India',
+        notes: [],
+        attachments: [],
+        manualRating: 3
+      };
+      setContacts([newC, ...contacts]);
+      setNewName('');
+      setNewCompany('');
+      setNewEmail('');
+      setNewPhone('');
+      setIsAdding(false);
+    }
   };
 
   const handleAIEnrich = (id: string) => {

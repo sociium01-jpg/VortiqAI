@@ -11,6 +11,7 @@ import {
   TrendingUp, TrendingDown, Layers
 } from 'lucide-react';
 import ModuleAgentSidebar from '../utils/ModuleAgentSidebar';
+import { vortiqClient } from '../utils/vortiqClient';
 
 interface InvoiceItem {
   description: string;
@@ -97,41 +98,97 @@ export default function FinancePage() {
     window.dispatchEvent(new Event('vortiq-user-metrics-change'));
   };
 
+  const refreshData = () => {
+    if (!isLoaded || isDemo) return;
+
+    vortiqClient.callQuery('finance.invoicesList')
+      .then(res => {
+        if (res) {
+          const mapped = res.map((inv: any) => {
+            let customer = 'General Customer';
+            let gstin = 'Unregistered';
+            let lineItems = [];
+            
+            if (inv.items && !Array.isArray(inv.items)) {
+              customer = inv.items.customer || customer;
+              gstin = inv.items.gstin || gstin;
+              lineItems = inv.items.lineItems || [];
+            } else if (Array.isArray(inv.items)) {
+              lineItems = inv.items;
+            }
+            
+            return {
+              id: inv.id,
+              invoiceNumber: inv.invoiceNumber,
+              customer,
+              gstin,
+              items: lineItems,
+              paymentStatus: inv.status,
+              irnStatus: inv.irnStatus || 'PENDING',
+              dueDate: new Date(inv.dueDate).toLocaleDateString(),
+              date: new Date(inv.invoiceDate).toLocaleDateString()
+            };
+          });
+          setInvoices(mapped);
+          syncFinanceMetricsToDashboard(mapped);
+        }
+      })
+      .catch(err => console.error('Error listing invoices:', err));
+
+    vortiqClient.callQuery('finance.journalsList')
+      .then(res => {
+        if (res) {
+          const mapped = res.flatMap((j: any) => {
+            const lines = Array.isArray(j.lines) ? j.lines : (j.lines?.lines || []);
+            return lines.map((line: any, idx: number) => ({
+              id: `${j.id}-${idx}`,
+              entryNumber: j.entryNumber,
+              date: new Date(j.date).toLocaleDateString(),
+              description: j.description || '',
+              account: line.account || '',
+              debit: line.debit || 0,
+              credit: line.credit || 0,
+              status: j.status
+            }));
+          });
+          setLedger(mapped);
+        }
+      })
+      .catch(err => console.error('Error listing journals:', err));
+  };
+
   useEffect(() => {
-    if (isLoaded && !isDemo) {
-      const savedInvoices = localStorage.getItem('vortiq-invoices');
-      const savedLedger = localStorage.getItem('vortiq-ledger');
-      const savedReminders = localStorage.getItem('vortiq-reminders');
-      const savedAnomalies = localStorage.getItem('vortiq-anomalies');
-      
-      if (savedInvoices) {
-        try {
-          const parsed = JSON.parse(savedInvoices);
-          setInvoices(parsed);
-          syncFinanceMetricsToDashboard(parsed);
-        } catch (e) {}
+    if (isLoaded) {
+      if (!isDemo) {
+        refreshData();
+        window.addEventListener('vortiq-data-change', refreshData);
+        return () => {
+          window.removeEventListener('vortiq-data-change', refreshData);
+        };
       } else {
-        setInvoices([]);
+        // Fallback for demo mode local storage
+        const savedInvoices = localStorage.getItem('vortiq-invoices');
+        const savedLedger = localStorage.getItem('vortiq-ledger');
+        const savedReminders = localStorage.getItem('vortiq-reminders');
+        const savedAnomalies = localStorage.getItem('vortiq-anomalies');
+        
+        if (savedInvoices) {
+          try {
+            const parsed = JSON.parse(savedInvoices);
+            setInvoices(parsed);
+            syncFinanceMetricsToDashboard(parsed);
+          } catch (e) {}
+        }
+        if (savedLedger) {
+          try { setLedger(JSON.parse(savedLedger)); } catch (e) {}
+        }
+        if (savedReminders) {
+          try { setReminders(JSON.parse(savedReminders)); } catch (e) {}
+        }
+        if (savedAnomalies) {
+          try { setAnomalies(JSON.parse(savedAnomalies)); } catch (e) {}
+        }
       }
-
-      if (savedLedger) {
-        try { setLedger(JSON.parse(savedLedger)); } catch (e) {}
-      } else {
-        setLedger([]);
-      }
-
-      if (savedReminders) {
-        try { setReminders(JSON.parse(savedReminders)); } catch (e) {}
-      } else {
-        setReminders([]);
-      }
-
-      if (savedAnomalies) {
-        try { setAnomalies(JSON.parse(savedAnomalies)); } catch (e) {}
-      } else {
-        setAnomalies([]);
-      }
-      setAiAnalysis("Finance Audit: Connected client database loaded.");
     }
   }, [isLoaded, isDemo]);
 
@@ -240,24 +297,51 @@ export default function FinancePage() {
       gstRate: newItemGstRate
     }];
 
-    const newI: Invoice = {
-      id: `INV-2026-00${invoices.length + 1}`,
-      customer: newCustomer,
-      gstin: newGstin.toUpperCase() || 'Unregistered',
-      items: newItems,
-      paymentStatus: 'DRAFT',
-      irnStatus: 'PENDING',
-      dueDate: '30 Jun 2026',
-      date: 'Today'
-    };
+    const sub = getInvoiceSubtotal(newItems);
+    const tax = getInvoiceTax(newItems, 'TOTAL');
+    const cgst = getInvoiceTax(newItems, 'CGST');
+    const sgst = getInvoiceTax(newItems, 'SGST');
 
-    const updatedInvoices = [newI, ...invoices];
-    setInvoices(updatedInvoices);
-    if (!isDemo) {
-      localStorage.setItem('vortiq-invoices', JSON.stringify(updatedInvoices));
-      syncFinanceMetricsToDashboard(updatedInvoices);
+    if (isDemo) {
+      const newI: Invoice = {
+        id: `INV-2026-00${invoices.length + 1}`,
+        customer: newCustomer,
+        gstin: newGstin.toUpperCase() || 'Unregistered',
+        items: newItems,
+        paymentStatus: 'DRAFT',
+        irnStatus: 'PENDING',
+        dueDate: '30 Jun 2026',
+        date: 'Today'
+      };
+
+      const updatedInvoices = [newI, ...invoices];
+      setInvoices(updatedInvoices);
+      resetForm();
+    } else {
+      const payload = {
+        invoiceNumber: `INV-${Date.now()}`,
+        invoiceDate: new Date(),
+        dueDate: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000), // 15 days from now
+        subTotal: sub,
+        cgst,
+        sgst,
+        igst: 0,
+        grandTotal: sub + tax,
+        items: {
+          customer: newCustomer,
+          gstin: newGstin.toUpperCase() || 'Unregistered',
+          lineItems: newItems
+        }
+      };
+
+      vortiqClient.callMutation('finance.invoicesCreate', payload)
+        .then(() => {
+          refreshData();
+          resetForm();
+          window.dispatchEvent(new Event('vortiq-data-change'));
+        })
+        .catch(err => alert(err.message));
     }
-    resetForm();
   };
 
   const resetForm = () => {
@@ -271,85 +355,124 @@ export default function FinancePage() {
   };
 
   const handleMarkPaid = (id: string) => {
-    const updatedInvoices = invoices.map(inv => {
-      if (inv.id === id) {
-        return { ...inv, paymentStatus: 'PAID' as const };
-      }
-      return inv;
-    });
-    setInvoices(updatedInvoices);
-    if (!isDemo) {
-      localStorage.setItem('vortiq-invoices', JSON.stringify(updatedInvoices));
-      syncFinanceMetricsToDashboard(updatedInvoices);
+    if (isDemo) {
+      const updatedInvoices = invoices.map(inv => {
+        if (inv.id === id) {
+          return { ...inv, paymentStatus: 'PAID' as const };
+        }
+        return inv;
+      });
+      setInvoices(updatedInvoices);
+    } else {
+      const inv = invoices.find(i => i.id === id);
+      const sub = inv ? getInvoiceSubtotal(inv.items) : 0;
+      const tax = inv ? getInvoiceTax(inv.items, 'TOTAL') : 0;
+
+      vortiqClient.callMutation('finance.invoicesRecordPayment', {
+        id,
+        paidAmount: sub + tax
+      }).then(() => {
+        refreshData();
+        window.dispatchEvent(new Event('vortiq-data-change'));
+      }).catch(err => alert(err.message));
     }
   };
 
   const handleApproveAndFileIRN = (id: string) => {
-    const updatedInvoices = invoices.map(inv => {
-      if (inv.id === id) {
-        return { ...inv, irnStatus: 'FILED' as const, paymentStatus: 'SENT' as const };
-      }
-      return inv;
-    });
-    setInvoices(updatedInvoices);
-    if (!isDemo) {
-      localStorage.setItem('vortiq-invoices', JSON.stringify(updatedInvoices));
-      syncFinanceMetricsToDashboard(updatedInvoices);
-    }
+    if (isDemo) {
+      const updatedInvoices = invoices.map(inv => {
+        if (inv.id === id) {
+          return { ...inv, irnStatus: 'FILED' as const, paymentStatus: 'SENT' as const };
+        }
+        return inv;
+      });
+      setInvoices(updatedInvoices);
+      
+      const inv = invoices.find(i => i.id === id);
+      if (!inv) return;
+      const sub = getInvoiceSubtotal(inv.items);
+      const tax = getInvoiceTax(inv.items, 'TOTAL');
+      const grand = sub + tax;
 
-    // Post to ledger logs (Human in loop action)
-    const inv = invoices.find(i => i.id === id);
-    if (!inv) return;
-    const sub = getInvoiceSubtotal(inv.items);
-    const tax = getInvoiceTax(inv.items, 'TOTAL');
-    const grand = sub + tax;
+      const newJE1: JournalEntry = {
+        id: `JE-${Date.now()}-1`,
+        entryNumber: `JE-2026-00${ledger.length / 4 + 1}`,
+        date: 'Today',
+        description: `Sales Invoicing - ${inv.customer}`,
+        account: 'Accounts Receivable',
+        debit: grand,
+        credit: 0,
+        status: 'POSTED'
+      };
 
-    const newJE1: JournalEntry = {
-      id: `JE-${Date.now()}-1`,
-      entryNumber: `JE-2026-00${ledger.length / 4 + 1}`,
-      date: 'Today',
-      description: `Sales Invoicing - ${inv.customer}`,
-      account: 'Accounts Receivable',
-      debit: grand,
-      credit: 0,
-      status: 'POSTED'
-    };
+      const newJE2: JournalEntry = {
+        id: `JE-${Date.now()}-2`,
+        entryNumber: `JE-2026-00${ledger.length / 4 + 1}`,
+        date: 'Today',
+        description: `Sales Invoicing - ${inv.customer}`,
+        account: 'Sales Income',
+        debit: 0,
+        credit: sub,
+        status: 'POSTED'
+      };
+      const newJE3: JournalEntry = {
+        id: `JE-${Date.now()}-3`,
+        entryNumber: `JE-2026-00${ledger.length / 4 + 1}`,
+        date: 'Today',
+        description: `Sales Invoicing - ${inv.customer}`,
+        account: 'Output CGST Liability',
+        debit: 0,
+        credit: tax / 2,
+        status: 'POSTED'
+      };
+      const newJE4: JournalEntry = {
+        id: `JE-${Date.now()}-4`,
+        entryNumber: `JE-2026-00${ledger.length / 4 + 1}`,
+        date: 'Today',
+        description: `Sales Invoicing - ${inv.customer}`,
+        account: 'Output SGST Liability',
+        debit: 0,
+        credit: tax / 2,
+        status: 'POSTED'
+      };
 
-    const newJE2: JournalEntry = {
-      id: `JE-${Date.now()}-2`,
-      entryNumber: `JE-2026-00${ledger.length / 4 + 1}`,
-      date: 'Today',
-      description: `Sales Invoicing - ${inv.customer}`,
-      account: 'Sales Income',
-      debit: 0,
-      credit: sub,
-      status: 'POSTED'
-    };
-    const newJE3: JournalEntry = {
-      id: `JE-${Date.now()}-3`,
-      entryNumber: `JE-2026-00${ledger.length / 4 + 1}`,
-      date: 'Today',
-      description: `Sales Invoicing - ${inv.customer}`,
-      account: 'Output CGST Liability',
-      debit: 0,
-      credit: tax / 2,
-      status: 'POSTED'
-    };
-    const newJE4: JournalEntry = {
-      id: `JE-${Date.now()}-4`,
-      entryNumber: `JE-2026-00${ledger.length / 4 + 1}`,
-      date: 'Today',
-      description: `Sales Invoicing - ${inv.customer}`,
-      account: 'Output SGST Liability',
-      debit: 0,
-      credit: tax / 2,
-      status: 'POSTED'
-    };
+      const updatedLedger = [...ledger, newJE1, newJE2, newJE3, newJE4];
+      setLedger(updatedLedger);
+    } else {
+      const inv = invoices.find(i => i.id === id);
+      if (!inv) return;
 
-    const updatedLedger = [...ledger, newJE1, newJE2, newJE3, newJE4];
-    setLedger(updatedLedger);
-    if (!isDemo) {
-      localStorage.setItem('vortiq-ledger', JSON.stringify(updatedLedger));
+      const sub = getInvoiceSubtotal(inv.items);
+      const tax = getInvoiceTax(inv.items, 'TOTAL');
+      const grand = sub + tax;
+
+      vortiqClient.callMutation('finance.invoicesApprove', { id })
+        .then(() => {
+          return vortiqClient.callMutation('finance.invoicesGenerateIRN', { id });
+        })
+        .then(() => {
+          return vortiqClient.callMutation('finance.invoicesSend', { id });
+        })
+        .then(() => {
+          const lines = [
+            { account: 'Accounts Receivable', debit: grand, credit: 0 },
+            { account: 'Sales Income', debit: 0, credit: sub },
+            { account: 'Output CGST Liability', debit: 0, credit: tax / 2 },
+            { account: 'Output SGST Liability', debit: 0, credit: tax / 2 }
+          ];
+          
+          return vortiqClient.callMutation('finance.journalsCreate', {
+            entryNumber: `JE-${Date.now()}`,
+            date: new Date(),
+            description: `Sales Invoicing - ${inv.customer}`,
+            lines: { lines }
+          });
+        })
+        .then(() => {
+          refreshData();
+          window.dispatchEvent(new Event('vortiq-data-change'));
+        })
+        .catch(err => alert(err.message));
     }
   };
 

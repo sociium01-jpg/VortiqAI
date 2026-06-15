@@ -8,6 +8,8 @@ import { leadEngineRouter } from './lead_engine.router.js';
 import { marketingRouter } from './marketing.router.js';
 import { salesRouter } from './sales.router.js';
 import { supportRouter } from './support.router.js';
+import { tasksRouter } from './tasks.router.js';
+import { aiRouter } from './ai.router.js';
 
 export const appRouter = router({
   auth: authRouter,
@@ -19,6 +21,8 @@ export const appRouter = router({
   marketing: marketingRouter,
   sales: salesRouter,
   support: supportRouter,
+  tasks: tasksRouter,
+  ai: aiRouter
 });
 
 export type AppRouter = typeof appRouter;

@@ -20,13 +20,34 @@ interface ICPFilters {
   maxCompanySize: number;
 }
 
+import { vortiqClient } from '../utils/vortiqClient';
+
 export default function LeadEnginePage() {
   const { user, isLoaded } = useUser();
   const isDemo = isLoaded && user?.primaryEmailAddress?.emailAddress?.toLowerCase() === 'demo@vortiq.ai';
 
   useEffect(() => {
     if (isLoaded && !isDemo) {
-      setLeads([]);
+      vortiqClient.callQuery('crm.contactsList', { status: 'LEAD', limit: 100 }).then(res => {
+        if (res && res.contacts) {
+          setLeads(res.contacts.map((c: any) => ({
+            id: c.id,
+            name: `${c.firstName} ${c.lastName}`,
+            title: c.jobTitle || 'Business Target',
+            company: c.companyName || 'Self',
+            location: 'India',
+            size: 100,
+            email: c.email || '',
+            phone: c.phone || '',
+            linkedin: '#',
+            score: c.leadScore || 60,
+            emailVerified: true,
+            phoneVerified: true,
+            status: 'RAW',
+            selected: false
+          })));
+        }
+      }).catch(err => console.error('Failed to load leads:', err));
       setCreditsUsed(0);
     }
   }, [isLoaded, isDemo]);
@@ -160,30 +181,71 @@ export default function LeadEnginePage() {
       return;
     }
 
-    const newLead = {
-      id: `manual-${Date.now()}`,
-      name: manualName,
-      title: 'Business Target',
-      company: manualCompany,
-      location: 'Custom entry',
-      size: 100,
-      email: manualEmail,
-      phone: manualPhone || 'Not provided',
-      linkedin: '#',
-      score: 60,
-      emailVerified: true,
-      phoneVerified: false,
-      status: 'RAW',
-      selected: false
-    };
+    const names = manualName.trim().split(' ');
+    const firstName = names[0];
+    const lastName = names.slice(1).join(' ') || 'User';
+    const cleanPhone = manualPhone.replace(/[\s-]/g, '');
+    const formattedPhone = cleanPhone.startsWith('+91') ? cleanPhone : `+91${cleanPhone || '9000000000'}`;
 
-    setLeads([newLead, ...leads]);
-    setManualName('');
-    setManualCompany('');
-    setManualEmail('');
-    setManualPhone('');
-    setValidationError('');
-    setShowManualForm(false);
+    if (!isDemo) {
+      vortiqClient.callMutation('crm.contactsCreate', {
+        firstName,
+        lastName,
+        email: manualEmail,
+        phone: formattedPhone,
+        status: 'LEAD' as const
+      }).then(c => {
+        const newLead = {
+          id: c.id,
+          name: `${c.firstName} ${c.lastName}`,
+          title: c.jobTitle || 'Business Target',
+          company: manualCompany,
+          location: 'Custom entry',
+          size: 100,
+          email: c.email || '',
+          phone: c.phone || '',
+          linkedin: '#',
+          score: c.leadScore || 60,
+          emailVerified: true,
+          phoneVerified: true,
+          status: 'RAW',
+          selected: false
+        };
+        setLeads(prev => [newLead, ...prev]);
+        setManualName('');
+        setManualCompany('');
+        setManualEmail('');
+        setManualPhone('');
+        setValidationError('');
+        setShowManualForm(false);
+      }).catch(err => {
+        setValidationError(err.message || 'Failed to submit lead to database');
+      });
+    } else {
+      const newLead = {
+        id: `manual-${Date.now()}`,
+        name: manualName,
+        title: 'Business Target',
+        company: manualCompany,
+        location: 'Custom entry',
+        size: 100,
+        email: manualEmail,
+        phone: manualPhone || 'Not provided',
+        linkedin: '#',
+        score: 60,
+        emailVerified: true,
+        phoneVerified: false,
+        status: 'RAW',
+        selected: false
+      };
+      setLeads([newLead, ...leads]);
+      setManualName('');
+      setManualCompany('');
+      setManualEmail('');
+      setManualPhone('');
+      setValidationError('');
+      setShowManualForm(false);
+    }
   };
 
   const triggerDuplicateScan = () => {

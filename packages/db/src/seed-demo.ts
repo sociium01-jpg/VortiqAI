@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, UserRole, ContactSource, ContactStatus, ConsentStatus } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
@@ -15,6 +15,7 @@ async function main() {
   await prisma.task.deleteMany({});
   await prisma.invoice.deleteMany({});
   await prisma.deal.deleteMany({});
+  await prisma.dealStage.deleteMany({});
   await prisma.contact.deleteMany({});
   await prisma.user.deleteMany({});
   await prisma.organisation.deleteMany({});
@@ -25,6 +26,7 @@ async function main() {
   const org1 = await prisma.organisation.create({
     data: {
       name: 'Alpha Real Estate Developers',
+      slug: 'alpha-developers',
       gstin: '27AAAAA1111A1Z1',
       plan: 'GROWTH'
     }
@@ -33,6 +35,7 @@ async function main() {
   const org2 = await prisma.organisation.create({
     data: {
       name: 'Vortiq B2B SaaS Systems',
+      slug: 'vortiq-saas',
       gstin: '27BBBBB2222B2Z2',
       plan: 'ENTERPRISE'
     }
@@ -41,8 +44,38 @@ async function main() {
   const org3 = await prisma.organisation.create({
     data: {
       name: 'Chennai Sheet Metal Fab',
+      slug: 'chennai-metal',
       gstin: '33CCCCC3333C3Z3',
       plan: 'STARTER'
+    }
+  });
+
+  // Create default deal stages for org1
+  const stageQualified = await prisma.dealStage.create({
+    data: {
+      organisationId: org1.id,
+      name: 'QUALIFIED',
+      order: 1,
+      probability: 0.2
+    }
+  });
+
+  const stageNegotiation = await prisma.dealStage.create({
+    data: {
+      organisationId: org1.id,
+      name: 'NEGOTIATION',
+      order: 2,
+      probability: 0.6
+    }
+  });
+
+  const stageWon = await prisma.dealStage.create({
+    data: {
+      organisationId: org1.id,
+      name: 'WON',
+      order: 3,
+      probability: 1.0,
+      isWon: true
     }
   });
 
@@ -50,18 +83,20 @@ async function main() {
   const user1 = await prisma.user.create({
     data: {
       organisationId: org1.id,
+      clerkId: 'clerk_user_1',
       email: 'ceo@alphadevelopers.in',
       name: 'Amit Sharma',
-      role: 'CEO'
+      role: UserRole.ADMIN
     }
   });
 
   const user2 = await prisma.user.create({
     data: {
       organisationId: org1.id,
+      clerkId: 'clerk_user_2',
       email: 'sales@alphadevelopers.in',
       name: 'Priya Patel',
-      role: 'SALES'
+      role: UserRole.SALES
     }
   });
 
@@ -76,7 +111,9 @@ async function main() {
       companyName: 'Bharat Forge',
       jobTitle: 'VP Procurement',
       leadScore: 89,
-      source: 'OUTBOUND_SALES'
+      source: ContactSource.MANUAL,
+      status: ContactStatus.CUSTOMER,
+      consentStatus: ConsentStatus.GIVEN
     }
   });
 
@@ -85,9 +122,9 @@ async function main() {
     data: {
       organisationId: org1.id,
       contactId: contact1.id,
+      stageId: stageQualified.id,
       title: 'Bharat Forge Outbound Deal',
       value: 1200000,
-      stage: 'QUALIFIED',
       probability: 0.73
     }
   });

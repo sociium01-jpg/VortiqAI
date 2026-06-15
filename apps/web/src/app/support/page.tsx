@@ -32,15 +32,43 @@ interface Ticket {
   comments: TicketComment[];
 }
 
+import { vortiqClient } from '../utils/vortiqClient';
+
 export default function SupportPage() {
   const { user, isLoaded } = useUser();
   const isDemo = isLoaded && user?.primaryEmailAddress?.emailAddress?.toLowerCase() === 'demo@vortiq.ai';
 
   useEffect(() => {
     if (isLoaded && !isDemo) {
-      setTickets([]);
-      setSelectedTicketId(null);
-      setAiAnalysis("SupportAgent Monitor: Ticket queue is empty. Customer support channels are quiet.");
+      vortiqClient.callQuery('support.ticketsList').then(res => {
+        if (res) {
+          const mapped = res.map((t: any) => ({
+            id: t.id,
+            customer: t.customer || 'Client User',
+            email: t.email || '',
+            subject: t.title,
+            description: t.description || '',
+            status: t.status as 'OPEN' | 'IN_PROGRESS' | 'RESOLVED',
+            priority: t.priority as 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT',
+            category: 'INTEGRATION', // default
+            slaMinutesRemaining: t.slaMinutesRemaining || 240,
+            sentiment: (t.sentiment || 'NEUTRAL') as 'POSITIVE' | 'NEUTRAL' | 'NEGATIVE',
+            comments: (t.messages || []).map((m: any) => ({
+              user: m.sender === 'HUMAN' ? 'Support Agent' : 'SupportAgent (AI)',
+              text: m.text,
+              time: m.timestamp ? new Date(m.timestamp).toLocaleTimeString() : 'Just now',
+              isInternal: m.sender === 'SYSTEM'
+            }))
+          }));
+          setTickets(mapped);
+          if (mapped.length > 0) {
+            setSelectedTicketId(mapped[0].id);
+          }
+        }
+      }).catch(err => {
+        console.error('Failed to load tickets:', err);
+      });
+      setAiAnalysis("SupportAgent Monitor: Connected client database loaded.");
     }
   }, [isLoaded, isDemo]);
 
@@ -132,23 +160,50 @@ export default function SupportPage() {
     e.preventDefault();
     if (!newCustomer.trim() || !newSubject.trim()) return;
 
-    const newT: Ticket = {
-      id: `TCK-80${tickets.length + 1}`,
-      customer: newCustomer,
-      email: newEmail || 'inquiries@vortiq.ai',
-      subject: newSubject,
-      description: newDesc || 'Inbound request logged via client portal.',
-      status: 'OPEN',
-      priority: newPriority,
-      category: newCategory,
-      slaMinutesRemaining: 240,
-      sentiment: 'NEUTRAL',
-      comments: []
-    };
+    if (!isDemo) {
+      vortiqClient.callMutation('support.ticketsCreate', {
+        title: newSubject,
+        description: newDesc || 'Inbound request logged via client portal.',
+        priority: newPriority
+      }).then(t => {
+        const newT: Ticket = {
+          id: t.id,
+          customer: newCustomer,
+          email: newEmail || 'inquiries@vortiq.ai',
+          subject: t.title,
+          description: t.description || '',
+          status: t.status as 'OPEN' | 'IN_PROGRESS' | 'RESOLVED',
+          priority: t.priority as 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT',
+          category: newCategory,
+          slaMinutesRemaining: t.slaMinutesRemaining || 240,
+          sentiment: 'NEUTRAL',
+          comments: []
+        };
+        setTickets([newT, ...tickets]);
+        setSelectedTicketId(newT.id);
+        resetForm();
+      }).catch(err => {
+        alert(err.message || 'Failed to create ticket in database');
+      });
+    } else {
+      const newT: Ticket = {
+        id: `TCK-80${tickets.length + 1}`,
+        customer: newCustomer,
+        email: newEmail || 'inquiries@vortiq.ai',
+        subject: newSubject,
+        description: newDesc || 'Inbound request logged via client portal.',
+        status: 'OPEN',
+        priority: newPriority,
+        category: newCategory,
+        slaMinutesRemaining: 240,
+        sentiment: 'NEUTRAL',
+        comments: []
+      };
 
-    setTickets([newT, ...tickets]);
-    setSelectedTicketId(newT.id);
-    resetForm();
+      setTickets([newT, ...tickets]);
+      setSelectedTicketId(newT.id);
+      resetForm();
+    }
   };
 
   const resetForm = () => {
@@ -163,31 +218,63 @@ export default function SupportPage() {
     e.preventDefault();
     if (!replyText.trim() || !selectedTicketId) return;
 
-    setTickets(prev => prev.map(t => {
-      if (t.id === selectedTicketId) {
-        const newComments: TicketComment[] = [
-          ...t.comments,
-          {
-            user: isInternalNote ? 'Super Admin (Internal Note)' : 'Super Admin',
-            text: replyText.trim(),
-            time: 'Just now',
-            isInternal: isInternalNote
+    if (!isDemo) {
+      vortiqClient.callMutation('support.ticketsReply', {
+        id: selectedTicketId,
+        message: replyText.trim()
+      }).then(t => {
+        setTickets(prev => prev.map(oldT => {
+          if (oldT.id === selectedTicketId) {
+            const mappedComments = (t.messages || []).map((m: any) => ({
+              user: m.sender === 'HUMAN' ? 'Support Agent' : 'SupportAgent (AI)',
+              text: m.text,
+              time: m.timestamp ? new Date(m.timestamp).toLocaleTimeString() : 'Just now',
+              isInternal: m.sender === 'SYSTEM'
+            }));
+            return {
+              ...oldT,
+              comments: mappedComments,
+              status: t.status as 'OPEN' | 'IN_PROGRESS' | 'RESOLVED'
+            };
           }
-        ];
-        return {
-          ...t,
-          comments: newComments,
-          status: isInternalNote ? t.status : 'IN_PROGRESS'
-        };
-      }
-      return t;
-    }));
+          return oldT;
+        }));
+      }).catch(err => {
+        alert(err.message || 'Failed to submit reply');
+      });
+    } else {
+      setTickets(prev => prev.map(t => {
+        if (t.id === selectedTicketId) {
+          const newComments: TicketComment[] = [
+            ...t.comments,
+            {
+              user: isInternalNote ? 'Super Admin (Internal Note)' : 'Super Admin',
+              text: replyText.trim(),
+              time: 'Just now',
+              isInternal: isInternalNote
+            }
+          ];
+          return {
+            ...t,
+            comments: newComments,
+            status: isInternalNote ? t.status : 'IN_PROGRESS'
+          };
+        }
+        return t;
+      }));
+    }
 
     setReplyText('');
   };
 
   const handleResolveTicket = (id: string) => {
-    setTickets(prev => prev.map(t => t.id === id ? { ...t, status: 'RESOLVED', slaMinutesRemaining: 0 } : t));
+    const updated = tickets.map(t => t.id === id ? { ...t, status: 'RESOLVED' as const, slaMinutesRemaining: 0 } : t);
+    setTickets(updated);
+    if (!isDemo) {
+      vortiqClient.callMutation('support.ticketsResolve', {
+        id
+      }).catch(err => console.error('Failed to resolve ticket in DB:', err));
+    }
   };
 
   const handleAIGenerateResponse = () => {

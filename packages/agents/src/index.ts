@@ -2,6 +2,7 @@ export * from './event-bus.js';
 export * from './memory.service.js';
 export * from './orchestrator.js';
 export * from './business-analyst.agent.js';
+export * from './computation.js';
 
 import { prisma } from '@vortiq/db';
 import { agentMemoryService } from './memory.service.js';

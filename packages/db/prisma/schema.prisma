@@ -312,6 +312,22 @@ model Organisation {
   inventoryItems          InventoryItem[]
   purchaseOrders          PurchaseOrder[]
   resumes                 Resume[]
+  aiAgents                 AiAgent[]
+  aiAgentPermissions       AiAgentPermission[]
+  aiAgentMemories          AiAgentMemory[]
+  aiWorkflows              AiWorkflow[]
+  aiWorkflowRuns           AiWorkflowRun[]
+  aiAgentMessages          AiAgentMessage[]
+  aiComputationResults     AiComputationResult[]
+  aiPromptTemplates        AiPromptTemplate[]
+  aiOutputLogs             AiOutputLog[]
+  aiApprovalRequests       AiApprovalRequest[]
+  aiUsageLogs              AiUsageLog[]
+  aiErrorLogs              AiErrorLog[]
+  aiMemoryAuditLogs        AiMemoryAuditLog[]
+  aiSettings               AiSetting[]
+  aiProviderConnections    AiProviderConnection[]
+  aiManualOverrides        AiManualOverride[]
 }
 
 model User {
@@ -1417,6 +1433,243 @@ model Resume {
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
   deletedAt      DateTime?
+
+  organisation Organisation @relation(fields: [organisationId], references: [id])
+}
+
+model AiAgent {
+  id             String    @id @default(uuid()) @db.Uuid
+  organisationId String    @db.Uuid
+  name           String    
+  role           String    // SUPERBOSS, CRM, LEAD_ENGINE, etc.
+  description    String?
+  isEnabled      Boolean   @default(true)
+  memoryEnabled  Boolean   @default(true)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  organisation Organisation @relation(fields: [organisationId], references: [id])
+}
+
+model AiAgentPermission {
+  id                            String   @id @default(uuid()) @db.Uuid
+  organisationId                String   @db.Uuid
+  roleName                      String   // Viewer, Admin, Superadmin, etc.
+  canUseAi                      Boolean  @default(true)
+  canViewInsights               Boolean  @default(true)
+  canRunWorkflows               Boolean  @default(true)
+  canApprove                    Boolean  @default(false)
+  canReject                     Boolean  @default(false)
+  canOverride                   Boolean  @default(false)
+  canAccessMemory               Boolean  @default(false)
+  canEditMemory                 Boolean  @default(false)
+  canDeleteMemory               Boolean  @default(false)
+  canConnectProvider            Boolean  @default(false)
+  canViewLogs                   Boolean  @default(false)
+  canExportOutputs              Boolean  @default(false)
+  canEnableAutomation           Boolean  @default(false)
+  canDisableAutomation          Boolean  @default(false)
+  canAllowExternalCommunication Boolean  @default(false)
+  canViewSensitiveContext       Boolean  @default(false)
+  createdAt                     DateTime @default(now())
+  updatedAt                     DateTime @updatedAt
+
+  organisation Organisation @relation(fields: [organisationId], references: [id])
+}
+
+model AiAgentMemory {
+  id             String   @id @default(uuid()) @db.Uuid
+  organisationId String   @db.Uuid
+  agentType      String
+  memoryType     String   // Company, Module, User, Record-Level, Client, Subscription, Support, Employee, Workflow, Decision
+  content        String
+  metadata       Json?
+  userId         String?  @db.Uuid
+  recordId       String?  @db.Uuid
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organisation Organisation @relation(fields: [organisationId], references: [id])
+}
+
+model AiWorkflow {
+  id             String   @id @default(uuid()) @db.Uuid
+  organisationId String   @db.Uuid
+  name           String   
+  triggerEvent   String   // NEW_LEAD, STUCK_DEAL, INVOICE_OVERDUE, SUPPORT_SLA_RISK, CLIENT_CHURN_RISK
+  steps          Json     
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organisation Organisation @relation(fields: [organisationId], references: [id])
+}
+
+model AiWorkflowRun {
+  id             String   @id @default(uuid()) @db.Uuid
+  organisationId String   @db.Uuid
+  workflowId     String   @db.Uuid
+  status         String   // QUEUED, RUNNING, COMPLETED, FAILED, AWAITING_APPROVAL
+  currentStep    Int      @default(0)
+  result         Json?
+  error          String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organisation Organisation @relation(fields: [organisationId], references: [id])
+}
+
+model AiAgentMessage {
+  id             String   @id @default(uuid()) @db.Uuid
+  organisationId String   @db.Uuid
+  agentRole      String
+  senderId       String?  @db.Uuid
+  content        String
+  direction      String   // INBOUND, OUTBOUND, SYSTEM
+  createdAt      DateTime @default(now())
+
+  organisation Organisation @relation(fields: [organisationId], references: [id])
+}
+
+model AiComputationResult {
+  id             String   @id @default(uuid()) @db.Uuid
+  organisationId String   @db.Uuid
+  metricName     String   
+  value          Float
+  metadata       Json?    
+  updatedAt      DateTime @default(now()) @updatedAt
+
+  organisation Organisation @relation(fields: [organisationId], references: [id])
+  
+  @@unique([organisationId, metricName])
+}
+
+model AiPromptTemplate {
+  id             String   @id @default(uuid()) @db.Uuid
+  organisationId String   @db.Uuid
+  agentRole      String
+  templateName   String
+  content        String
+  version        Int      @default(1)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organisation Organisation @relation(fields: [organisationId], references: [id])
+}
+
+model AiOutputLog {
+  id             String   @id @default(uuid()) @db.Uuid
+  organisationId String   @db.Uuid
+  requestId      String   @db.Uuid
+  userId         String?  @db.Uuid
+  agentName      String
+  module         String
+  inputContext   String
+  outputSummary  String
+  model          String
+  tokensUsed     Int      @default(0)
+  promptVersion  String?
+  confidence     Float?
+  createdAt      DateTime @default(now())
+
+  organisation Organisation @relation(fields: [organisationId], references: [id])
+}
+
+model AiApprovalRequest {
+  id              String   @id @default(uuid()) @db.Uuid
+  organisationId  String   @db.Uuid
+  jobId           String?  @db.Uuid 
+  actionType      String   // SEND_WHATSAPP, RECORD_PAYMENT, UPDATE_PAYROLL, INVENTORY_PO
+  status          String   // PENDING, APPROVED, REJECTED
+  payload         Json
+  requestedBy     String   @db.Uuid
+  approvedBy      String?  @db.Uuid
+  rejectedBy      String?  @db.Uuid
+  rejectionReason String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  organisation Organisation @relation(fields: [organisationId], references: [id])
+}
+
+model AiUsageLog {
+  id             String   @id @default(uuid()) @db.Uuid
+  organisationId String   @db.Uuid
+  userId         String?  @db.Uuid
+  action         String
+  tokensUsed     Int      @default(0)
+  costUsd        Float    @default(0.0)
+  createdAt      DateTime @default(now())
+
+  organisation Organisation @relation(fields: [organisationId], references: [id])
+}
+
+model AiErrorLog {
+  id             String   @id @default(uuid()) @db.Uuid
+  organisationId String   @db.Uuid
+  userId         String?  @db.Uuid
+  component      String   // OpenAI, Gemini, Computation, EventBus
+  errorMessage   String
+  errorStack     String?
+  context        Json?
+  createdAt      DateTime @default(now())
+
+  organisation Organisation @relation(fields: [organisationId], references: [id])
+}
+
+model AiMemoryAuditLog {
+  id             String   @id @default(uuid()) @db.Uuid
+  organisationId String   @db.Uuid
+  userId         String   @db.Uuid
+  action         String   // CREATE, UPDATE, DELETE
+  memoryId       String   @db.Uuid
+  oldContent     String?
+  newContent     String?
+  createdAt      DateTime @default(now())
+
+  organisation Organisation @relation(fields: [organisationId], references: [id])
+}
+
+model AiSetting {
+  id             String   @id @default(uuid()) @db.Uuid
+  organisationId String   @db.Uuid @unique
+  provider       String   @default("OPENAI") // OPENAI, GEMINI, ANTHROPIC
+  modelName      String   @default("gpt-4o")
+  isEnabled      Boolean  @default(true)
+  memoryEnabled  Boolean  @default(true)
+  autoApprove    Boolean  @default(false)
+  sensitiveMask  Boolean  @default(true)
+  monthlyLimit   Float    @default(50.0) 
+  monthlySpent   Float    @default(0.0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organisation Organisation @relation(fields: [organisationId], references: [id])
+}
+
+model AiProviderConnection {
+  id              String   @id @default(uuid()) @db.Uuid
+  organisationId  String   @db.Uuid
+  provider        String   // OPENAI, GEMINI, ANTHROPIC
+  apiKeyEncrypted String
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  organisation Organisation @relation(fields: [organisationId], references: [id])
+  
+  @@unique([organisationId, provider])
+}
+
+model AiManualOverride {
+  id             String   @id @default(uuid()) @db.Uuid
+  organisationId String   @db.Uuid
+  userId         String   @db.Uuid
+  metricName     String
+  originalValue  Float
+  overriddenValue Float
+  reason         String
+  createdAt      DateTime @default(now())
 
   organisation Organisation @relation(fields: [organisationId], references: [id])
 }

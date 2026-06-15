@@ -33,8 +33,8 @@ export const financeRouter = router({
   invoicesCreate: protectedProcedure
     .input(z.object({
       invoiceNumber: z.string().min(1),
-      invoiceDate: z.date(),
-      dueDate: z.date(),
+      invoiceDate: z.coerce.date(),
+      dueDate: z.coerce.date(),
       subTotal: z.number().min(0),
       cgst: z.number().min(0),
       sgst: z.number().min(0),
@@ -216,7 +216,7 @@ export const financeRouter = router({
   journalsCreate: protectedProcedure
     .input(z.object({
       entryNumber: z.string().min(1),
-      date: z.date(),
+      date: z.coerce.date(),
       description: z.string().optional(),
       lines: z.any()
     }))
@@ -249,5 +249,12 @@ export const financeRouter = router({
       });
 
       return journal;
-    })
+    }),
+
+  journalsList: protectedProcedure.query(async ({ ctx }) => {
+    return prisma.journalEntry.findMany({
+      where: { organisationId: ctx.org!.id },
+      orderBy: { date: 'desc' }
+    });
+  })
 });

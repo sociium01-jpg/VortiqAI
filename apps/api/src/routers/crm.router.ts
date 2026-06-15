@@ -207,5 +207,88 @@ export const crmRouter = router({
       where: { organisationId: ctx.org!.id },
       orderBy: { order: 'asc' }
     });
-  })
+  }),
+
+  companiesList: protectedProcedure.query(async ({ ctx }) => {
+    return prisma.company.findMany({
+      where: { organisationId: ctx.org!.id, deletedAt: null },
+      orderBy: { name: 'asc' }
+    });
+  }),
+
+  companiesCreate: protectedProcedure
+    .input(z.object({
+      name: z.string().min(1),
+      industry: z.string().optional()
+    }))
+    .mutation(async ({ ctx, input }) => {
+      return prisma.company.create({
+        data: {
+          organisationId: ctx.org!.id,
+          name: input.name,
+          industry: input.industry
+        }
+      });
+    }),
+
+  dealsList: protectedProcedure.query(async ({ ctx }) => {
+    return prisma.deal.findMany({
+      where: { organisationId: ctx.org!.id, deletedAt: null },
+      include: { stage: true },
+      orderBy: { createdAt: 'desc' }
+    });
+  }),
+
+  dealsCreate: protectedProcedure
+    .input(z.object({
+      title: z.string().min(1),
+      value: z.number().min(0),
+      stageId: z.string().uuid(),
+      contactId: z.string().uuid().optional(),
+      companyId: z.string().uuid().optional()
+    }))
+    .mutation(async ({ ctx, input }) => {
+      return prisma.deal.create({
+        data: {
+          organisationId: ctx.org!.id,
+          title: input.title,
+          value: input.value,
+          stageId: input.stageId,
+          contactId: input.contactId,
+          companyId: input.companyId
+        }
+      });
+    }),
+
+  meetingsList: protectedProcedure.query(async ({ ctx }) => {
+    return prisma.activity.findMany({
+      where: {
+        organisationId: ctx.org!.id,
+        type: 'MEETING'
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+  }),
+
+  meetingsCreate: protectedProcedure
+    .input(z.object({
+      title: z.string().min(1),
+      description: z.string().optional(),
+      contactId: z.string().uuid().optional(),
+      dealId: z.string().uuid().optional(),
+      dueAt: z.coerce.date().optional()
+    }))
+    .mutation(async ({ ctx, input }) => {
+      return prisma.activity.create({
+        data: {
+          organisationId: ctx.org!.id,
+          type: 'MEETING',
+          title: input.title,
+          description: input.description,
+          contactId: input.contactId,
+          dealId: input.dealId,
+          dueAt: input.dueAt
+        }
+      });
+    })
 });

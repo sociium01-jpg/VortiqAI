@@ -10,6 +10,7 @@ import {
   MessageSquare, User, ArrowRight, Link2, AlertCircle, Play
 } from 'lucide-react';
 import ModuleAgentSidebar from '../utils/ModuleAgentSidebar';
+import { vortiqClient } from '../utils/vortiqClient';
 
 interface Task {
   id: string;
@@ -21,81 +22,10 @@ interface Task {
   dueDate: string;
   comments: { user: string; text: string; time: string }[];
   isRecurring: boolean;
-  recurrence?: 'DAILY' | 'WEEKLY' | 'MONTHLY';
+  recurrence?: string;
 }
 
 export default function TasksPage() {
-  const { user, isLoaded } = useUser();
-  const isDemo = isLoaded && user?.primaryEmailAddress?.emailAddress?.toLowerCase() === 'demo@vortiq.ai';
-
-  // Sync Task Metrics to Dashboard Telemetry
-  const syncTaskMetricsToDashboard = (updatedTasks: Task[]) => {
-    if (isDemo) return;
-    const completedCount = updatedTasks.filter(t => t.stage === 'DONE').length;
-
-    const savedMetricsStr = localStorage.getItem('vortiq-user-metrics');
-    let currentMetrics = {
-      healthScore: 100,
-      revenue: 0,
-      targetAmount: 1500000,
-      leadsToday: 0,
-      tasksCompleted: 0,
-      activeAgents: 8,
-      efficiencyScore: 100,
-      openTickets: 0,
-      activeCampaigns: 0,
-      briefingsSent: 0,
-      receivables: 0,
-      payoutsDone: 0,
-      attendancePresent: 0,
-      attendanceTotal: 0,
-      adClicks: 0
-    };
-    if (savedMetricsStr) {
-      try {
-        currentMetrics = JSON.parse(savedMetricsStr);
-      } catch (e) {}
-    }
-    
-    currentMetrics.tasksCompleted = completedCount;
-    localStorage.setItem('vortiq-user-metrics', JSON.stringify(currentMetrics));
-    window.dispatchEvent(new Event('vortiq-user-metrics-change'));
-  };
-
-  useEffect(() => {
-    if (isLoaded && !isDemo) {
-      const savedTasks = localStorage.getItem('vortiq-tasks');
-      const savedRec = localStorage.getItem('vortiq-recurring-templates');
-      const savedDel = localStorage.getItem('vortiq-delegate-rules');
-
-      if (savedTasks) {
-        try {
-          const parsed = JSON.parse(savedTasks);
-          setTasks(parsed);
-          syncTaskMetricsToDashboard(parsed);
-        } catch (e) {}
-      } else {
-        setTasks([]);
-      }
-
-      if (savedRec) {
-        try { setRecurringTemplates(JSON.parse(savedRec)); } catch (e) {}
-      } else {
-        setRecurringTemplates([]);
-      }
-
-      if (savedDel) {
-        try { setDelegateRules(JSON.parse(savedDel)); } catch (e) {}
-      } else {
-        setDelegateRules([]);
-      }
-      setAiAnalysis("TaskAgent Monitor: Connected client database loaded.");
-    }
-  }, [isLoaded, isDemo]);
-
-  const [activeTab, setActiveTab] = useState<'board' | 'recurring' | 'delegation'>('board');
-
-  // Tasks list
   const [tasks, setTasks] = useState<Task[]>([
     { 
       id: 'TSK-001', 
@@ -146,20 +76,105 @@ export default function TasksPage() {
       isRecurring: false
     }
   ]);
-
-  // Recurring templates
-  const [recurringTemplates, setRecurringTemplates] = useState([
+  const [recurringTemplates, setRecurringTemplates] = useState<any[]>([
     { id: 'REC-101', name: 'Daily Outbound NCPR Scrub Check', frequency: 'DAILY', assignee: 'Amit Sharma', isActive: true },
     { id: 'REC-102', name: 'Weekly Stock Audit Reconciliation', frequency: 'WEEKLY', assignee: 'Priya Patel', isActive: true },
     { id: 'REC-103', name: 'Monthly GSTR-1 Tax File Export', frequency: 'MONTHLY', assignee: 'Finance Manager', isActive: true }
   ]);
-
-  // Auto-delegate configurations
-  const [delegateRules, setDelegateRules] = useState([
+  const [delegateRules, setDelegateRules] = useState<any[]>([
     { id: 'RULE-001', category: 'Sales Leads / Inquiries', targetOwner: 'Amit Sharma', condition: 'Lead Score > 80', isActive: true },
     { id: 'RULE-002', category: 'Stock adjustments / Warehouse', targetOwner: 'Priya Patel', condition: 'Warehouse A location', isActive: true },
     { id: 'RULE-003', category: 'Code / Technical setups', targetOwner: 'Rahul Sen', condition: 'BYOK API changes', isActive: true }
   ]);
+  const [aiAnalysis, setAiAnalysis] = useState('TaskAgent Monitor: 3 active task tracks analyzed. TSK-003 is blocked pending completion of TSK-002. Auto-delegation rules ran: Sourced leads allocated to Amit.');
+
+  const { user, isLoaded } = useUser();
+  const isDemo = isLoaded && user?.primaryEmailAddress?.emailAddress?.toLowerCase() === 'demo@vortiq.ai';
+
+  // Sync Task Metrics to Dashboard Telemetry
+  const syncTaskMetricsToDashboard = (updatedTasks: Task[]) => {
+    if (isDemo) return;
+    const completedCount = updatedTasks.filter(t => t.stage === 'DONE').length;
+
+    const savedMetricsStr = localStorage.getItem('vortiq-user-metrics');
+    let currentMetrics = {
+      healthScore: 100,
+      revenue: 0,
+      targetAmount: 1500000,
+      leadsToday: 0,
+      tasksCompleted: 0,
+      activeAgents: 8,
+      efficiencyScore: 100,
+      openTickets: 0,
+      activeCampaigns: 0,
+      briefingsSent: 0,
+      receivables: 0,
+      payoutsDone: 0,
+      attendancePresent: 0,
+      attendanceTotal: 0,
+      adClicks: 0
+    };
+    if (savedMetricsStr) {
+      try {
+        currentMetrics = JSON.parse(savedMetricsStr);
+      } catch (e) {}
+    }
+    
+    currentMetrics.tasksCompleted = completedCount;
+    localStorage.setItem('vortiq-user-metrics', JSON.stringify(currentMetrics));
+    window.dispatchEvent(new Event('vortiq-user-metrics-change'));
+  };
+
+  useEffect(() => {
+    if (isLoaded && !isDemo) {
+      vortiqClient.callQuery('tasks.tasksList').then(res => {
+        if (res) {
+          const mapped = res.map((t: any) => ({
+            id: t.id,
+            name: t.title,
+            stage: t.status as 'TODO' | 'IN_PROGRESS' | 'DONE',
+            priority: t.priority as 'P1' | 'P2' | 'P3' | 'P4',
+            assignedTo: 'Amit Sharma', // default
+            dueDate: t.dueAt ? new Date(t.dueAt).toLocaleDateString() : 'No date',
+            comments: [],
+            isRecurring: t.isRecurring
+          }));
+          setTasks(mapped);
+          syncTaskMetricsToDashboard(mapped);
+        }
+      }).catch(err => {
+        console.error('Failed to load tasks from DB, fallback to localStorage:', err);
+        const savedTasks = localStorage.getItem('vortiq-tasks');
+        if (savedTasks) {
+          try {
+            const parsed = JSON.parse(savedTasks);
+            setTasks(parsed);
+            syncTaskMetricsToDashboard(parsed);
+          } catch (e) {}
+        }
+      });
+
+      const savedRec = localStorage.getItem('vortiq-recurring-templates');
+      const savedDel = localStorage.getItem('vortiq-delegate-rules');
+
+      if (savedRec) {
+        try { setRecurringTemplates(JSON.parse(savedRec)); } catch (e) {}
+      } else {
+        setRecurringTemplates([]);
+      }
+
+      if (savedDel) {
+        try { setDelegateRules(JSON.parse(savedDel)); } catch (e) {}
+      } else {
+        setDelegateRules([]);
+      }
+      setAiAnalysis("TaskAgent Monitor: Connected client database loaded.");
+    }
+  }, [isLoaded, isDemo]);
+
+  const [activeTab, setActiveTab] = useState<'board' | 'recurring' | 'delegation'>('board');
+
+
 
   // Form States - Add Task
   const [isAdding, setIsAdding] = useState(false);
@@ -176,32 +191,53 @@ export default function TasksPage() {
   const [commentInputs, setCommentInputs] = useState<Record<string, string>>({});
 
   const [aiWorking, setAiWorking] = useState(false);
-  const [aiAnalysis, setAiAnalysis] = useState('TaskAgent Monitor: 3 active task tracks analyzed. TSK-003 is blocked pending completion of TSK-002. Auto-delegation rules ran: Sourced leads allocated to Amit.');
 
   const handleAddTask = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newName.trim()) return;
 
-    const newT: Task = {
-      id: `TSK-00${tasks.length + 1}`,
-      name: newName,
-      stage: newStage,
-      priority: newPriority,
-      assignedTo: newAssignee,
-      dueDate: newDueDate,
-      dependencyId: newDependency || undefined,
-      comments: [],
-      isRecurring: isRecurring,
-      recurrence: isRecurring ? recurrence : undefined
-    };
-
-    const updatedTasks = [...tasks, newT];
-    setTasks(updatedTasks);
     if (!isDemo) {
-      localStorage.setItem('vortiq-tasks', JSON.stringify(updatedTasks));
-      syncTaskMetricsToDashboard(updatedTasks);
+      vortiqClient.callMutation('tasks.tasksCreate', {
+        title: newName,
+        description: 'Linked details',
+        status: newStage,
+        priority: newPriority
+      }).then(t => {
+        const newT: Task = {
+          id: t.id,
+          name: t.title,
+          stage: t.status as 'TODO' | 'IN_PROGRESS' | 'DONE',
+          priority: t.priority as 'P1' | 'P2' | 'P3' | 'P4',
+          assignedTo: newAssignee,
+          dueDate: newDueDate,
+          comments: [],
+          isRecurring: t.isRecurring
+        };
+        const updated = [...tasks, newT];
+        setTasks(updated);
+        syncTaskMetricsToDashboard(updated);
+        resetForm();
+      }).catch(err => {
+        alert(err.message || 'Failed to create task in database');
+      });
+    } else {
+      const newT: Task = {
+        id: `TSK-00${tasks.length + 1}`,
+        name: newName,
+        stage: newStage,
+        priority: newPriority,
+        assignedTo: newAssignee,
+        dueDate: newDueDate,
+        dependencyId: newDependency || undefined,
+        comments: [],
+        isRecurring: isRecurring,
+        recurrence: isRecurring ? recurrence : undefined
+      };
+
+      const updatedTasks = [...tasks, newT];
+      setTasks(updatedTasks);
+      resetForm();
     }
-    resetForm();
   };
 
   const resetForm = () => {
@@ -216,8 +252,11 @@ export default function TasksPage() {
     const updatedTasks = tasks.filter(t => t.id !== id);
     setTasks(updatedTasks);
     if (!isDemo) {
-      localStorage.setItem('vortiq-tasks', JSON.stringify(updatedTasks));
-      syncTaskMetricsToDashboard(updatedTasks);
+      vortiqClient.callMutation('tasks.tasksDelete', {
+        id
+      }).then(() => {
+        syncTaskMetricsToDashboard(updatedTasks);
+      }).catch(err => console.error('Failed to delete task in DB:', err));
     }
   };
 
@@ -225,8 +264,12 @@ export default function TasksPage() {
     const updatedTasks = tasks.map(t => t.id === id ? { ...t, stage } : t);
     setTasks(updatedTasks);
     if (!isDemo) {
-      localStorage.setItem('vortiq-tasks', JSON.stringify(updatedTasks));
-      syncTaskMetricsToDashboard(updatedTasks);
+      vortiqClient.callMutation('tasks.tasksUpdateStage', {
+        id,
+        status: stage
+      }).then(() => {
+        syncTaskMetricsToDashboard(updatedTasks);
+      }).catch(err => console.error('Failed to update stage in DB:', err));
     }
   };
 

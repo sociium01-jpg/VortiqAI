@@ -1,6 +1,6 @@
 import { initTRPC, TRPCError } from '@trpc/server';
 import * as trpcExpress from '@trpc/server/adapters/express';
-import { prisma } from '@vortiq/db';
+import { prisma, securityStorage } from '@vortiq/db';
 import { PLAN_GATES, PlanTier } from '@vortiq/types';
 
 // Context interface
@@ -99,6 +99,15 @@ export const planGateMiddleware = t.middleware(async ({ ctx, next, meta }) => {
   return next();
 });
 
-export const protectedProcedure = t.procedure.use(planGateMiddleware);
+const securityMiddleware = t.middleware(async ({ ctx, next }) => {
+  if (ctx.user) {
+    return securityStorage.run({ userId: ctx.user.id, isAgent: false }, () => next());
+  }
+  return next();
+});
+
+export const protectedProcedure = t.procedure
+  .use(planGateMiddleware)
+  .use(securityMiddleware);
 export const middleware = t.middleware;
 export { t };

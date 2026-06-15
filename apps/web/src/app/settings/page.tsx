@@ -9,6 +9,7 @@ import {
   ToggleLeft, ToggleRight, Play, Cpu, AlertTriangle, ShieldCheck, Sparkles, Code, Brain, Shield, Trash2, Download,
   Users
 } from 'lucide-react';
+import { vortiqClient } from '../utils/vortiqClient';
 
 interface ModuleConfig {
   id: string;
@@ -33,25 +34,53 @@ function SettingsContent() {
   const isDemo = isLoaded && user?.primaryEmailAddress?.emailAddress?.toLowerCase() === 'demo@vortiq.ai';
 
   useEffect(() => {
-    if (isLoaded && !isDemo) {
-      setBrandName("My Business");
-      setLogoUrl("");
-      setAddress("");
-      setCity("");
-      setState("");
-      setPincode("");
-      setAnthropicKey("");
-      setOpenAIKey("");
-      setElevenlabsKey("");
-      setGeminiKey("");
-      setWorkflows([]);
-      setMemoryStats([
-        { tier: 'Company Memory', scope: 'Brand tone, corporate structures, SOP rules', vectors: 0 },
-        { tier: 'Module Memory', scope: 'Kanban stages configs, lead scorers, calling rules', vectors: 0 },
-        { tier: 'User Memory', scope: 'Reps dashboard preferences, email copies templates', vectors: 0 },
-        { tier: 'Record-Level Memory', scope: 'Timeline transcripts, customer touchpoints, activity history', vectors: 0 }
-      ]);
-      setAiAnalysis("SettingsAgent: Setup complete. Add your API keys and configure modules.");
+    if (isLoaded) {
+      if (!isDemo) {
+        // 1. Fetch Organisation Details
+        vortiqClient.callQuery('auth.getOrganisation').then(org => {
+          if (org) {
+            setBrandName(org.name || '');
+            setLogoUrl(org.logoUrl || '');
+            if (org.address) {
+              const addr = org.address as any;
+              setAddress(addr.line1 || '');
+              setCity(addr.city || '');
+              setState(addr.state || '');
+              setPincode(addr.pincode || '');
+            }
+            setClientPlan(org.plan || 'STARTER');
+          }
+        }).catch(e => console.error('Error fetching organisation:', e));
+
+        // 2. Fetch AI settings
+        vortiqClient.callQuery('ai.getAISettings').then(settings => {
+          if (settings) {
+            setSelectedProvider(settings.provider || 'OPENAI');
+            setAiModeEnabled(settings.isEnabled);
+          }
+        }).catch(e => console.error('Error fetching AI settings:', e));
+        
+        setAiAnalysis("SettingsAgent: Live database configuration loaded successfully.");
+      } else {
+        setBrandName("My Business");
+        setLogoUrl("");
+        setAddress("");
+        setCity("");
+        setState("");
+        setPincode("");
+        setAnthropicKey("");
+        setOpenAIKey("");
+        setElevenlabsKey("");
+        setGeminiKey("");
+        setWorkflows([]);
+        setMemoryStats([
+          { tier: 'Company Memory', scope: 'Brand tone, corporate structures, SOP rules', vectors: 0 },
+          { tier: 'Module Memory', scope: 'Kanban stages configs, lead scorers, calling rules', vectors: 0 },
+          { tier: 'User Memory', scope: 'Reps dashboard preferences, email copies templates', vectors: 0 },
+          { tier: 'Record-Level Memory', scope: 'Timeline transcripts, customer touchpoints, activity history', vectors: 0 }
+        ]);
+        setAiAnalysis("SettingsAgent: Setup complete. Add your API keys and configure modules.");
+      }
     }
   }, [isLoaded, isDemo]);
 
@@ -252,11 +281,69 @@ function SettingsContent() {
     localStorage.setItem('vortiq-ai-mode', next ? 'ai-assisted' : 'manual');
     window.dispatchEvent(new Event('vortiq-ai-mode-change'));
     
-    // Log the change
-    setAiAnalysis(next 
-      ? 'SettingsAgent: AI Assisted mode activated. Departmental agents scanning telemetry.' 
-      : 'SettingsAgent: AI Assisted mode deactivated. Operating in strictly Manual Mode.'
-    );
+    if (!isDemo) {
+      vortiqClient.callMutation('ai.updateAISettings', { isEnabled: next })
+        .then(() => {
+          setAiAnalysis(next 
+            ? 'SettingsAgent: AI Assisted mode activated. Departmental agents scanning telemetry.' 
+            : 'SettingsAgent: AI Assisted mode deactivated. Operating in strictly Manual Mode.'
+          );
+        }).catch(err => console.error(err));
+    } else {
+      setAiAnalysis(next 
+        ? 'SettingsAgent: AI Assisted mode activated. Departmental agents scanning telemetry.' 
+        : 'SettingsAgent: AI Assisted mode deactivated. Operating in strictly Manual Mode.'
+      );
+    }
+  };
+
+  const handleSaveCredentials = () => {
+    if (isDemo) {
+      alert('API credentials verified and saved.');
+      return;
+    }
+    const promises = [];
+    if (geminiKey && geminiKey !== 'AIzaSyxxxxxx') {
+      promises.push(vortiqClient.callMutation('ai.connectAIProvider', { provider: 'GEMINI', apiKey: geminiKey }));
+    }
+    if (openaiKey && openaiKey !== 'sk-proj-xxxxxx') {
+      promises.push(vortiqClient.callMutation('ai.connectAIProvider', { provider: 'OPENAI', apiKey: openaiKey }));
+    }
+    if (promises.length === 0) {
+      alert('No credentials entered.');
+      return;
+    }
+    setAiWorking(true);
+    Promise.all(promises).then(() => {
+      return vortiqClient.callMutation('ai.updateAISettings', { provider: selectedProvider });
+    }).then(() => {
+      setAiWorking(false);
+      alert('API credentials successfully saved to your secure organization profile.');
+    }).catch(err => {
+      setAiWorking(false);
+      alert(err.message);
+    });
+  };
+
+  const handleTestConnection = () => {
+    if (isDemo) {
+      alert('Ping connection to ' + selectedProvider + ' successful. Latency: 120ms');
+      return;
+    }
+    setAiWorking(true);
+    vortiqClient.callQuery('ai.testAIConnection', { provider: selectedProvider })
+      .then(res => {
+        setAiWorking(false);
+        if (res.success) {
+          alert(`Ping connection to ${selectedProvider} successful. Latency: ${res.latencyMs}ms`);
+        } else {
+          alert(res.message);
+        }
+      })
+      .catch(err => {
+        setAiWorking(false);
+        alert(err.message);
+      });
   };
 
   const handleToggleSafetyRule = (key: keyof typeof safetyRules) => {
@@ -544,13 +631,13 @@ function SettingsContent() {
 
                 <div className="flex gap-2">
                   <button 
-                    onClick={() => alert('API credentials verified and saved.')}
+                    onClick={handleSaveCredentials}
                     className="px-4 py-2.5 bg-teal-600 hover:bg-teal-500 text-white rounded-xl text-xs font-bold transition-all"
                   >
                     Save Encryption Credentials
                   </button>
                   <button 
-                    onClick={() => alert('Ping connection to ' + selectedProvider + ' successful. Latency: 120ms')}
+                    onClick={handleTestConnection}
                     className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-bold transition-all border border-slate-200 dark:border-slate-700"
                   >
                     Test Connection

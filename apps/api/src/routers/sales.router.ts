@@ -40,8 +40,8 @@ export const salesRouter = router({
     .input(z.object({
       targetAmount: z.number().min(1000),
       period: z.enum(['MONTHLY', 'QUARTERLY', 'HALF_YEARLY', 'ANNUAL']),
-      startDate: z.date(),
-      endDate: z.date(),
+      startDate: z.coerce.date(),
+      endDate: z.coerce.date(),
       userId: z.string().uuid().optional()
     }))
     .mutation(async ({ ctx, input }) => {

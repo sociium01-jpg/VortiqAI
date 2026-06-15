@@ -10,6 +10,7 @@ import {
   Brain, ShieldAlert, AlertTriangle, Check, X, Menu, ChevronRight, Target,
   Sun, Moon, Search, Cpu, Play, Terminal, ArrowRight, ShieldCheck
 } from 'lucide-react';
+import { vortiqClient } from './utils/vortiqClient';
 
 // Indian Rupee Formatter helper
 export const formatINR = (val: number) => {
@@ -38,14 +39,42 @@ export default function ConsoleLayout({ children }: ConsoleLayoutProps) {
     if (typeof window !== 'undefined') {
       const isLocalDemo = localStorage.getItem('vortiq-demo-logged-in') === 'true';
       const isClerkDemo = user?.primaryEmailAddress?.emailAddress?.toLowerCase() === 'demo@vortiq.ai';
-      setIsDemoUser(isLocalDemo || isClerkDemo);
+      const resolvedDemo = isLocalDemo || isClerkDemo;
+      setIsDemoUser(resolvedDemo);
       setClientPlan(localStorage.getItem('vortiq-plan') || 'GROWTH');
       
       const handlePlanUpdate = () => {
         setClientPlan(localStorage.getItem('vortiq-plan') || 'GROWTH');
       };
       window.addEventListener('vortiq-plan-change', handlePlanUpdate);
-      return () => window.removeEventListener('vortiq-plan-change', handlePlanUpdate);
+
+      if (user && !resolvedDemo) {
+        const email = user.primaryEmailAddress?.emailAddress || '';
+        const name = user.fullName || user.username || 'Vortiq User';
+        
+        vortiqClient.callMutation('auth.syncUser', {
+          clerkId: user.id,
+          email,
+          name,
+          orgName: localStorage.getItem('vortiq-brand-name') || undefined
+        }).then(data => {
+          if (data && data.orgId && data.userId) {
+            localStorage.setItem('vortiq-org-id', data.orgId);
+            localStorage.setItem('vortiq-user-id', data.userId);
+            if (data.plan) {
+              localStorage.setItem('vortiq-plan', data.plan);
+              setClientPlan(data.plan);
+            }
+            window.dispatchEvent(new Event('vortiq-user-sync-complete'));
+          }
+        }).catch(err => {
+          console.error('Failed to sync user to database:', err);
+        });
+      }
+
+      return () => {
+        window.removeEventListener('vortiq-plan-change', handlePlanUpdate);
+      };
     }
   }, [user]);
   

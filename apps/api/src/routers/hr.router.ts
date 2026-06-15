@@ -28,7 +28,7 @@ export const hrRouter = router({
       lastName: z.string().min(1),
       email: z.string().email(),
       employeeCode: z.string().min(1),
-      dateOfJoining: z.date()
+      dateOfJoining: z.coerce.date()
     }))
     .mutation(async ({ ctx, input }) => {
       assertHRAdminRole(ctx.user!.role);
@@ -51,7 +51,7 @@ export const hrRouter = router({
   attendanceMark: protectedProcedure
     .meta({ requiredFeature: 'hr_payroll' })
     .input(z.object({
-      date: z.date(),
+      date: z.coerce.date(),
       status: z.enum(['PRESENT', 'ABSENT', 'LATE', 'LEAVE'])
     }))
     .mutation(async ({ ctx, input }) => {
