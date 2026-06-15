@@ -1,12 +1,26 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import Link from 'next/link';
 import { SignIn } from '@clerk/nextjs';
+import { ArrowLeft } from 'lucide-react';
 
 export default function LoginPage() {
+  useEffect(() => {
+    // Force light theme on authentication screens
+    document.documentElement.classList.remove('dark');
+  }, []);
+
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col justify-center items-center p-6 relative overflow-hidden font-sans">
+      {/* Back to Home Button */}
+      <Link 
+        href="/" 
+        className="absolute top-6 left-6 flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-100 text-slate-600 hover:text-slate-900 text-xs font-black shadow-sm transition-all"
+      >
+        <ArrowLeft className="w-4 h-4" /> Back to Home
+      </Link>
+
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[350px] h-[350px] bg-indigo-500/5 rounded-full blur-[100px] pointer-events-none" />
       
       {/* Brand logo */}
