@@ -79,6 +79,70 @@ export default function ConsoleLayout({ children }: ConsoleLayoutProps) {
       };
     }
   }, [user]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    let eventSource: EventSource | null = null;
+
+    const connectSse = () => {
+      const orgId = localStorage.getItem('vortiq-org-id');
+      const isDemo = localStorage.getItem('vortiq-demo-logged-in') === 'true' || 
+                      user?.primaryEmailAddress?.emailAddress?.toLowerCase() === 'demo@vortiq.ai';
+
+      if (!orgId || isDemo) {
+        console.log('[SSE] No production orgId or in demo mode. Skipping SSE subscription.');
+        return;
+      }
+
+      const getApiUrl = () => {
+        if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+          return 'http://localhost:4000';
+        }
+        return 'https://api.vortiq.in';
+      };
+
+      console.log(`[SSE] Connecting to live event stream for org: ${orgId}`);
+      eventSource = new EventSource(`${getApiUrl()}/api/events?orgId=${orgId}`);
+
+      eventSource.onmessage = (e) => {
+        try {
+          const data = JSON.parse(e.data);
+          console.log('[SSE] Received live change notification:', data);
+
+          // Dispatch data change event globally to reload tables and dashboard metrics
+          window.dispatchEvent(new Event('vortiq-data-change'));
+          window.dispatchEvent(new CustomEvent('vortiq-event-notification', { detail: data }));
+        } catch (err) {
+          console.error('[SSE] Failed to parse event message:', err);
+        }
+      };
+
+      eventSource.onerror = (err) => {
+        console.warn('[SSE] EventSource connection encountered error, reconnecting...', err);
+      };
+    };
+
+    // Try connecting immediately
+    connectSse();
+
+    // Re-connect if organization sync completes
+    const handleSyncComplete = () => {
+      if (eventSource) {
+        eventSource.close();
+      }
+      connectSse();
+    };
+
+    window.addEventListener('vortiq-user-sync-complete', handleSyncComplete);
+
+    return () => {
+      if (eventSource) {
+        eventSource.close();
+      }
+      window.removeEventListener('vortiq-user-sync-complete', handleSyncComplete);
+    };
+  }, [user]);
   
   // Dual-mode AI config state
   const [aiMode, setAiMode] = useState<'manual' | 'ai-assisted'>('ai-assisted');

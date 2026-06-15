@@ -2,6 +2,7 @@ import { initTRPC, TRPCError } from '@trpc/server';
 import * as trpcExpress from '@trpc/server/adapters/express';
 import { prisma, securityStorage } from '@vortiq/db';
 import { PLAN_GATES, PlanTier } from '@vortiq/types';
+import { eventBus } from '@vortiq/agents';
 
 // Context interface
 export interface Context {
@@ -106,8 +107,56 @@ const securityMiddleware = t.middleware(async ({ ctx, next }) => {
   return next();
 });
 
+const auditAndSyncMiddleware = t.middleware(async ({ ctx, next, path, type, rawInput }: any) => {
+  const result = await next();
+  if (type === 'mutation' && result.ok && ctx.org && ctx.user) {
+    const orgId = ctx.org.id;
+    const userId = ctx.user.id;
+    const actionName = path.toUpperCase().replace(/\./g, '_');
+
+    let recordId = 'N/A';
+    if (result.data && typeof result.data === 'object' && 'id' in result.data) {
+      recordId = (result.data as any).id || 'N/A';
+    }
+
+    // Write audit log entry
+    // Skip auditing AuditLog queries/mutations to prevent recursion
+    if (!path.includes('auditLog') && !path.includes('getAIApprovalQueue')) {
+      try {
+        await prisma.auditLog.create({
+          data: {
+            organisationId: orgId,
+            userId,
+            action: actionName,
+            entityType: path.split('.')[0] || 'Unknown',
+            entityId: recordId,
+            newValues: result.data as any,
+            metadata: { input: rawInput }
+          }
+        });
+      } catch (err) {
+        console.error('[AUDIT_MID] Failed to create audit log:', err);
+      }
+    }
+
+    // Publish data change event for live updates
+    try {
+      await eventBus.publish('data.change', {
+        organisationId: orgId,
+        module: path.split('.')[0] || 'Unknown',
+        action: actionName,
+        recordId: recordId !== 'N/A' ? recordId : undefined
+      });
+    } catch (err) {
+      console.error('[AUDIT_MID] Failed to publish event:', err);
+    }
+  }
+  return result;
+});
+
 export const protectedProcedure = t.procedure
   .use(planGateMiddleware)
-  .use(securityMiddleware);
+  .use(securityMiddleware)
+  .use(auditAndSyncMiddleware);
 export const middleware = t.middleware;
 export { t };

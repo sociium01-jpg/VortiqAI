@@ -28,14 +28,53 @@ export const hrRouter = router({
       lastName: z.string().min(1),
       email: z.string().email(),
       employeeCode: z.string().min(1),
-      dateOfJoining: z.coerce.date()
+      dateOfJoining: z.coerce.date(),
+      phone: z.string().optional().nullable(),
+      designation: z.string().optional().nullable(),
+      department: z.string().optional().nullable(),
+      aadhaarLast4: z.string().optional().nullable(),
+      panNumber: z.string().optional().nullable(),
+      basicSalary: z.number().optional().nullable(),
+      hra: z.number().optional().nullable(),
+      allowances: z.number().optional().nullable(),
+      bankAccount: z.string().optional().nullable(),
+      ifsc: z.string().optional().nullable(),
     }))
     .mutation(async ({ ctx, input }) => {
       assertHRAdminRole(ctx.user!.role);
+      
+      const existing = await prisma.employee.findFirst({
+        where: { organisationId: ctx.org!.id, employeeCode: input.employeeCode, deletedAt: null }
+      });
+      if (existing) {
+        throw new TRPCError({
+          code: 'CONFLICT',
+          message: `Employee Code ${input.employeeCode} is already registered.`
+        });
+      }
+
       return prisma.employee.create({
         data: {
           organisationId: ctx.org!.id,
-          ...input
+          employeeCode: input.employeeCode,
+          firstName: input.firstName,
+          lastName: input.lastName,
+          email: input.email,
+          phone: input.phone,
+          dateOfJoining: input.dateOfJoining,
+          designation: input.designation,
+          department: input.department,
+          aadhaarLast4: input.aadhaarLast4,
+          panNumber: input.panNumber,
+          salaryStructure: {
+            basicSalary: input.basicSalary ?? 0,
+            hra: input.hra ?? 0,
+            allowances: input.allowances ?? 0
+          },
+          bankAccount: {
+            accountNumber: input.bankAccount ?? '',
+            ifsc: input.ifsc ?? ''
+          }
         }
       });
     }),

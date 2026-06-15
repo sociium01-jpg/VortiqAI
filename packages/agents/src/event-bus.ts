@@ -63,12 +63,28 @@ class EventBus {
     });
   }
 
+  private globalListeners: ((event: string, payload: any) => void)[] = [];
+
+  subscribeToAll(handler: (event: string, payload: any) => void) {
+    this.globalListeners.push(handler);
+    return () => {
+      this.globalListeners = this.globalListeners.filter(h => h !== handler);
+    };
+  }
+
   private executeHandlers(event: string, payload: any) {
     const list = this.handlers.get(event) || [];
     for (const handler of list) {
       handler(payload).catch((err: any) => {
         console.error(`Error in event handler for ${event}:`, err);
       });
+    }
+    for (const listener of this.globalListeners) {
+      try {
+        listener(event, payload);
+      } catch (err) {
+        console.error('Error in global event bus listener:', err);
+      }
     }
   }
 
@@ -159,7 +175,8 @@ const EVENT_CASCADES: Record<VortiqEvent, Function[]> = {
   'lead_search.completed': [notifyOnTelegram, updateLeadCredits, refreshUI],
   'sales_target.at_risk': [notifyOnWhatsApp, notifyOnTelegram, queueAnalystUpdate],
   'subscription.trial_ending': [sendWhatsAppWarning, sendTelegramWarning, sendEmail],
-  'subscription.trial_expired': [downgradeToStarter, lockFeatures, showUpgradePage]
+  'subscription.trial_expired': [downgradeToStarter, lockFeatures, showUpgradePage],
+  'data.change': []
 };
 
 // Register all cascades into eventBus

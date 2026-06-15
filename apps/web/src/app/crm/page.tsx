@@ -19,7 +19,7 @@ export default function CRMPage() {
   const { user, isLoaded } = useUser();
   const isDemo = isLoaded && user?.primaryEmailAddress?.emailAddress?.toLowerCase() === 'demo@vortiq.ai';
 
-  useEffect(() => {
+  const refreshCrmData = () => {
     if (isLoaded && !isDemo) {
       // 1. Fetch contacts
       vortiqClient.callQuery('crm.contactsList', { limit: 100 }).then(res => {
@@ -84,7 +84,22 @@ export default function CRMPage() {
         }
       }).catch(e => console.error('Error fetching meetings:', e));
     }
+  };
+
+  useEffect(() => {
+    refreshCrmData();
   }, [isLoaded, isDemo]);
+
+  useEffect(() => {
+    if (isDemo) return;
+    const handleDataChange = () => {
+      refreshCrmData();
+    };
+    window.addEventListener('vortiq-data-change', handleDataChange);
+    return () => {
+      window.removeEventListener('vortiq-data-change', handleDataChange);
+    };
+  }, [isDemo, isLoaded]);
 
   // Tabs: 'contacts' | 'companies' | 'deals' | 'meetings'
   const [activeTab, setActiveTab] = useState<'contacts' | 'companies' | 'deals' | 'meetings'>('contacts');
@@ -137,13 +152,21 @@ export default function CRMPage() {
   const [newEmail, setNewEmail] = useState('');
   const [newPhone, setNewPhone] = useState('');
   const [newRep, setNewRep] = useState('Rahul Sharma');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [validationError, setValidationError] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
   
   // Note creation state inside details drawer
   const [newNote, setNewNote] = useState('');
 
   const handleAddContact = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newName.trim()) return;
+    setValidationError('');
+    setSuccessMessage('');
+    if (!newName.trim()) {
+      setValidationError('Name is required.');
+      return;
+    }
 
     const names = newName.trim().split(' ');
     const firstName = names[0];
@@ -151,6 +174,21 @@ export default function CRMPage() {
 
     const cleanPhone = newPhone.replace(/[\s-]/g, '');
     const formattedPhone = cleanPhone.startsWith('+91') ? cleanPhone : `+91${cleanPhone || '9000000000'}`;
+
+    // Validate phone number format (Indian format starts with +91 and 10 digits)
+    const phoneRegex = /^\+91[6-9]\d{9}$/;
+    if (!phoneRegex.test(formattedPhone)) {
+      setValidationError('Please enter a valid 10-digit Indian phone number starting with +91 (e.g. +91 98765 43210).');
+      return;
+    }
+
+    // Validate email format
+    if (newEmail && !/\S+@\S+\.\S+/.test(newEmail)) {
+      setValidationError('Please enter a valid email address.');
+      return;
+    }
+
+    setIsSubmitting(true);
 
     if (!isDemo) {
       vortiqClient.callMutation('crm.contactsCreate', {
@@ -183,9 +221,15 @@ export default function CRMPage() {
         setNewCompany('');
         setNewEmail('');
         setNewPhone('');
-        setIsAdding(false);
+        setSuccessMessage('Lead created successfully!');
+        setTimeout(() => {
+          setIsAdding(false);
+          setSuccessMessage('');
+        }, 1500);
       }).catch(err => {
-        alert(err.message || 'Failed to add contact');
+        setValidationError(err.message || 'Failed to add contact');
+      }).finally(() => {
+        setIsSubmitting(false);
       });
     } else {
       const newC = {
@@ -211,7 +255,12 @@ export default function CRMPage() {
       setNewCompany('');
       setNewEmail('');
       setNewPhone('');
-      setIsAdding(false);
+      setSuccessMessage('Demo Mode: Lead created successfully!');
+      setTimeout(() => {
+        setIsAdding(false);
+        setSuccessMessage('');
+      }, 1500);
+      setIsSubmitting(false);
     }
   };
 
@@ -368,13 +417,26 @@ export default function CRMPage() {
               <h3 className="text-xs font-bold text-slate-700 dark:text-slate-200 uppercase tracking-widest flex items-center gap-1">
                 <Plus className="w-4 h-4" /> Add Lead
               </h3>
+              
+              {validationError && (
+                <div className="p-3 bg-rose-500/10 border border-rose-500/20 text-rose-605 dark:text-rose-400 rounded-xl text-xs font-bold animate-fadeIn">
+                  {validationError}
+                </div>
+              )}
+
+              {successMessage && (
+                <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 rounded-xl text-xs font-bold animate-fadeIn">
+                  {successMessage}
+                </div>
+              )}
+
               <div className="grid grid-cols-2 gap-3">
                 <input 
                   type="text" 
                   required
                   value={newName}
                   onChange={(e) => setNewName(e.target.value)}
-                  placeholder="Name" 
+                  placeholder="Name *" 
                   className="bg-slate-50 dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl px-3.5 py-2 text-xs text-slate-800 dark:text-white focus:outline-none focus:border-teal-500"
                 />
                 <input 
@@ -410,10 +472,18 @@ export default function CRMPage() {
                 </div>
               </div>
               <div className="flex gap-2">
-                <button type="submit" className="px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white rounded-lg text-xs font-bold transition-all">
-                  Save Lead File
+                <button 
+                  type="submit" 
+                  disabled={isSubmitting}
+                  className="px-4 py-2 bg-teal-600 hover:bg-teal-500 disabled:opacity-50 text-white rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm"
+                >
+                  {isSubmitting ? 'Saving...' : 'Save Lead File'}
                 </button>
-                <button type="button" onClick={() => setIsAdding(false)} className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-500 rounded-lg text-xs font-semibold">
+                <button 
+                  type="button" 
+                  onClick={() => { setIsAdding(false); setValidationError(''); setSuccessMessage(''); }} 
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-500 rounded-lg text-xs font-semibold"
+                >
                   Cancel
                 </button>
               </div>

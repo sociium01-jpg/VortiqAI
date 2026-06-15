@@ -10,7 +10,8 @@ export type VortiqEvent =
   | 'lead_search.completed'
   | 'sales_target.at_risk'
   | 'subscription.trial_ending'
-  | 'subscription.trial_expired';
+  | 'subscription.trial_expired'
+  | 'data.change';
 
 export interface EventPayloads {
   'contact.created': { contactId: string; organisationId: string };
@@ -25,4 +26,5 @@ export interface EventPayloads {
   'sales_target.at_risk': { targetId: string; forecastAmount: number; targetAmount: number; organisationId: string };
   'subscription.trial_ending': { organisationId: string; daysRemaining: number };
   'subscription.trial_expired': { organisationId: string };
+  'data.change': { organisationId: string; module: string; action: string; recordId?: string };
 }

@@ -48,15 +48,61 @@ export default function HRPage() {
   const { user, isLoaded } = useUser();
   const isDemo = isLoaded && user?.primaryEmailAddress?.emailAddress?.toLowerCase() === 'demo@vortiq.ai';
 
-  useEffect(() => {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [validationError, setValidationError] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
+
+  const refreshHrData = () => {
     if (isLoaded && !isDemo) {
-      setEmployees([]);
-      setLeaveRequests([]);
-      setCandidates([]);
-      setAttendance([]);
-      setAiAnalysis("HRAgent Audit: Workspace initialized. No employee records registered.");
+      vortiqClient.callQuery('hr.employeesList')
+        .then(res => {
+          if (res && res.length > 0) {
+            const mapped = res.map((e: any) => ({
+              id: e.id,
+              code: e.employeeCode,
+              name: `${e.firstName} ${e.lastName}`,
+              phone: e.phone || '',
+              email: e.email,
+              role: e.designation || 'Developer',
+              department: e.department || 'Engineering',
+              doj: e.dateOfJoining ? new Date(e.dateOfJoining).toLocaleDateString() : 'Today',
+              basicSalary: (e.salaryStructure as any)?.basicSalary || 25000,
+              hra: (e.salaryStructure as any)?.hra || 10000,
+              allowances: (e.salaryStructure as any)?.allowances || 5000,
+              bankAccount: (e.bankAccount as any)?.accountNumber || '',
+              ifsc: (e.bankAccount as any)?.ifsc || '',
+              pan: e.panNumber || '',
+              aadhaar: e.aadhaarLast4 || '',
+              status: e.isActive ? 'ACTIVE' : 'TERMINATED'
+            }));
+            setEmployees(mapped);
+            setAiAnalysis(`HRAgent Audit: Loaded ${mapped.length} active employee profiles.`);
+          } else {
+            setEmployees([]);
+            setAiAnalysis("HRAgent Audit: Workspace initialized. No employee records registered.");
+          }
+        })
+        .catch(err => {
+          console.error("Failed to load employee list:", err);
+          setEmployees([]);
+        });
     }
+  };
+
+  useEffect(() => {
+    refreshHrData();
   }, [isLoaded, isDemo]);
+
+  useEffect(() => {
+    if (isDemo) return;
+    const handleDataChange = () => {
+      refreshHrData();
+    };
+    window.addEventListener('vortiq-data-change', handleDataChange);
+    return () => {
+      window.removeEventListener('vortiq-data-change', handleDataChange);
+    };
+  }, [isDemo, isLoaded]);
 
   const [activeTab, setActiveTab] = useState<'directory' | 'attendance' | 'payroll' | 'recruiting'>('directory');
 
@@ -170,29 +216,134 @@ export default function HRPage() {
 
   const handleAddEmployee = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newName.trim() || !newEmail.trim()) return;
+    setValidationError('');
+    setSuccessMessage('');
 
-    const newEmp: Employee = {
-      id: `EMP-00${employees.length + 1}`,
-      code: `VRTQ-${100 + employees.length + 1}`,
-      name: newName,
-      phone: newPhone || '+91 99999 88888',
-      email: newEmail,
-      role: newRole,
-      department: newDept,
-      doj: 'Today',
-      basicSalary: newBasic,
-      hra: newHra,
-      allowances: newAllowances,
-      bankAccount: newBank || 'XXXX XXXX 0000',
-      ifsc: newIfsc || 'SBIN0000000',
-      pan: newPan.toUpperCase() || 'ABCDE1234F',
-      aadhaar: newAadhaar || 'XXXX XXXX 0000',
-      status: 'ACTIVE'
-    };
+    if (!newName.trim()) {
+      setValidationError('Name is required.');
+      return;
+    }
+    if (!newEmail.trim()) {
+      setValidationError('Email is required.');
+      return;
+    }
 
-    setEmployees([...employees, newEmp]);
-    resetForm();
+    // Split name into first and last
+    const nameParts = newName.trim().split(/\s+/);
+    const firstName = nameParts[0] || '';
+    const lastName = nameParts.slice(1).join(' ') || 'Employee';
+
+    // Validate phone number formatting (if provided)
+    let sanitizedPhone = newPhone.trim();
+    if (sanitizedPhone) {
+      sanitizedPhone = sanitizedPhone.replace(/[\s\-()]/g, '');
+      if (!sanitizedPhone.startsWith('+91')) {
+        sanitizedPhone = '+91' + (sanitizedPhone.startsWith('91') ? sanitizedPhone.substring(2) : sanitizedPhone);
+      }
+      if (!/^\+91[6-9]\d{9}$/.test(sanitizedPhone)) {
+        setValidationError('Invalid Indian phone number. Expected format: +91XXXXXXXXXX (e.g. +919876543210)');
+        return;
+      }
+    }
+
+    // Validate email format
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newEmail.trim())) {
+      setValidationError('Please enter a valid email address.');
+      return;
+    }
+
+    // Validate PAN number if provided
+    if (newPan.trim() && !/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/i.test(newPan.trim())) {
+      setValidationError('Invalid PAN card number format. Expected format: ABCDE1234F');
+      return;
+    }
+
+    // Validate Aadhaar if provided
+    if (newAadhaar.trim() && !/^\d{12}$/.test(newAadhaar.trim().replace(/\s/g, ''))) {
+      setValidationError('Invalid Aadhaar card number. Expected 12 digits.');
+      return;
+    }
+
+    const employeeCode = `VRTQ-${Date.now().toString().slice(-6)}`;
+
+    setIsSubmitting(true);
+
+    if (!isDemo) {
+      vortiqClient.callMutation('hr.employeesCreate', {
+        firstName,
+        lastName,
+        email: newEmail.trim(),
+        employeeCode,
+        dateOfJoining: new Date(),
+        phone: sanitizedPhone || null,
+        designation: newRole,
+        department: newDept,
+        aadhaarLast4: newAadhaar.trim().slice(-4) || null,
+        panNumber: newPan.trim().toUpperCase() || null,
+        basicSalary: newBasic,
+        hra: newHra,
+        allowances: newAllowances,
+        bankAccount: newBank.trim() || null,
+        ifsc: newIfsc.trim().toUpperCase() || null
+      }).then(emp => {
+        const mappedEmp: Employee = {
+          id: emp.id,
+          code: emp.employeeCode,
+          name: `${emp.firstName} ${emp.lastName}`,
+          phone: emp.phone || '',
+          email: emp.email,
+          role: emp.designation || newRole,
+          department: emp.department || newDept,
+          doj: new Date(emp.dateOfJoining).toLocaleDateString(),
+          basicSalary: newBasic,
+          hra: newHra,
+          allowances: newAllowances,
+          bankAccount: newBank,
+          ifsc: newIfsc,
+          pan: newPan.toUpperCase(),
+          aadhaar: newAadhaar,
+          status: 'ACTIVE'
+        };
+        const updated = [...employees, mappedEmp];
+        setEmployees(updated);
+        setSuccessMessage('Employee profile registered successfully!');
+        setTimeout(() => {
+          resetForm();
+          setSuccessMessage('');
+        }, 1500);
+      }).catch(err => {
+        setValidationError(err.message || 'Failed to create employee profile in database');
+      }).finally(() => {
+        setIsSubmitting(false);
+      });
+    } else {
+      const newEmp: Employee = {
+        id: `EMP-00${employees.length + 1}`,
+        code: `VRTQ-${100 + employees.length + 1}`,
+        name: newName,
+        phone: newPhone || '+91 99999 88888',
+        email: newEmail,
+        role: newRole,
+        department: newDept,
+        doj: 'Today',
+        basicSalary: newBasic,
+        hra: newHra,
+        allowances: newAllowances,
+        bankAccount: newBank || 'XXXX XXXX 0000',
+        ifsc: newIfsc || 'SBIN0000000',
+        pan: newPan.toUpperCase() || 'ABCDE1234F',
+        aadhaar: newAadhaar || 'XXXX XXXX 0000',
+        status: 'ACTIVE'
+      };
+
+      setEmployees([...employees, newEmp]);
+      setSuccessMessage('Demo Mode: Employee profile registered successfully!');
+      setTimeout(() => {
+        resetForm();
+        setSuccessMessage('');
+      }, 1500);
+      setIsSubmitting(false);
+    }
   };
 
   const resetForm = () => {
@@ -203,6 +354,8 @@ export default function HRPage() {
     setNewIfsc('');
     setNewPan('');
     setNewAadhaar('');
+    setValidationError('');
+    setSuccessMessage('');
     setIsAdding(false);
   };
 
@@ -464,11 +617,32 @@ export default function HRPage() {
               </div>
             </div>
 
+            {validationError && (
+              <div className="p-3 bg-rose-500/10 border border-rose-500/20 text-rose-600 dark:text-rose-400 rounded-xl text-xs font-bold animate-fadeIn">
+                {validationError}
+              </div>
+            )}
+
+            {successMessage && (
+              <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 rounded-xl text-xs font-bold animate-fadeIn">
+                {successMessage}
+              </div>
+            )}
+
             <div className="flex gap-2 pt-2">
-              <button type="submit" className="px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white rounded-lg text-xs font-bold transition-all">
-                Save Employee Record
+              <button 
+                type="submit" 
+                disabled={isSubmitting}
+                className="px-4 py-2 bg-teal-600 hover:bg-teal-500 disabled:opacity-50 text-white rounded-lg text-xs font-bold transition-all"
+              >
+                {isSubmitting ? 'Registering...' : 'Save Employee Record'}
               </button>
-              <button type="button" onClick={resetForm} className="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-800 text-slate-500 rounded-lg text-xs font-bold transition-all">
+              <button 
+                type="button" 
+                onClick={resetForm} 
+                disabled={isSubmitting}
+                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-800 disabled:opacity-50 text-slate-500 rounded-lg text-xs font-bold transition-all"
+              >
                 Cancel
               </button>
             </div>

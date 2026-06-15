@@ -40,7 +40,7 @@ export default function SupportPage() {
   const { user, isLoaded } = useUser();
   const isDemo = isLoaded && user?.primaryEmailAddress?.emailAddress?.toLowerCase() === 'demo@vortiq.ai';
 
-  useEffect(() => {
+  const refreshTickets = () => {
     if (isLoaded && !isDemo) {
       vortiqClient.callQuery('support.ticketsList').then(res => {
         if (res) {
@@ -72,7 +72,22 @@ export default function SupportPage() {
       });
       setAiAnalysis("SupportAgent Monitor: Connected client database loaded.");
     }
+  };
+
+  useEffect(() => {
+    refreshTickets();
   }, [isLoaded, isDemo]);
+
+  useEffect(() => {
+    if (isDemo) return;
+    const handleDataChange = () => {
+      refreshTickets();
+    };
+    window.addEventListener('vortiq-data-change', handleDataChange);
+    return () => {
+      window.removeEventListener('vortiq-data-change', handleDataChange);
+    };
+  }, [isDemo, isLoaded]);
 
   const [tickets, setTickets] = useState<Ticket[]>([
     { 
@@ -149,6 +164,9 @@ export default function SupportPage() {
   const [newDesc, setNewDesc] = useState('');
   const [newPriority, setNewPriority] = useState<'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT'>('MEDIUM');
   const [newCategory, setNewCategory] = useState<'FINANCE' | 'SHIPPING' | 'SALES' | 'INTEGRATION'>('INTEGRATION');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [validationError, setValidationError] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
 
   // Search & Filters
   const [searchQuery, setSearchQuery] = useState('');
@@ -160,7 +178,19 @@ export default function SupportPage() {
 
   const handleCreateTicket = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newCustomer.trim() || !newSubject.trim()) return;
+    setValidationError('');
+    setSuccessMessage('');
+    if (!newCustomer.trim() || !newSubject.trim()) {
+      setValidationError('Customer Name and Ticket Subject are required.');
+      return;
+    }
+
+    if (newEmail && !/\S+@\S+\.\S+/.test(newEmail)) {
+      setValidationError('Please enter a valid email address.');
+      return;
+    }
+
+    setIsSubmitting(true);
 
     if (!isDemo) {
       vortiqClient.callMutation('support.ticketsCreate', {
@@ -183,9 +213,15 @@ export default function SupportPage() {
         };
         setTickets([newT, ...tickets]);
         setSelectedTicketId(newT.id);
-        resetForm();
+        setSuccessMessage('Support ticket created successfully!');
+        setTimeout(() => {
+          resetForm();
+          setSuccessMessage('');
+        }, 1500);
       }).catch(err => {
-        alert(err.message || 'Failed to create ticket in database');
+        setValidationError(err.message || 'Failed to create ticket in database');
+      }).finally(() => {
+        setIsSubmitting(false);
       });
     } else {
       const newT: Ticket = {
@@ -204,7 +240,12 @@ export default function SupportPage() {
 
       setTickets([newT, ...tickets]);
       setSelectedTicketId(newT.id);
-      resetForm();
+      setSuccessMessage('Demo Mode: Support ticket created successfully!');
+      setTimeout(() => {
+        resetForm();
+        setSuccessMessage('');
+      }, 1500);
+      setIsSubmitting(false);
     }
   };
 
@@ -213,6 +254,8 @@ export default function SupportPage() {
     setNewEmail('');
     setNewSubject('');
     setNewDesc('');
+    setValidationError('');
+    setSuccessMessage('');
     setIsAdding(false);
   };
 
@@ -388,13 +431,25 @@ export default function SupportPage() {
           <form onSubmit={handleCreateTicket} className="bg-white dark:bg-slate-900/60 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-4 max-w-2xl animate-fadeIn shadow-sm">
             <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200">Open Inbound Support Ticket</h3>
             
+            {validationError && (
+              <div className="p-3 bg-rose-500/10 border border-rose-500/20 text-rose-600 dark:text-rose-400 rounded-xl text-xs font-bold animate-fadeIn">
+                {validationError}
+              </div>
+            )}
+
+            {successMessage && (
+              <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 rounded-xl text-xs font-bold animate-fadeIn">
+                {successMessage}
+              </div>
+            )}
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Customer Name</label>
+                <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Customer Name *</label>
                 <input 
                   type="text" required value={newCustomer} onChange={(e) => setNewCustomer(e.target.value)}
                   placeholder="e.g. Amit Desai"
-                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-800 dark:text-slate-200 focus:outline-none"
+                  className="w-full bg-slate-50 dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-800 dark:text-slate-200 focus:outline-none"
                 />
               </div>
               <div>
@@ -402,7 +457,7 @@ export default function SupportPage() {
                 <input 
                   type="email" value={newEmail} onChange={(e) => setNewEmail(e.target.value)}
                   placeholder="e.g. amit@gmail.com"
-                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-800 dark:text-slate-200 focus:outline-none"
+                  className="w-full bg-slate-50 dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-800 dark:text-slate-200 focus:outline-none"
                 />
               </div>
             </div>
@@ -412,7 +467,7 @@ export default function SupportPage() {
                 <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Support Category</label>
                 <select 
                   value={newCategory} onChange={(e) => setNewCategory(e.target.value as any)}
-                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs"
+                  className="w-full bg-slate-50 dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs"
                 >
                   <option value="INTEGRATION">Integration Setup</option>
                   <option value="FINANCE">Billing & GST</option>
@@ -424,7 +479,7 @@ export default function SupportPage() {
                 <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Priority / SLA Severity</label>
                 <select 
                   value={newPriority} onChange={(e) => setNewPriority(e.target.value as any)}
-                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs"
+                  className="w-full bg-slate-50 dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs"
                 >
                   <option value="LOW">Low Severity</option>
                   <option value="MEDIUM">Medium Severity</option>
@@ -435,11 +490,11 @@ export default function SupportPage() {
             </div>
 
             <div>
-              <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Ticket Subject</label>
+              <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Ticket Subject *</label>
               <input 
                 type="text" required value={newSubject} onChange={(e) => setNewSubject(e.target.value)}
                 placeholder="e.g. Tally Integration failing with XML error"
-                className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-800 dark:text-slate-200 focus:outline-none"
+                className="w-full bg-slate-50 dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-800 dark:text-slate-200 focus:outline-none"
               />
             </div>
 
@@ -448,15 +503,23 @@ export default function SupportPage() {
               <textarea 
                 rows={4} value={newDesc} onChange={(e) => setNewDesc(e.target.value)}
                 placeholder="Provide detailed description of the customer issue..."
-                className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-800 dark:text-slate-200 focus:outline-none resize-none"
+                className="w-full bg-slate-50 dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-800 dark:text-slate-200 focus:outline-none resize-none"
               />
             </div>
 
             <div className="flex gap-2 pt-2">
-              <button type="submit" className="px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white rounded-lg text-xs font-bold transition-all">
-                Open Ticket
+              <button 
+                type="submit" 
+                disabled={isSubmitting}
+                className="px-4 py-2 bg-teal-600 hover:bg-teal-500 disabled:opacity-50 text-white rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm"
+              >
+                {isSubmitting ? 'Opening...' : 'Open Ticket'}
               </button>
-              <button type="button" onClick={resetForm} className="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-800 text-slate-500 rounded-lg text-xs font-bold transition-all">
+              <button 
+                type="button" 
+                onClick={resetForm} 
+                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-850 text-slate-500 rounded-lg text-xs font-bold transition-all"
+              >
                 Cancel
               </button>
             </div>

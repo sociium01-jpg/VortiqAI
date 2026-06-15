@@ -3,6 +3,7 @@ import cors from 'cors';
 import * as trpcExpress from '@trpc/server/adapters/express';
 import { createContext } from './trpc.js';
 import { appRouter } from './routers/app.router.js';
+import { eventBus } from '@vortiq/agents';
 
 // Import cron scheduler to start cron jobs
 import './cron/scheduler.js';
@@ -28,6 +29,35 @@ app.get('/', (req, res) => {
 // Basic health check
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', service: 'vortiq-api' });
+});
+
+// Server-Sent Events endpoint for real-time updates
+app.get('/api/events', (req, res) => {
+  const orgId = req.query.orgId as string;
+  if (!orgId) {
+    res.status(400).send('Missing orgId parameter');
+    return;
+  }
+
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  res.flushHeaders();
+
+  console.log(`[SSE] Client connected for orgId: ${orgId}`);
+
+  // Subscribe to all Event Bus events
+  const unsubscribe = eventBus.subscribeToAll((event, payload) => {
+    // Check if the event belongs to this organization
+    if (payload && payload.organisationId === orgId) {
+      res.write(`data: ${JSON.stringify({ event, payload })}\n\n`);
+    }
+  });
+
+  req.on('close', () => {
+    console.log(`[SSE] Client disconnected for orgId: ${orgId}`);
+    unsubscribe();
+  });
 });
 
 // Setup tRPC express adapter middleware

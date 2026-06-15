@@ -127,7 +127,7 @@ export default function TasksPage() {
     window.dispatchEvent(new Event('vortiq-user-metrics-change'));
   };
 
-  useEffect(() => {
+  const refreshTasks = () => {
     if (isLoaded && !isDemo) {
       vortiqClient.callQuery('tasks.tasksList').then(res => {
         if (res) {
@@ -172,7 +172,22 @@ export default function TasksPage() {
       }
       setAiAnalysis("TaskAgent Monitor: Connected client database loaded.");
     }
+  };
+
+  useEffect(() => {
+    refreshTasks();
   }, [isLoaded, isDemo]);
+
+  useEffect(() => {
+    if (isDemo) return;
+    const handleDataChange = () => {
+      refreshTasks();
+    };
+    window.addEventListener('vortiq-data-change', handleDataChange);
+    return () => {
+      window.removeEventListener('vortiq-data-change', handleDataChange);
+    };
+  }, [isDemo, isLoaded]);
 
   const [activeTab, setActiveTab] = useState<'board' | 'recurring' | 'delegation'>('board');
 
@@ -188,6 +203,9 @@ export default function TasksPage() {
   const [newDueDate, setNewDueDate] = useState('Today');
   const [isRecurring, setIsRecurring] = useState(false);
   const [recurrence, setRecurrence] = useState<'DAILY' | 'WEEKLY' | 'MONTHLY'>('DAILY');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [validationError, setValidationError] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
 
   // Comment input state
   const [commentInputs, setCommentInputs] = useState<Record<string, string>>({});
@@ -196,11 +214,18 @@ export default function TasksPage() {
 
   const handleAddTask = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newName.trim()) return;
+    setValidationError('');
+    setSuccessMessage('');
+    if (!newName.trim()) {
+      setValidationError('Task Title is required.');
+      return;
+    }
+
+    setIsSubmitting(true);
 
     if (!isDemo) {
       vortiqClient.callMutation('tasks.tasksCreate', {
-        title: newName,
+        title: newName.trim(),
         description: 'Linked details',
         status: newStage,
         priority: newPriority
@@ -218,9 +243,15 @@ export default function TasksPage() {
         const updated = [...tasks, newT];
         setTasks(updated);
         syncTaskMetricsToDashboard(updated);
-        resetForm();
+        setSuccessMessage('Task created successfully!');
+        setTimeout(() => {
+          resetForm();
+          setSuccessMessage('');
+        }, 1500);
       }).catch(err => {
-        alert(err.message || 'Failed to create task in database');
+        setValidationError(err.message || 'Failed to create task in database');
+      }).finally(() => {
+        setIsSubmitting(false);
       });
     } else {
       const newT: Task = {
@@ -238,7 +269,12 @@ export default function TasksPage() {
 
       const updatedTasks = [...tasks, newT];
       setTasks(updatedTasks);
-      resetForm();
+      setSuccessMessage('Demo Mode: Task created successfully!');
+      setTimeout(() => {
+        resetForm();
+        setSuccessMessage('');
+      }, 1500);
+      setIsSubmitting(false);
     }
   };
 
@@ -247,6 +283,8 @@ export default function TasksPage() {
     setNewStage('TODO');
     setNewPriority('P2');
     setNewDependency('');
+    setValidationError('');
+    setSuccessMessage('');
     setIsAdding(false);
   };
 
@@ -507,11 +545,32 @@ export default function TasksPage() {
               )}
             </div>
 
+            {validationError && (
+              <div className="p-3 bg-rose-500/10 border border-rose-500/20 text-rose-600 dark:text-rose-400 rounded-xl text-xs font-bold animate-fadeIn">
+                {validationError}
+              </div>
+            )}
+
+            {successMessage && (
+              <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 rounded-xl text-xs font-bold animate-fadeIn">
+                {successMessage}
+              </div>
+            )}
+
             <div className="flex gap-2 pt-2">
-              <button type="submit" className="px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white rounded-lg text-xs font-bold transition-all">
-                Save Task
+              <button 
+                type="submit" 
+                disabled={isSubmitting}
+                className="px-4 py-2 bg-teal-600 hover:bg-teal-500 disabled:opacity-50 text-white rounded-lg text-xs font-bold transition-all"
+              >
+                {isSubmitting ? 'Saving...' : 'Save Task'}
               </button>
-              <button type="button" onClick={resetForm} className="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-800 text-slate-500 rounded-lg text-xs font-bold transition-all">
+              <button 
+                type="button" 
+                onClick={resetForm} 
+                disabled={isSubmitting}
+                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-800 disabled:opacity-50 text-slate-500 rounded-lg text-xs font-bold transition-all"
+              >
                 Cancel
               </button>
             </div>
