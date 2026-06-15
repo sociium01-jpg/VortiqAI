@@ -408,9 +408,14 @@ export default function LandingPage() {
           <Link href="/pricing" className="hover:text-slate-900 dark:hover:text-white transition-colors">Pricing</Link>
           <Link href="/signup" className="hover:text-slate-900 dark:hover:text-white transition-colors">Start Free Trial</Link>
           <span className="text-slate-300 dark:text-slate-700">|</span>
-          <span className="text-emerald-600 dark:text-emerald-400">GST Ready | e-Invoice | TDS | PF/ESI | DPDP Act 2023</span>
+          <Link href="/about" className="hover:text-slate-900 dark:hover:text-white transition-colors">About Us</Link>
+          <Link href="/privacy" className="hover:text-slate-900 dark:hover:text-white transition-colors">Privacy Policy</Link>
+          <Link href="/accessibility" className="hover:text-slate-900 dark:hover:text-white transition-colors">Accessibility</Link>
           <span className="text-slate-300 dark:text-slate-700">|</span>
           <Link href="/admin" className="text-rose-600 dark:text-rose-400 hover:text-rose-500 dark:hover:text-rose-300 transition-colors">Vortiq Team Portal</Link>
+        </div>
+        <div className="text-[10px] text-slate-400 dark:text-slate-500 font-bold">
+          GST Ready | e-Invoice | TDS | PF/ESI | DPDP Act 2023 | Developed by Sociium, founded in 2026
         </div>
         <p>© 2026 Vortiq Business OS. Made in India 🇮🇳 for Indian businesses.</p>
       </footer>

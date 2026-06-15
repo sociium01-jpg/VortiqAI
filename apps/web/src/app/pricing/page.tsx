@@ -405,16 +405,19 @@ export default function PricingPage() {
             </div>
           ))}
         </div>
-      </section>
-
-      {/* FOOTER */}
+      </section>      {/* FOOTER */}
       <footer className="border-t border-slate-200 dark:border-slate-900 bg-slate-100 dark:bg-slate-950 py-12 px-6 text-center text-xs text-slate-500 space-y-4 transition-colors">
         <div className="flex flex-wrap items-center justify-center gap-4 text-slate-600 dark:text-slate-400 font-bold">
           <Link href="/" className="hover:text-slate-950 dark:hover:text-white transition-colors">Product</Link>
-          <Link href="/pricing" className="hover:text-slate-950 dark:hover:text-white transition-colors">Pricing</Link>
-          <Link href="/dashboard" className="hover:text-slate-950 dark:hover:text-white transition-colors">Console</Link>
+          <Link href="/pricing" className="hover:text-slate-955 dark:hover:text-white transition-colors">Pricing</Link>
+          <Link href="/signup" className="hover:text-slate-955 dark:hover:text-white transition-colors">Start Free Trial</Link>
           <span className="text-slate-300 dark:text-slate-700">|</span>
-          <span className="text-emerald-600 dark:text-emerald-400">GST Ready | e-Invoice | TDS | PF/ESI | DPDP Act 2023</span>
+          <Link href="/about" className="hover:text-slate-950 dark:hover:text-white transition-colors">About Us</Link>
+          <Link href="/privacy" className="hover:text-slate-955 dark:hover:text-white transition-colors">Privacy Policy</Link>
+          <Link href="/accessibility" className="hover:text-slate-955 dark:hover:text-white transition-colors">Accessibility</Link>
+        </div>
+        <div className="text-[10px] text-slate-400 dark:text-slate-500 font-bold">
+          GST Ready | e-Invoice | TDS | PF/ESI | DPDP Act 2023 | Developed by Sociium, founded in 2026
         </div>
         <p>© 2026 Vortiq Business OS. Made in India 🇮🇳 for Indian businesses.</p>
       </footer>
