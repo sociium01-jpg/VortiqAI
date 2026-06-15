@@ -1,0 +1,631 @@
+datasource db {
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  extensions = [pgvector(map: "vector")]
+}
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+enum PlanTier {
+  STARTER
+  GROWTH
+  ENTERPRISE
+}
+
+enum CallDirection {
+  OUTBOUND
+  INBOUND
+}
+
+enum CallStatus {
+  INITIATED
+  RINGING
+  ANSWERED
+  VOICEMAIL
+  FAILED
+  COMPLETED
+}
+
+enum CallOutcome {
+  INTERESTED
+  NOT_INTERESTED
+  CALLBACK_REQUESTED
+  WRONG_NUMBER
+  NO_ANSWER
+  VOICEMAIL_LEFT
+}
+
+enum CallUseCase {
+  OUTBOUND_SALES
+  FOLLOWUP
+  QUALIFICATION
+  SUPPORT
+  APPOINTMENT
+}
+
+enum CallLanguage {
+  HINDI
+  ENGLISH
+  HINGLISH
+}
+
+enum TargetPeriod {
+  MONTHLY
+  QUARTERLY
+  HALF_YEARLY
+  ANNUAL
+}
+
+enum SalesTargetStatus {
+  ON_TRACK
+  AT_RISK
+  BEHIND
+  ACHIEVED
+  MISSED
+}
+
+enum BriefingType {
+  MORNING
+  EVENING
+  CRITICAL_ALERT
+}
+
+enum NotificationChannel {
+  WHATSAPP
+  TELEGRAM
+  EMAIL
+}
+
+enum DndStatus {
+  CLEAN
+  DND_REGISTERED
+}
+
+enum DndScrubSource {
+  NCPR_API
+  CACHE
+}
+
+enum ConnectorType {
+  PEOPLE_DATA_LABS
+  HUNTER
+  PROXYCURL
+  ZERO_BOUNCE
+  META_LEADS
+  GOOGLE_ADS
+  LINKEDIN_LEADS
+  SNAPCHAT_LEADS
+  TWILIO
+  VAPI
+  ELEVEN_LABS
+  DEEPGRAM
+  WHATSAPP
+  TELEGRAM
+  EXOTEL
+  NCPR_DND
+  MCA_COMPANY
+  RAZORPAY
+  TALLY
+  SHIPROCKET
+  DELHIVERY
+  SLACK
+  GOOGLE_WORKSPACE
+  RESEND
+  SHOPIFY
+  WOOCOMMERCE
+  GREYT_HR
+  ZOHO_PAYROLL
+  GOOGLE_MAPS
+}
+
+enum AgentJobStatus {
+  DRAFT
+  AWAITING_APPROVAL
+  APPROVED
+  EXECUTING
+  COMPLETED
+  FAILED
+  REJECTED
+}
+
+enum DealStage {
+  LEAD
+  CONTACTED
+  QUALIFIED
+  PROPOSAL
+  NEGOTIATION
+  WON
+  LOST
+}
+
+model Organisation {
+  id         String   @id @default(uuid()) @db.Uuid
+  name       String
+  gstin      String?
+  plan       PlanTier @default(STARTER)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  deletedAt  DateTime?
+
+  users                     User[]
+  contacts                  Contact[]
+  deals                     Deal[]
+  tasks                     Task[]
+  invoices                  Invoice[]
+  agentJobs                 AgentJob[]
+  activityLogs              ActivityLog[]
+  voiceCalls                VoiceCall[]
+  callScripts               CallScript[]
+  salesTargets              SalesTarget[]
+  efficiencyScores          BusinessEfficiencyScore[]
+  employeePerformances      EmployeePerformance[]
+  briefingLogs              BriefingLog[]
+  telegramSessions          TelegramSession[]
+  openClawSkillExecutions   OpenClawSkillExecution[]
+  dndScrubLogs              DndScrubLog[]
+  connectorConfigs          ConnectorConfig[]
+  taxRecords                TaxRecord[]
+  attendanceRecords         AttendanceRecord[]
+  inventoryItems            InventoryItem[]
+  campaigns                 Campaign[]
+  tickets                   Ticket[]
+  purchaseOrders            PurchaseOrder[]
+  resumes                   Resume[]
+}
+
+model User {
+  id             String       @id @default(uuid()) @db.Uuid
+  organisationId String       @db.Uuid
+  email          String       @unique
+  name           String
+  role           String       // e.g., CEO, SALES, FINANCE, HR, SUPPORT, OPS
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  deletedAt      DateTime?
+
+  organisation            Organisation             @relation(fields: [organisationId], references: [id])
+  tasks                   Task[]
+  salesTargets            SalesTarget[]
+  briefingLogs            BriefingLog[]
+  telegramSessions        TelegramSession[]
+  openClawSkillExecutions OpenClawSkillExecution[]
+  employeePerformances    EmployeePerformance[]
+}
+
+model Contact {
+  id             String    @id @default(uuid()) @db.Uuid
+  organisationId String    @db.Uuid
+  firstName      String
+  lastName       String
+  email          String?
+  phone          String    // Indian number format starting with +91
+  companyName    String?
+  jobTitle       String?
+  leadScore      Int       @default(0)
+  source         String
+  consentStatus  String    @default("GRANTED") // GRANTED, WITHDRAWN
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  deletedAt      DateTime?
+
+  organisation Organisation @relation(fields: [organisationId], references: [id])
+  deals        Deal[]
+  voiceCalls   VoiceCall[]
+  tasks        Task[]
+}
+
+model Deal {
+  id             String    @id @default(uuid()) @db.Uuid
+  organisationId String    @db.Uuid
+  contactId      String    @db.Uuid
+  title          String
+  value          Float     // in INR
+  stage          DealStage @default(LEAD)
+  probability    Float     @default(0.1)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  deletedAt      DateTime?
+
+  organisation Organisation @relation(fields: [organisationId], references: [id])
+  contact      Contact      @relation(fields: [contactId], references: [id])
+  voiceCalls   VoiceCall[]
+  tasks        Task[]
+}
+
+model Task {
+  id             String    @id @default(uuid()) @db.Uuid
+  organisationId String    @db.Uuid
+  userId         String?   @db.Uuid
+  contactId      String?   @db.Uuid
+  dealId         String?   @db.Uuid
+  title          String
+  description    String?
+  dueDate        DateTime?
+  isCompleted    Boolean   @default(false)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  deletedAt      DateTime?
+
+  organisation Organisation @relation(fields: [organisationId], references: [id])
+  user         User?        @relation(fields: [userId], references: [id])
+  contact      Contact?     @relation(fields: [contactId], references: [id])
+  deal         Deal?        @relation(fields: [dealId], references: [id])
+}
+
+model Invoice {
+  id             String    @id @default(uuid()) @db.Uuid
+  organisationId String    @db.Uuid
+  invoiceNumber  String
+  amount         Float     // in INR
+  taxAmount      Float     // in INR (GST)
+  status         String    // PAID, UNPAID, OVERDUE, DRAFT
+  dueDate        DateTime
+  irn            String?   // Indian Invoice Reference Number for e-invoicing
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  deletedAt      DateTime?
+
+  organisation Organisation @relation(fields: [organisationId], references: [id])
+}
+
+model AgentJob {
+  id             String         @id @default(uuid()) @db.Uuid
+  organisationId String         @db.Uuid
+  agentType      String         // e.g. FINANCE, SALES, OPS
+  status         AgentJobStatus @default(DRAFT)
+  description    String
+  actionDraft    Json?          // Draft of proposed changes
+  feedback       String?        // Human feedback
+  approvedBy     String?        @db.Uuid // Human User ID
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  deletedAt      DateTime?
+
+  organisation Organisation @relation(fields: [organisationId], references: [id])
+}
+
+model ActivityLog {
+  id             String    @id @default(uuid()) @db.Uuid
+  organisationId String    @db.Uuid
+  description    String
+  actor          String    // SYSTEM, USER_ID, or AGENT_NAME
+  createdAt      DateTime  @default(now())
+  deletedAt      DateTime?
+
+  organisation Organisation @relation(fields: [organisationId], references: [id])
+}
+
+model VoiceCall {
+  id                  String        @id @default(uuid()) @db.Uuid
+  organisationId      String        @db.Uuid
+  contactId           String        @db.Uuid
+  dealId              String?       @db.Uuid
+  agentJobId          String?       @db.Uuid
+  direction           CallDirection @default(OUTBOUND)
+  status              CallStatus    @default(INITIATED)
+  durationSeconds     Int           @default(0)
+  outcome             CallOutcome?
+  transcript          String?
+  transcriptSummary   String?
+  nextAction          String?
+  nextCallDate        DateTime?
+  
+  // TRAI compliance fields
+  dndChecked          Boolean       @default(false)
+  dndStatus           DndStatus?
+  dndCheckedAt        DateTime?
+  numberSeries        String?       // "140" or "160"
+  aiDisclosureMade    Boolean       @default(false)
+  aiDisclosedAt       DateTime?
+  callHourCompliant   Boolean       @default(false)
+  recordingUrl        String?
+  recordingDeleteAt   DateTime?     // 90-day retention
+  
+  // Twilio fields
+  twilioCallSid       String?
+  twilioAccountSid    String?
+  twilioFrom          String?
+  twilioTo            String?
+  
+  // ElevenLabs fields
+  elevenLabsAgentId   String?
+  elevenLabsVoiceId   String?
+  voiceName           String?
+  
+  // Cost tracking
+  durationMinutes     Float         @default(0.0)
+  costUsd             Float         @default(0.0)
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+  deletedAt           DateTime?
+
+  organisation Organisation @relation(fields: [organisationId], references: [id])
+  contact      Contact      @relation(fields: [contactId], references: [id])
+  deal         Deal?        @relation(fields: [dealId], references: [id])
+}
+
+model CallScript {
+  id                 String       @id @default(uuid()) @db.Uuid
+  organisationId     String       @db.Uuid
+  name               String
+  industry           String
+  useCase            CallUseCase
+  systemPrompt       String
+  openingLine        String
+  keyObjectives      String[]
+  handlingObjections Json
+  escalationTriggers String[]
+  closingLines       String[]
+  language           CallLanguage @default(ENGLISH)
+  voiceId            String?
+  voiceName          String?
+  isActive           Boolean      @default(true)
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+  deletedAt          DateTime?
+
+  organisation Organisation @relation(fields: [organisationId], references: [id])
+}
+
+model SalesTarget {
+  id                     String            @id @default(uuid()) @db.Uuid
+  organisationId         String            @db.Uuid
+  userId                 String?           @db.Uuid
+  period                 TargetPeriod      @default(MONTHLY)
+  startDate              DateTime
+  endDate                DateTime
+  targetAmount           Float             // in INR
+  currency               String            @default("INR")
+  achievedAmount         Float             @default(0.0)
+  forecastAmount         Float             @default(0.0)
+  successProbability     Float             @default(0.0)
+  status                 SalesTargetStatus @default(ON_TRACK)
+  aiInsight              String?
+  aiInsightUpdatedAt     DateTime?
+  historicalSuccessRate  Float             @default(0.0)
+  createdAt              DateTime          @default(now())
+  updatedAt              DateTime          @updatedAt
+  deletedAt              DateTime?
+
+  organisation Organisation @relation(fields: [organisationId], references: [id])
+  user         User?        @relation(fields: [userId], references: [id])
+}
+
+model BusinessEfficiencyScore {
+  id              String   @id @default(uuid()) @db.Uuid
+  organisationId  String   @db.Uuid
+  date            DateTime @default(now())
+  overallScore    Float    // 0-100
+  salesScore      Float
+  marketingScore  Float
+  operationsScore Float
+  financeScore    Float
+  hrScore         Float
+  supportScore    Float
+  breakdown       Json
+  aiNarrative     String
+  createdAt       DateTime @default(now())
+  deletedAt       DateTime?
+
+  organisation Organisation @relation(fields: [organisationId], references: [id])
+}
+
+model EmployeePerformance {
+  id             String    @id @default(uuid()) @db.Uuid
+  organisationId String    @db.Uuid
+  employeeId     String    @db.Uuid
+  period         String    // e.g. "2026-06"
+  score          Float     // 0-100
+  tasksCompleted Int       @default(0)
+  tasksOverdue   Int       @default(0)
+  callsMade      Int       @default(0)
+  leadsConverted Int       @default(0)
+  dealsWon       Int       @default(0)
+  attendanceRate Float     @default(0.0)
+  onTimeRate     Float     @default(0.0)
+  aiNarrative    String?
+  rank           Int?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  deletedAt      DateTime?
+
+  organisation Organisation @relation(fields: [organisationId], references: [id])
+  employee     User         @relation(fields: [employeeId], references: [id])
+}
+
+model BriefingLog {
+  id                 String              @id @default(uuid()) @db.Uuid
+  organisationId     String              @db.Uuid
+  userId             String              @db.Uuid
+  type               BriefingType
+  channel            NotificationChannel
+  content            String
+  sentAt             DateTime            @default(now())
+  deliveryStatus     String              // SENT, DELIVERED, FAILED
+  whatsappMessageId  String?
+  telegramMessageId  String?
+  createdAt          DateTime            @default(now())
+  deletedAt          DateTime?
+
+  organisation Organisation @relation(fields: [organisationId], references: [id])
+  user         User         @relation(fields: [userId], references: [id])
+}
+
+model TelegramSession {
+  id                 String    @id @default(uuid()) @db.Uuid
+  organisationId     String    @db.Uuid
+  userId             String    @db.Uuid
+  telegramUserId     String    @unique
+  telegramUsername   String?
+  isActive           Boolean   @default(true)
+  pairedAt           DateTime  @default(now())
+  lastActiveAt       DateTime  @default(now())
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+  deletedAt          DateTime?
+
+  organisation Organisation @relation(fields: [organisationId], references: [id])
+  user         User         @relation(fields: [userId], references: [id])
+}
+
+model OpenClawSkillExecution {
+  id             String    @id @default(uuid()) @db.Uuid
+  organisationId String    @db.Uuid
+  userId         String    @db.Uuid
+  telegramUserId String
+  command        String
+  parsedIntent   String
+  tRPCProcedure  String
+  parameters     Json
+  result         Json?
+  error          String?
+  tokensUsed     Int       @default(0)
+  responseTime   Int       @default(0)
+  createdAt      DateTime  @default(now())
+  deletedAt      DateTime?
+
+  organisation Organisation @relation(fields: [organisationId], references: [id])
+  user         User         @relation(fields: [userId], references: [id])
+}
+
+model DndScrubLog {
+  id             String         @id @default(uuid()) @db.Uuid
+  organisationId String         @db.Uuid
+  phone          String
+  status         DndStatus
+  scrubbedAt     DateTime       @default(now())
+  source         DndScrubSource
+  cacheExpiresAt DateTime
+  createdAt      DateTime       @default(now())
+  deletedAt      DateTime?
+
+  organisation Organisation @relation(fields: [organisationId], references: [id])
+}
+
+model ConnectorConfig {
+  id             String        @id @default(uuid()) @db.Uuid
+  organisationId String        @db.Uuid
+  connectorType  ConnectorType
+  isEnabled      Boolean       @default(false)
+  config         Json          // Encrypted at application layer
+  lastSyncAt     DateTime?
+  syncStatus     String?
+  syncError      String?
+  webhookUrl     String?
+  webhookSecret  String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  deletedAt      DateTime?
+
+  organisation Organisation @relation(fields: [organisationId], references: [id])
+}
+
+model TaxRecord {
+  id             String    @id @default(uuid()) @db.Uuid
+  organisationId String    @db.Uuid
+  period         String    // e.g. "FY 2025-26 Q1"
+  taxType        String    // GST, TDS, TCS
+  amount         Float     // in INR
+  dueDate        DateTime
+  status         String    // PENDING, FILED, OVERDUE
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  deletedAt      DateTime?
+
+  organisation Organisation @relation(fields: [organisationId], references: [id])
+}
+
+model AttendanceRecord {
+  id             String    @id @default(uuid()) @db.Uuid
+  organisationId String    @db.Uuid
+  userId         String    @db.Uuid
+  date           DateTime
+  status         String    // PRESENT, ABSENT, LATE, LEAVE
+  checkIn        DateTime?
+  checkOut       DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  deletedAt      DateTime?
+
+  organisation Organisation @relation(fields: [organisationId], references: [id])
+}
+
+model InventoryItem {
+  id             String    @id @default(uuid()) @db.Uuid
+  organisationId String    @db.Uuid
+  sku            String
+  name           String
+  quantity       Int       @default(0)
+  reorderPoint   Int       @default(10)
+  price          Float     // in INR
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  deletedAt      DateTime?
+
+  organisation Organisation @relation(fields: [organisationId], references: [id])
+}
+
+model Campaign {
+  id             String    @id @default(uuid()) @db.Uuid
+  organisationId String    @db.Uuid
+  name           String
+  channel        String    // e.g. META_ADS, GOOGLE_ADS
+  status         String    // ACTIVE, PAUSED, COMPLETED
+  budget         Float     // in INR
+  spend          Float     @default(0.0) // in INR
+  leadsGenerated Int       @default(0)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  deletedAt      DateTime?
+
+  organisation Organisation @relation(fields: [organisationId], references: [id])
+}
+
+model Ticket {
+  id             String    @id @default(uuid()) @db.Uuid
+  organisationId String    @db.Uuid
+  subject        String
+  description    String
+  status         String    // OPEN, IN_PROGRESS, RESOLVED, CLOSED
+  priority       String    // LOW, MEDIUM, HIGH, URGENT
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  deletedAt      DateTime?
+
+  organisation Organisation @relation(fields: [organisationId], references: [id])
+}
+
+model PurchaseOrder {
+  id             String    @id @default(uuid()) @db.Uuid
+  organisationId String    @db.Uuid
+  poNumber       String
+  vendorName     String
+  totalAmount    Float     // in INR
+  status         String    // DRAFT, PENDING_APPROVAL, SENT, RECEIVED
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  deletedAt      DateTime?
+
+  organisation Organisation @relation(fields: [organisationId], references: [id])
+}
+
+model Resume {
+  id             String    @id @default(uuid()) @db.Uuid
+  organisationId String    @db.Uuid
+  candidateName  String
+  candidateEmail String
+  score          Int       @default(0) // AI score 0-100
+  skills         String[]
+  summary        String?
+  experienceYrs  Float     @default(0.0)
+  status         String    // SCREENED, INTERVIEWING, OFFERED, REJECTED
+  embedding      Unsupported("vector(1536)")? // pgvector embeddings
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  deletedAt      DateTime?
+
+  organisation Organisation @relation(fields: [organisationId], references: [id])
+}

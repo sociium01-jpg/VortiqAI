@@ -1,0 +1,24 @@
+# Dependency directories
+node_modules/
+
+# Next.js build and cache output
+.next/
+out/
+
+# Turborepo build caches
+.turbo/
+
+# Environment files and credentials
+.env
+.env*.local
+
+# Compilation outputs
+dist/
+build/
+*.log
+
+# System or IDE cache directories
+.idea/
+.vscode/
+.DS_Store
+.system_generated/

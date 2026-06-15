@@ -1,0 +1,13 @@
+{
+  "name": "@vortiq/db",
+  "version": "1.0.0",
+  "main": "src/client.ts",
+  "types": "src/client.ts",
+  "dependencies": {
+    "@prisma/client": "^5.10.0"
+  },
+  "devDependencies": {
+    "prisma": "^5.10.0",
+    "typescript": "^5.3.3"
+  }
+}

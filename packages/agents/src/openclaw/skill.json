@@ -1,0 +1,27 @@
+{
+  "name": "vortiq",
+  "version": "1.0.0",
+  "description": "Full Vortiq Business OS control via natural language",
+  "permissions": ["network", "database_read"],
+  "intents": [
+    "query_metrics",
+    "query_leads",
+    "query_deals",
+    "query_tasks",
+    "query_finance",
+    "query_inventory",
+    "query_employees",
+    "trigger_lead_search",
+    "trigger_voice_call",
+    "trigger_agent",
+    "approve_job",
+    "reject_job",
+    "list_approvals",
+    "get_briefing",
+    "get_forecast",
+    "get_target_status",
+    "create_contact",
+    "create_task",
+    "create_note"
+  ]
+}

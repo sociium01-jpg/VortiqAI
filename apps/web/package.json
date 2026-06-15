@@ -1,0 +1,37 @@
+{
+  "name": "vortiq-web",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev -p 3005",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "@tanstack/react-query": "^5.25.0",
+    "@trpc/client": "^11.0.0-rc.302",
+    "@trpc/react-query": "^11.0.0-rc.302",
+    "@trpc/server": "^11.0.0-rc.302",
+    "@vortiq/agents": "file:../../packages/agents",
+    "@vortiq/db": "file:../../packages/db",
+    "@vortiq/types": "file:../../packages/types",
+    "@vortiq/ui": "file:../../packages/ui",
+    "lucide-react": "^0.344.0",
+    "next": "^15.0.0-rc.0",
+    "react": "^19.0.0-rc-0",
+    "react-dom": "^19.0.0-rc-0",
+    "recharts": "^2.12.2",
+    "zod": "^3.22.4"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.3.1",
+    "@types/node": "^20.11.24",
+    "@types/react": "^19.0.0-rc-0",
+    "@types/react-dom": "^19.0.0-rc-0",
+    "autoprefixer": "^10.4.18",
+    "postcss": "^8.4.35",
+    "tailwindcss": "^4.0.0-alpha.12",
+    "typescript": "^5.3.3"
+  }
+}
