@@ -7,7 +7,10 @@ import {
   ArrowRight, ArrowLeft, Check, Sparkles, AlertCircle
 } from 'lucide-react';
 
+import { useUser } from '@clerk/nextjs';
+
 export default function OnboardingPage() {
+  const { user } = useUser();
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState(1);
   const [loading, setLoading] = useState(false);
@@ -78,7 +81,37 @@ export default function OnboardingPage() {
 
   const handleFinish = () => {
     setLoading(true);
-    // Redirect to dashboard console
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('vortiq-brand-name', companyName.trim());
+      localStorage.setItem('vortiq-plan', selectedPlan);
+      
+      const savedClientsStr = localStorage.getItem('vortiq-all-clients');
+      let savedClients = [];
+      if (savedClientsStr) {
+        try {
+          savedClients = JSON.parse(savedClientsStr);
+        } catch (e) {}
+      }
+      
+      const newClient = {
+        id: `CLI-00${savedClients.length + 4}`,
+        name: companyName.trim(),
+        owner: user?.fullName || 'Owner Account',
+        email: user?.primaryEmailAddress?.emailAddress || 'owner@vortiq.ai',
+        plan: selectedPlan,
+        trialDaysLeft: 14,
+        docUploaded: false,
+        paymentStatus: 'TRIAL_ACTIVE',
+        registeredName: `${companyName.trim()} Private Limited`,
+        gstin: gstin.trim().toUpperCase() || '27AABCV1234E1Z0'
+      };
+
+      if (!savedClients.some((c: any) => c.name.toLowerCase() === companyName.trim().toLowerCase())) {
+        savedClients.push(newClient);
+      }
+      localStorage.setItem('vortiq-all-clients', JSON.stringify(savedClients));
+    }
+
     setTimeout(() => {
       setLoading(false);
       router.push('/dashboard');

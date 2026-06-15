@@ -55,14 +55,22 @@ export default function VortiqAdminPage() {
   const [newClientUserRole, setNewClientUserRole] = useState('Sales Rep');
   const [newClientUserPassword, setNewClientUserPassword] = useState('Password123');
 
-  // Load client users from localStorage
+  // Load client users and registered clients from localStorage
   useEffect(() => {
     if (typeof window !== 'undefined') {
+      const defaultClients = [];
+      
+      // Load any clients registered in local storage
+      const savedClientsStr = localStorage.getItem('vortiq-all-clients');
+      if (savedClientsStr) {
+        try {
+          defaultClients.push(...JSON.parse(savedClientsStr));
+        } catch (e) {}
+      }
+      
       const customBrandName = localStorage.getItem('vortiq-brand-name');
       const customPlan = localStorage.getItem('vortiq-plan') || 'STARTER';
-      
-      const defaultClients = [];
-      if (customBrandName) {
+      if (customBrandName && defaultClients.length === 0) {
         defaultClients.push({
           id: 'CLI-004',
           name: customBrandName,
@@ -75,10 +83,19 @@ export default function VortiqAdminPage() {
           registeredName: `${customBrandName} Private Limited`,
           gstin: '27AABCV1234E1Z0'
         });
-        setClients(defaultClients);
-        setSelectedClientId('CLI-004');
+      }
+      
+      setClients(defaultClients);
+      
+      // Initialize selectedClientId if not set
+      if (defaultClients.length > 0) {
+        setSelectedClientId(prev => {
+          if (!prev || !defaultClients.some(c => c.id === prev)) {
+            return defaultClients[0].id;
+          }
+          return prev;
+        });
       } else {
-        setClients([]);
         setSelectedClientId('');
       }
 
@@ -320,17 +337,9 @@ export default function VortiqAdminPage() {
               Sign In to Console
             </button>
           </form>
-
-          {/* Credentials Helper Box */}
-          <div className="p-3 bg-slate-50 border border-slate-150 rounded-2xl text-[10px] font-semibold text-slate-500 leading-relaxed text-center">
-            <span className="font-extrabold uppercase text-slate-700 block mb-0.5">Demo Credentials</span>
-            Username: <code className="bg-slate-200 px-1.5 py-0.5 rounded text-rose-600 font-mono">admin@vortiq.ai</code> <br />
-            Password: <code className="bg-slate-200 px-1.5 py-0.5 rounded text-rose-600 font-mono">VortiqAdmin2026</code>
-          </div>
         </div>
 
-        {/* Back Link */}
-        <Link href="/" className="mt-6 text-xs text-slate-500 hover:text-slate-800 font-semibold flex items-center gap-1">
+        <Link href="/" className="mt-6 text-xs text-slate-500 hover:text-slate-800 font-semibold flex items-center justify-center gap-1">
           ← Back to Home
         </Link>
       </div>
@@ -344,6 +353,9 @@ export default function VortiqAdminPage() {
       {/* Admin header */}
       <header className="border-b border-slate-200 bg-white sticky top-0 z-40 px-6 py-4 flex items-center justify-between backdrop-blur-md">
         <div className="flex items-center gap-3">
+          <Link href="/" className="text-slate-500 hover:text-slate-900 transition-colors mr-2 text-xs font-bold border border-slate-200 px-3 py-1.5 rounded-xl hover:bg-slate-50">
+            ← Home
+          </Link>
           <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-500 to-rose-500 flex items-center justify-center font-black text-white shadow-lg shadow-indigo-500/20">
             A
           </div>

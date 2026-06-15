@@ -28,12 +28,68 @@ export default function TasksPage() {
   const { user, isLoaded } = useUser();
   const isDemo = isLoaded && user?.primaryEmailAddress?.emailAddress?.toLowerCase() === 'demo@vortiq.ai';
 
+  // Sync Task Metrics to Dashboard Telemetry
+  const syncTaskMetricsToDashboard = (updatedTasks: Task[]) => {
+    if (isDemo) return;
+    const completedCount = updatedTasks.filter(t => t.stage === 'DONE').length;
+
+    const savedMetricsStr = localStorage.getItem('vortiq-user-metrics');
+    let currentMetrics = {
+      healthScore: 100,
+      revenue: 0,
+      targetAmount: 1500000,
+      leadsToday: 0,
+      tasksCompleted: 0,
+      activeAgents: 8,
+      efficiencyScore: 100,
+      openTickets: 0,
+      activeCampaigns: 0,
+      briefingsSent: 0,
+      receivables: 0,
+      payoutsDone: 0,
+      attendancePresent: 0,
+      attendanceTotal: 0,
+      adClicks: 0
+    };
+    if (savedMetricsStr) {
+      try {
+        currentMetrics = JSON.parse(savedMetricsStr);
+      } catch (e) {}
+    }
+    
+    currentMetrics.tasksCompleted = completedCount;
+    localStorage.setItem('vortiq-user-metrics', JSON.stringify(currentMetrics));
+    window.dispatchEvent(new Event('vortiq-user-metrics-change'));
+  };
+
   useEffect(() => {
     if (isLoaded && !isDemo) {
-      setTasks([]);
-      setRecurringTemplates([]);
-      setDelegateRules([]);
-      setAiAnalysis("TaskAgent Monitor: Workspace is clean. No active tasks logged.");
+      const savedTasks = localStorage.getItem('vortiq-tasks');
+      const savedRec = localStorage.getItem('vortiq-recurring-templates');
+      const savedDel = localStorage.getItem('vortiq-delegate-rules');
+
+      if (savedTasks) {
+        try {
+          const parsed = JSON.parse(savedTasks);
+          setTasks(parsed);
+          syncTaskMetricsToDashboard(parsed);
+        } catch (e) {}
+      } else {
+        setTasks([]);
+      }
+
+      if (savedRec) {
+        try { setRecurringTemplates(JSON.parse(savedRec)); } catch (e) {}
+      } else {
+        setRecurringTemplates([]);
+      }
+
+      if (savedDel) {
+        try { setDelegateRules(JSON.parse(savedDel)); } catch (e) {}
+      } else {
+        setDelegateRules([]);
+      }
+      setAiAnalysis("TaskAgent Monitor: Connected client database loaded.");
     }
   }, [isLoaded, isDemo]);
 
@@ -139,7 +195,12 @@ export default function TasksPage() {
       recurrence: isRecurring ? recurrence : undefined
     };
 
-    setTasks([...tasks, newT]);
+    const updatedTasks = [...tasks, newT];
+    setTasks(updatedTasks);
+    if (!isDemo) {
+      localStorage.setItem('vortiq-tasks', JSON.stringify(updatedTasks));
+      syncTaskMetricsToDashboard(updatedTasks);
+    }
     resetForm();
   };
 
@@ -152,11 +213,21 @@ export default function TasksPage() {
   };
 
   const handleDeleteTask = (id: string) => {
-    setTasks(prev => prev.filter(t => t.id !== id));
+    const updatedTasks = tasks.filter(t => t.id !== id);
+    setTasks(updatedTasks);
+    if (!isDemo) {
+      localStorage.setItem('vortiq-tasks', JSON.stringify(updatedTasks));
+      syncTaskMetricsToDashboard(updatedTasks);
+    }
   };
 
   const handleUpdateStage = (id: string, stage: 'TODO' | 'IN_PROGRESS' | 'DONE') => {
-    setTasks(prev => prev.map(t => t.id === id ? { ...t, stage } : t));
+    const updatedTasks = tasks.map(t => t.id === id ? { ...t, stage } : t);
+    setTasks(updatedTasks);
+    if (!isDemo) {
+      localStorage.setItem('vortiq-tasks', JSON.stringify(updatedTasks));
+      syncTaskMetricsToDashboard(updatedTasks);
+    }
   };
 
   const handleDragStart = (e: React.DragEvent, id: string) => {

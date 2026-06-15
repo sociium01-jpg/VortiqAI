@@ -156,12 +156,6 @@ export default function LoginPage() {
                 "Log In to Demo Console"
               )}
             </button>
-
-            <div className="p-3 bg-slate-50 border border-slate-150 rounded-2xl text-[10px] font-semibold text-slate-500 leading-relaxed text-center mt-2">
-              <span className="font-extrabold uppercase text-slate-700 block mb-0.5">Demo Workspace Credentials</span>
-              Email: <code className="bg-slate-200 px-1.5 py-0.5 rounded text-teal-600 font-mono">demo@vortiq.ai</code> <br />
-              Password: <code className="bg-slate-200 px-1.5 py-0.5 rounded text-teal-600 font-mono">VortiqDemo2026</code>
-            </div>
           </form>
         )}
       </div>

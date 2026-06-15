@@ -80,6 +80,7 @@ function DashboardContent() {
   };
 
   useEffect(() => {
+    let handleMetricsChange: () => void;
     if (typeof window !== 'undefined') {
       const clerkDemo = isLoaded && user?.primaryEmailAddress?.emailAddress?.toLowerCase() === 'demo@vortiq.ai';
       const localDemo = localStorage.getItem('vortiq-demo-logged-in') === 'true';
@@ -118,7 +119,25 @@ function DashboardContent() {
         setAgentLogs([]);
         setAiInsightText("Superboss Command AI: Workspace initialized. Welcome to Vortiq OS! Connect your integrations or input telemetry data below.");
       }
+
+      handleMetricsChange = () => {
+        if (!resolvedDemo) {
+          const saved = localStorage.getItem('vortiq-user-metrics');
+          if (saved) {
+            try {
+              setMetrics(JSON.parse(saved));
+            } catch (e) {}
+          }
+        }
+      };
+      window.addEventListener('vortiq-user-metrics-change', handleMetricsChange);
     }
+
+    return () => {
+      if (typeof window !== 'undefined' && handleMetricsChange) {
+        window.removeEventListener('vortiq-user-metrics-change', handleMetricsChange);
+      }
+    };
   }, [isLoaded, user]);
 
   const searchParams = useSearchParams();

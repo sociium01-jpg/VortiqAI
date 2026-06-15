@@ -47,13 +47,91 @@ export default function FinancePage() {
   const { user, isLoaded } = useUser();
   const isDemo = isLoaded && user?.primaryEmailAddress?.emailAddress?.toLowerCase() === 'demo@vortiq.ai';
 
+  // Sync Finance Metrics to Dashboard Telemetry
+  const syncFinanceMetricsToDashboard = (updatedInvoices: Invoice[]) => {
+    if (isDemo) return;
+    
+    let totalRevenue = 0;
+    let totalReceivables = 0;
+
+    updatedInvoices.forEach(inv => {
+      const subtotal = inv.items.reduce((sum, item) => sum + item.qty * item.rate * (1 - item.discountPct / 100), 0);
+      const tax = inv.items.reduce((sum, item) => sum + item.qty * item.rate * (1 - item.discountPct / 100) * (item.gstRate / 100), 0);
+      const total = subtotal + tax;
+
+      if (inv.paymentStatus === 'PAID') {
+        totalRevenue += total;
+      } else if (inv.paymentStatus === 'OVERDUE' || inv.paymentStatus === 'SENT') {
+        totalReceivables += total;
+      }
+    });
+
+    const savedMetricsStr = localStorage.getItem('vortiq-user-metrics');
+    let currentMetrics = {
+      healthScore: 100,
+      revenue: 0,
+      targetAmount: 1500000,
+      leadsToday: 0,
+      tasksCompleted: 0,
+      activeAgents: 8,
+      efficiencyScore: 100,
+      openTickets: 0,
+      activeCampaigns: 0,
+      briefingsSent: 0,
+      receivables: 0,
+      payoutsDone: 0,
+      attendancePresent: 0,
+      attendanceTotal: 0,
+      adClicks: 0
+    };
+    if (savedMetricsStr) {
+      try {
+        currentMetrics = JSON.parse(savedMetricsStr);
+      } catch (e) {}
+    }
+    
+    currentMetrics.revenue = totalRevenue;
+    currentMetrics.receivables = totalReceivables;
+    
+    localStorage.setItem('vortiq-user-metrics', JSON.stringify(currentMetrics));
+    window.dispatchEvent(new Event('vortiq-user-metrics-change'));
+  };
+
   useEffect(() => {
     if (isLoaded && !isDemo) {
-      setInvoices([]);
-      setLedger([]);
-      setReminders([]);
-      setAnomalies([]);
-      setAiAnalysis("Finance Audit: Ledger is in balance. No transaction activity detected.");
+      const savedInvoices = localStorage.getItem('vortiq-invoices');
+      const savedLedger = localStorage.getItem('vortiq-ledger');
+      const savedReminders = localStorage.getItem('vortiq-reminders');
+      const savedAnomalies = localStorage.getItem('vortiq-anomalies');
+      
+      if (savedInvoices) {
+        try {
+          const parsed = JSON.parse(savedInvoices);
+          setInvoices(parsed);
+          syncFinanceMetricsToDashboard(parsed);
+        } catch (e) {}
+      } else {
+        setInvoices([]);
+      }
+
+      if (savedLedger) {
+        try { setLedger(JSON.parse(savedLedger)); } catch (e) {}
+      } else {
+        setLedger([]);
+      }
+
+      if (savedReminders) {
+        try { setReminders(JSON.parse(savedReminders)); } catch (e) {}
+      } else {
+        setReminders([]);
+      }
+
+      if (savedAnomalies) {
+        try { setAnomalies(JSON.parse(savedAnomalies)); } catch (e) {}
+      } else {
+        setAnomalies([]);
+      }
+      setAiAnalysis("Finance Audit: Connected client database loaded.");
     }
   }, [isLoaded, isDemo]);
 
@@ -173,7 +251,12 @@ export default function FinancePage() {
       date: 'Today'
     };
 
-    setInvoices([newI, ...invoices]);
+    const updatedInvoices = [newI, ...invoices];
+    setInvoices(updatedInvoices);
+    if (!isDemo) {
+      localStorage.setItem('vortiq-invoices', JSON.stringify(updatedInvoices));
+      syncFinanceMetricsToDashboard(updatedInvoices);
+    }
     resetForm();
   };
 
@@ -187,13 +270,32 @@ export default function FinancePage() {
     setIsAdding(false);
   };
 
-  const handleApproveAndFileIRN = (id: string) => {
-    setInvoices(prev => prev.map(inv => {
+  const handleMarkPaid = (id: string) => {
+    const updatedInvoices = invoices.map(inv => {
       if (inv.id === id) {
-        return { ...inv, irnStatus: 'FILED', paymentStatus: 'SENT' };
+        return { ...inv, paymentStatus: 'PAID' as const };
       }
       return inv;
-    }));
+    });
+    setInvoices(updatedInvoices);
+    if (!isDemo) {
+      localStorage.setItem('vortiq-invoices', JSON.stringify(updatedInvoices));
+      syncFinanceMetricsToDashboard(updatedInvoices);
+    }
+  };
+
+  const handleApproveAndFileIRN = (id: string) => {
+    const updatedInvoices = invoices.map(inv => {
+      if (inv.id === id) {
+        return { ...inv, irnStatus: 'FILED' as const, paymentStatus: 'SENT' as const };
+      }
+      return inv;
+    });
+    setInvoices(updatedInvoices);
+    if (!isDemo) {
+      localStorage.setItem('vortiq-invoices', JSON.stringify(updatedInvoices));
+      syncFinanceMetricsToDashboard(updatedInvoices);
+    }
 
     // Post to ledger logs (Human in loop action)
     const inv = invoices.find(i => i.id === id);
@@ -244,7 +346,11 @@ export default function FinancePage() {
       status: 'POSTED'
     };
 
-    setLedger([...ledger, newJE1, newJE2, newJE3, newJE4]);
+    const updatedLedger = [...ledger, newJE1, newJE2, newJE3, newJE4];
+    setLedger(updatedLedger);
+    if (!isDemo) {
+      localStorage.setItem('vortiq-ledger', JSON.stringify(updatedLedger));
+    }
   };
 
   const handleRunAudit = () => {
@@ -526,13 +632,21 @@ export default function FinancePage() {
                               {inv.paymentStatus}
                             </span>
                           </td>
-                          <td className="p-4 text-right">
+                          <td className="p-4 text-right flex gap-1.5 justify-end">
                             {inv.irnStatus === 'PENDING' && (
                               <button 
                                 onClick={() => handleApproveAndFileIRN(inv.id)}
                                 className="px-2.5 py-1 bg-amber-500 hover:bg-amber-600 text-slate-955 text-[10px] font-black rounded"
                               >
                                 Approve & File IRN
+                              </button>
+                            )}
+                            {inv.paymentStatus !== 'PAID' && (
+                              <button 
+                                onClick={() => handleMarkPaid(inv.id)}
+                                className="px-2.5 py-1 bg-teal-500 hover:bg-teal-650 text-slate-955 text-[10px] font-black rounded"
+                              >
+                                Mark Paid
                               </button>
                             )}
                           </td>
