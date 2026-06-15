@@ -10,6 +10,9 @@ import {
   Clock, ShieldCheck, RefreshCw, ChevronRight, AlertCircle, Users
 } from 'lucide-react';
 import ModuleAgentSidebar from '../utils/ModuleAgentSidebar';
+import { vortiqClient } from '../utils/vortiqClient';
+import dynamic from 'next/dynamic';
+const ModuleAIPanel = dynamic(() => import('../components/ai/ModuleAIPanel'), { ssr: false });
 
 interface Employee {
   id: string;
@@ -712,6 +715,11 @@ export default function HRPage() {
           </div>
         )}
 
+      </div>
+
+      {/* Real-time AI Assistant */}
+      <div className="w-full mt-4">
+        <ModuleAIPanel module="HR" title="HR & Payroll Intelligence" />
       </div>
 
       <ModuleAgentSidebar 

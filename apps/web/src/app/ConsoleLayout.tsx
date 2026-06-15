@@ -11,6 +11,8 @@ import {
   Sun, Moon, Search, Cpu, Play, Terminal, ArrowRight, ShieldCheck
 } from 'lucide-react';
 import { vortiqClient } from './utils/vortiqClient';
+import dynamic from 'next/dynamic';
+const AINotificationBell = dynamic(() => import('./components/ai/AINotificationBell'), { ssr: false });
 
 // Indian Rupee Formatter helper
 export const formatINR = (val: number) => {
@@ -126,6 +128,7 @@ export default function ConsoleLayout({ children }: ConsoleLayoutProps) {
     { name: 'Support', path: '/support', icon: LifeBuoy },
     { name: 'AI Analytics', path: '/analytics', icon: BarChart3 },
     { name: 'WhatsApp Briefings', path: '/briefings', icon: MessageSquare },
+    { name: 'AI Command Center', path: '/ai', icon: Brain },
     { name: 'Settings', path: '/settings', icon: Settings }
   ];
 
@@ -181,7 +184,7 @@ export default function ConsoleLayout({ children }: ConsoleLayoutProps) {
   };
 
   // NLP command parser compiler
-  const handleExecuteCommand = (e: React.FormEvent) => {
+  const handleExecuteCommand = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!commandText.trim()) return;
 
@@ -193,44 +196,21 @@ export default function ConsoleLayout({ children }: ConsoleLayoutProps) {
     setWorkflowTitle(commandText);
     setWorkflowStatus('compiling');
     setIsCommandModalOpen(true);
-    setWorkflowSteps([]);
+    setWorkflowSteps([{ agent: 'Superboss Agent', action: `Parsing: "${commandText.substring(0, 60)}..."`, status: 'COMPLETED' }]);
 
-    // Simulate multi-agent compilation steps
-    setTimeout(() => {
-      const lower = commandText.toLowerCase();
-      let steps = [];
-
-      if (lower.includes('lead') || lower.includes('follow up') || lower.includes('contact')) {
-        steps = [
-          { agent: 'Lead Engine Agent', action: 'Filter and segment hot B2B leads from database (Score > 85)', status: 'COMPLETED' },
-          { agent: 'CRM Agent', action: 'Validate no active duplicates exist for target candidates', status: 'COMPLETED' },
-          { agent: 'Sales Agent', action: 'Auto-assign follow-up phone tasks to sales reps Sneha and Rahul', status: 'PENDING' },
-          { agent: 'WhatsApp Briefing Agent', action: 'Draft reminders for daily manager briefs', status: 'PENDING' }
-        ];
-      } else if (lower.includes('invoice') || lower.includes('payment') || lower.includes('remind')) {
-        steps = [
-          { agent: 'Finance Agent', action: 'Scan ledger database for invoices overdue > 7 days', status: 'COMPLETED' },
-          { agent: 'Superboss Agent', action: 'Calculate outstanding totals: Rs 4,50,000 across 3 clients', status: 'COMPLETED' },
-          { agent: 'Support Agent', action: 'Verify email communication history logs for client flags', status: 'COMPLETED' },
-          { agent: 'Finance Agent', action: 'Draft payment reminder emails & WhatsApp notification links', status: 'AWAITING_APPROVAL', isSensitive: true }
-        ];
-      } else if (lower.includes('ticket') || lower.includes('support')) {
-        steps = [
-          { agent: 'Support Agent', action: 'Scan support queue for unassigned tickets', status: 'COMPLETED' },
-          { agent: 'Superboss Agent', action: 'Check employee workload allocation (Sneha: 4, Rahul: 8)', status: 'COMPLETED' },
-          { agent: 'Support Agent', action: 'Auto-assign ticket #TC-902 to Sneha Rao and generate draft auto-response', status: 'PENDING' }
-        ];
-      } else {
-        steps = [
-          { agent: 'Superboss Agent', action: 'Parse request: "' + commandText + '"', status: 'COMPLETED' },
-          { agent: 'Consolidated Analyst', action: 'Extract relevant tables contexts and compile audit metrics', status: 'COMPLETED' },
-          { agent: 'Module Agent', action: 'Schedule automated workflow execution sequence', status: 'PENDING' }
-        ];
-      }
-
+    try {
+      const result = await vortiqClient.callMutation('ai.runAIWorkflow', {
+        workflowType: 'CUSTOM',
+        prompt: commandText
+      });
+      const steps = (result as any)?.steps || [{ agent: 'Superboss Agent', action: 'Analysis complete', status: 'COMPLETED' }];
       setWorkflowSteps(steps);
-      setWorkflowStatus('awaiting_approval');
-    }, 1000);
+      setWorkflowStatus((result as any)?.status === 'AWAITING_APPROVAL' ? 'awaiting_approval' : 'completed');
+      window.dispatchEvent(new Event('vortiq-ai-approval-change'));
+    } catch (err: any) {
+      setWorkflowSteps([{ agent: 'Superboss Agent', action: `Error: ${err.message}`, status: 'FAILED' }]);
+      setWorkflowStatus('completed');
+    }
   };
 
   const handleRunWorkflow = () => {
@@ -314,10 +294,7 @@ export default function ConsoleLayout({ children }: ConsoleLayoutProps) {
             <span className={`w-2 h-2 rounded-full ${aiMode === 'ai-assisted' ? 'bg-teal-500 animate-pulse' : 'bg-rose-500'}`} />
             {aiMode === 'ai-assisted' ? 'AI-Assisted Mode' : 'Manual Mode'}
           </button>
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-600 dark:text-amber-500 font-semibold">
-            <ShieldAlert className="w-4 h-4 text-amber-500" />
-            {reviewQueue.length} approvals
-          </div>
+          <AINotificationBell />
         </div>
 
         <div className="flex items-center gap-3">

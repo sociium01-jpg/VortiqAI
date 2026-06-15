@@ -13,6 +13,8 @@ import {
   LayoutDashboard, ShieldCheck, Clock, Cpu
 } from 'lucide-react';
 import { vortiqClient } from '../utils/vortiqClient';
+import dynamic from 'next/dynamic';
+const SuperbossPanel = dynamic(() => import('../components/ai/SuperbossPanel'), { ssr: false });
 
 
 function DashboardContent() {
@@ -834,6 +836,11 @@ function DashboardContent() {
           </div>
         </div>
       </div>
+
+        {/* Superboss AI Panel — Live Business Intelligence */}
+        <div className="mt-6">
+          <SuperbossPanel compact={true} />
+        </div>
 
     </ConsoleLayout>
   );

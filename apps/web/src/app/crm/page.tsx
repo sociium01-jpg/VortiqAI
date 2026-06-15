@@ -12,6 +12,8 @@ import { handlePrint, handleExportPDF } from '../utils/export';
 import ModuleAgentSidebar from '../utils/ModuleAgentSidebar';
 
 import { vortiqClient } from '../utils/vortiqClient';
+import dynamic from 'next/dynamic';
+const ModuleAIPanel = dynamic(() => import('../components/ai/ModuleAIPanel'), { ssr: false });
 
 export default function CRMPage() {
   const { user, isLoaded } = useUser();
@@ -742,6 +744,11 @@ export default function CRMPage() {
             </div>
           )}
 
+        </div>
+
+        {/* Real AI Intelligence Panel */}
+        <div className="mt-4 mb-2">
+          <ModuleAIPanel module="CRM" title="CRM AI Agent" />
         </div>
 
         {/* Collapsible Local CRM Agent Sidebar */}

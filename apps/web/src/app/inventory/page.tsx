@@ -10,6 +10,9 @@ import {
   TrendingDown, ShieldAlert, ArrowUpRight, ArrowDownRight, Layers
 } from 'lucide-react';
 import ModuleAgentSidebar from '../utils/ModuleAgentSidebar';
+import { vortiqClient } from '../utils/vortiqClient';
+import dynamic from 'next/dynamic';
+const ModuleAIPanel = dynamic(() => import('../components/ai/ModuleAIPanel'), { ssr: false });
 
 interface SKU {
   code: string;
@@ -716,6 +719,11 @@ export default function InventoryPage() {
           </div>
         )}
 
+      </div>
+
+      {/* Real-time AI Assistant */}
+      <div className="w-full mt-4">
+        <ModuleAIPanel module="INVENTORY" title="Inventory & Stock Intelligence" />
       </div>
 
       <ModuleAgentSidebar 

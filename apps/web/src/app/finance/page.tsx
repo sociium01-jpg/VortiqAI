@@ -12,6 +12,8 @@ import {
 } from 'lucide-react';
 import ModuleAgentSidebar from '../utils/ModuleAgentSidebar';
 import { vortiqClient } from '../utils/vortiqClient';
+import dynamic from 'next/dynamic';
+const ModuleAIPanel = dynamic(() => import('../components/ai/ModuleAIPanel'), { ssr: false });
 
 interface InvoiceItem {
   description: string;
@@ -905,6 +907,11 @@ export default function FinancePage() {
           </div>
         )}
 
+      </div>
+
+      {/* Real AI Intelligence Panel */}
+      <div className="mt-4 mb-2">
+        <ModuleAIPanel module="FINANCE" title="Finance AI Agent" />
       </div>
 
       <ModuleAgentSidebar 

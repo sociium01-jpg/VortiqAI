@@ -11,6 +11,8 @@ import {
 } from 'lucide-react';
 import ModuleAgentSidebar from '../utils/ModuleAgentSidebar';
 import { vortiqClient } from '../utils/vortiqClient';
+import dynamic from 'next/dynamic';
+const ModuleAIPanel = dynamic(() => import('../components/ai/ModuleAIPanel'), { ssr: false });
 
 interface Task {
   id: string;
@@ -699,6 +701,11 @@ export default function TasksPage() {
           </div>
         )}
 
+      </div>
+
+      {/* Real-time AI Assistant */}
+      <div className="w-full mt-4">
+        <ModuleAIPanel module="TASKS" title="Tasks & Workload Intelligence" />
       </div>
 
       <ModuleAgentSidebar 

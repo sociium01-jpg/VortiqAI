@@ -3,6 +3,9 @@ export * from './memory.service.js';
 export * from './orchestrator.js';
 export * from './business-analyst.agent.js';
 export * from './computation.js';
+export * from './providers.js';
+export * from './prompts.js';
+export * from './workflows.js';
 
 import { prisma } from '@vortiq/db';
 import { agentMemoryService } from './memory.service.js';

@@ -33,6 +33,8 @@ interface Ticket {
 }
 
 import { vortiqClient } from '../utils/vortiqClient';
+import dynamic from 'next/dynamic';
+const ModuleAIPanel = dynamic(() => import('../components/ai/ModuleAIPanel'), { ssr: false });
 
 export default function SupportPage() {
   const { user, isLoaded } = useUser();
@@ -696,6 +698,11 @@ export default function SupportPage() {
           </div>
         </div>
 
+      </div>
+
+      {/* Real AI Intelligence Panel */}
+      <div className="mt-4 mb-2">
+        <ModuleAIPanel module="SUPPORT" title="Support AI Agent" />
       </div>
 
       <ModuleAgentSidebar 

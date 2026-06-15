@@ -10,6 +10,9 @@ import {
 } from 'lucide-react';
 import { handlePrint, handleExportPDF } from '../utils/export';
 import ModuleAgentSidebar from '../utils/ModuleAgentSidebar';
+import { vortiqClient } from '../utils/vortiqClient';
+import dynamic from 'next/dynamic';
+const ModuleAIPanel = dynamic(() => import('../components/ai/ModuleAIPanel'), { ssr: false });
 
 export default function SalesPage() {
   const { user, isLoaded } = useUser();
@@ -383,6 +386,11 @@ export default function SalesPage() {
             </div>
           </div>
 
+        </div>
+
+        {/* Real-time AI Assistant */}
+        <div className="w-full mt-4">
+          <ModuleAIPanel module="CRM" title="Sales Pipeline Intelligence" />
         </div>
 
         {/* Collapsible Local Sales Agent Sidebar */}

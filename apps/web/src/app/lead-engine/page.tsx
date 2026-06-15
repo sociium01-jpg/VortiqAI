@@ -9,6 +9,9 @@ import {
   Search, RefreshCw, ArrowRight, Download, Users, Mail, Phone, ExternalLink, Plus, AlertCircle
 } from 'lucide-react';
 import ModuleAgentSidebar from '../utils/ModuleAgentSidebar';
+import { vortiqClient } from '../utils/vortiqClient';
+import dynamic from 'next/dynamic';
+const ModuleAIPanel = dynamic(() => import('../components/ai/ModuleAIPanel'), { ssr: false });
 
 interface ICPFilters {
   industries: string[];
@@ -19,8 +22,6 @@ interface ICPFilters {
   minCompanySize: number;
   maxCompanySize: number;
 }
-
-import { vortiqClient } from '../utils/vortiqClient';
 
 export default function LeadEnginePage() {
   const { user, isLoaded } = useUser();
@@ -692,6 +693,11 @@ export default function LeadEnginePage() {
             </div>
           </div>
 
+        </div>
+
+        {/* Real-time AI Assistant */}
+        <div className="w-full mt-4">
+          <ModuleAIPanel module="LEAD_ENGINE" title="Lead Acquisition Intelligence" />
         </div>
 
         {/* Collapsible Local Lead Engine Agent Sidebar */}

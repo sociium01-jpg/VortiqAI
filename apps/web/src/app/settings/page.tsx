@@ -33,6 +33,9 @@ function SettingsContent() {
   const searchParams = useSearchParams();
   const isDemo = isLoaded && user?.primaryEmailAddress?.emailAddress?.toLowerCase() === 'demo@vortiq.ai';
 
+  const [permissions, setPermissions] = useState<any[]>([]);
+  const [aiWorkflows, setAiWorkflows] = useState<any[]>([]);
+
   useEffect(() => {
     if (isLoaded) {
       if (!isDemo) {
@@ -59,6 +62,16 @@ function SettingsContent() {
             setAiModeEnabled(settings.isEnabled);
           }
         }).catch(e => console.error('Error fetching AI settings:', e));
+
+        // 3. Fetch AI permissions
+        vortiqClient.callQuery('ai.getAIPermissions').then(perms => {
+          if (perms) setPermissions(perms);
+        }).catch(e => console.error('Error fetching AI permissions:', e));
+
+        // 4. Fetch AI workflows
+        vortiqClient.callQuery('ai.getAIWorkflows').then(wfs => {
+          if (wfs) setAiWorkflows(wfs);
+        }).catch(e => console.error('Error fetching AI workflows:', e));
         
         setAiAnalysis("SettingsAgent: Live database configuration loaded successfully.");
       } else {
@@ -78,6 +91,21 @@ function SettingsContent() {
           { tier: 'Module Memory', scope: 'Kanban stages configs, lead scorers, calling rules', vectors: 0 },
           { tier: 'User Memory', scope: 'Reps dashboard preferences, email copies templates', vectors: 0 },
           { tier: 'Record-Level Memory', scope: 'Timeline transcripts, customer touchpoints, activity history', vectors: 0 }
+        ]);
+        setPermissions([
+          { id: '1', roleName: 'SUPER_ADMIN', canUseAi: true, canViewInsights: true, canRunWorkflows: true, canApprove: true, canReject: true },
+          { id: '2', roleName: 'ADMIN', canUseAi: true, canViewInsights: true, canRunWorkflows: true, canApprove: true, canReject: true },
+          { id: '3', roleName: 'MANAGER', canUseAi: true, canViewInsights: true, canRunWorkflows: true, canApprove: true, canReject: true },
+          { id: '4', roleName: 'SALES', canUseAi: true, canViewInsights: true, canRunWorkflows: true, canApprove: false, canReject: false },
+          { id: '5', roleName: 'FINANCE', canUseAi: true, canViewInsights: true, canRunWorkflows: false, canApprove: false, canReject: false },
+          { id: '6', roleName: 'VIEWER', canUseAi: false, canViewInsights: true, canRunWorkflows: false, canApprove: false, canReject: false }
+        ]);
+        setAiWorkflows([
+          { id: '1', name: 'Lead Follow-Up', triggerEvent: 'NEW_LEAD', isActive: true },
+          { id: '2', name: 'Deal Risk Detection', triggerEvent: 'STUCK_DEAL', isActive: true },
+          { id: '3', name: 'Invoice Reminder', triggerEvent: 'INVOICE_OVERDUE', isActive: true },
+          { id: '4', name: 'Support Escalation', triggerEvent: 'SUPPORT_SLA_RISK', isActive: true },
+          { id: '5', name: 'Client Churn Risk', triggerEvent: 'CLIENT_CHURN_RISK', isActive: true }
         ]);
         setAiAnalysis("SettingsAgent: Setup complete. Add your API keys and configure modules.");
       }
@@ -348,6 +376,32 @@ function SettingsContent() {
 
   const handleToggleSafetyRule = (key: keyof typeof safetyRules) => {
     setSafetyRules(prev => ({ ...prev, [key]: !prev[key] }));
+  };
+
+  const handleTogglePermission = (roleName: string, key: string, currentValue: boolean) => {
+    const nextVal = !currentValue;
+    setPermissions(prev => prev.map(p => p.roleName === roleName ? { ...p, [key]: nextVal } : p));
+    if (isDemo) return;
+    vortiqClient.callMutation('ai.upsertAIPermissions', {
+      roleName,
+      [key]: nextVal
+    }).catch(err => {
+      console.error(err);
+      setPermissions(prev => prev.map(p => p.roleName === roleName ? { ...p, [key]: currentValue } : p));
+    });
+  };
+
+  const handleToggleAIWorkflow = (id: string, currentStatus: boolean) => {
+    const nextVal = !currentStatus;
+    setAiWorkflows(prev => prev.map(w => w.id === id ? { ...w, isActive: nextVal } : w));
+    if (isDemo) return;
+    vortiqClient.callMutation('ai.updateAIWorkflow', {
+      id,
+      isActive: nextVal
+    }).catch(err => {
+      console.error(err);
+      setAiWorkflows(prev => prev.map(w => w.id === id ? { ...w, isActive: currentStatus } : w));
+    });
   };
 
   const handleClearMemory = (tier: string) => {
@@ -672,6 +726,103 @@ function SettingsContent() {
                   >
                     {aiModeEnabled ? 'AI Enabled' : 'AI Disabled (Manual)'}
                   </button>
+                </div>
+
+                {/* Role Permissions Table */}
+                <div className="space-y-3">
+                  <h4 className="text-xs font-bold text-slate-700 dark:text-slate-250 uppercase tracking-widest flex items-center gap-1.5">
+                    <ShieldCheck className="w-4.5 h-4.5 text-teal-600 dark:text-teal-400" /> AI Role-Based Permissions
+                  </h4>
+                  <div className="overflow-hidden border border-slate-200 dark:border-slate-800 rounded-2xl bg-slate-50 dark:bg-slate-950/20 text-xs">
+                    <table className="w-full text-left border-collapse">
+                      <thead>
+                        <tr className="bg-slate-100 dark:bg-slate-955 border-b border-slate-200 dark:border-slate-800 text-[9px] font-bold uppercase tracking-wider text-slate-500">
+                          <th className="p-3">Role</th>
+                          <th className="p-3 text-center">Use AI</th>
+                          <th className="p-3 text-center">Insights</th>
+                          <th className="p-3 text-center">Workflows</th>
+                          <th className="p-3 text-center">Approve</th>
+                          <th className="p-3 text-center">Reject</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-semibold text-slate-700 dark:text-slate-300">
+                        {permissions.map((perm) => (
+                          <tr key={perm.id} className="hover:bg-slate-100/50 dark:hover:bg-slate-900/30 transition-all">
+                            <td className="p-3 font-extrabold">{perm.roleName}</td>
+                            <td className="p-3 text-center">
+                              <input 
+                                type="checkbox" 
+                                checked={perm.canUseAi || false} 
+                                onChange={() => handleTogglePermission(perm.roleName, 'canUseAi', perm.canUseAi)}
+                                className="w-3.5 h-3.5 rounded text-teal-600 focus:ring-teal-500"
+                              />
+                            </td>
+                            <td className="p-3 text-center">
+                              <input 
+                                type="checkbox" 
+                                checked={perm.canViewInsights || false} 
+                                onChange={() => handleTogglePermission(perm.roleName, 'canViewInsights', perm.canViewInsights)}
+                                className="w-3.5 h-3.5 rounded text-teal-600 focus:ring-teal-500"
+                              />
+                            </td>
+                            <td className="p-3 text-center">
+                              <input 
+                                type="checkbox" 
+                                checked={perm.canRunWorkflows || false} 
+                                onChange={() => handleTogglePermission(perm.roleName, 'canRunWorkflows', perm.canRunWorkflows)}
+                                className="w-3.5 h-3.5 rounded text-teal-600 focus:ring-teal-500"
+                              />
+                            </td>
+                            <td className="p-3 text-center">
+                              <input 
+                                type="checkbox" 
+                                checked={perm.canApprove || false} 
+                                onChange={() => handleTogglePermission(perm.roleName, 'canApprove', perm.canApprove)}
+                                className="w-3.5 h-3.5 rounded text-teal-600 focus:ring-teal-500"
+                              />
+                            </td>
+                            <td className="p-3 text-center">
+                              <input 
+                                type="checkbox" 
+                                checked={perm.canReject || false} 
+                                onChange={() => handleTogglePermission(perm.roleName, 'canReject', perm.canReject)}
+                                className="w-3.5 h-3.5 rounded text-teal-600 focus:ring-teal-500"
+                              />
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                {/* Workflow Activation Toggles */}
+                <div className="space-y-3">
+                  <h4 className="text-xs font-bold text-slate-700 dark:text-slate-250 uppercase tracking-widest flex items-center gap-1.5">
+                    <Cpu className="w-4.5 h-4.5 text-teal-600 dark:text-teal-400" /> AI Workflow Orchestrator Toggles
+                  </h4>
+                  <div className="overflow-hidden border border-slate-200 dark:border-slate-800 rounded-2xl bg-slate-50 dark:bg-slate-950/20 p-4 space-y-3">
+                    {aiWorkflows.map((wf) => (
+                      <div key={wf.id} className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800/40 pb-2.5 last:border-b-0 last:pb-0 text-xs font-semibold">
+                        <div>
+                          <span className="font-extrabold text-slate-800 dark:text-slate-200">{wf.name}</span>
+                          <span className="ml-2 text-[9px] bg-slate-200 dark:bg-slate-800 text-slate-500 dark:text-slate-400 px-1.5 py-0.5 rounded font-black tracking-wider">
+                            TRIGGER: {wf.triggerEvent}
+                          </span>
+                        </div>
+                        <button 
+                          onClick={() => handleToggleAIWorkflow(wf.id, wf.isActive)}
+                          className={`flex items-center gap-1 px-3 py-1.5 border rounded-lg text-xs font-bold transition-all ${
+                            wf.isActive 
+                              ? 'bg-teal-500/10 border-teal-200 text-teal-600 dark:text-teal-400 font-extrabold' 
+                              : 'bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-400'
+                          }`}
+                        >
+                          {wf.isActive ? 'Active' : 'Paused'}
+                        </button>
+                      </div>
+                    ))}
+                  </div>
                 </div>
 
                 {/* Safety check-boxes */}
