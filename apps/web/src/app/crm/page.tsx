@@ -17,13 +17,21 @@ const ModuleAIPanel = dynamic(() => import('../components/ai/ModuleAIPanel'), { 
 
 export default function CRMPage() {
   const { user, isLoaded } = useUser();
-  const isDemo = isLoaded && user?.primaryEmailAddress?.emailAddress?.toLowerCase() === 'demo@vortiq.ai';
+  const [isDemo, setIsDemo] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const clerkDemo = isLoaded && user?.primaryEmailAddress?.emailAddress?.toLowerCase() === 'demo@vortiq.ai';
+      const localDemo = localStorage.getItem('vortiq-demo-logged-in') === 'true';
+      setIsDemo(clerkDemo || localDemo);
+    }
+  }, [isLoaded, user]);
 
   const refreshCrmData = () => {
     if (isLoaded && !isDemo) {
       // 1. Fetch contacts
       vortiqClient.callQuery('crm.contactsList', { limit: 100 }).then(res => {
-        if (res && res.contacts) {
+        if (res && res.contacts && res.contacts.length > 0) {
           setContacts(res.contacts.map((c: any) => ({
             id: c.id,
             name: `${c.firstName} ${c.lastName}`,
@@ -42,12 +50,17 @@ export default function CRMPage() {
             attachments: [],
             manualRating: 3
           })));
+        } else {
+          setContacts([]);
         }
-      }).catch(e => console.error('Error fetching contacts:', e));
+      }).catch(e => {
+        console.error('Error fetching contacts:', e);
+        setContacts([]);
+      });
 
       // 2. Fetch companies
       vortiqClient.callQuery('crm.companiesList').then(res => {
-        if (res) {
+        if (res && res.length > 0) {
           setCompanies(res.map((c: any) => ({
             id: c.id,
             name: c.name,
@@ -55,12 +68,17 @@ export default function CRMPage() {
             contacts: 1,
             dealsValue: 0
           })));
+        } else {
+          setCompanies([]);
         }
-      }).catch(e => console.error('Error fetching companies:', e));
+      }).catch(e => {
+        console.error('Error fetching companies:', e);
+        setCompanies([]);
+      });
 
       // 3. Fetch deals
       vortiqClient.callQuery('crm.dealsList').then(res => {
-        if (res) {
+        if (res && res.length > 0) {
           setDeals(res.map((d: any) => ({
             id: d.id,
             name: d.title,
@@ -68,12 +86,17 @@ export default function CRMPage() {
             amount: d.value,
             stage: d.stage?.name || 'PROSPECT'
           })));
+        } else {
+          setDeals([]);
         }
-      }).catch(e => console.error('Error fetching deals:', e));
+      }).catch(e => {
+        console.error('Error fetching deals:', e);
+        setDeals([]);
+      });
 
       // 4. Fetch meetings
       vortiqClient.callQuery('crm.meetingsList').then(res => {
-        if (res) {
+        if (res && res.length > 0) {
           setMeetings(res.map((m: any) => ({
             id: m.id,
             title: m.title,
@@ -81,13 +104,28 @@ export default function CRMPage() {
             time: m.dueAt ? new Date(m.dueAt).toLocaleString() : 'Today',
             rep: 'Rahul Sharma'
           })));
+        } else {
+          setMeetings([]);
         }
-      }).catch(e => console.error('Error fetching meetings:', e));
+      }).catch(e => {
+        console.error('Error fetching meetings:', e);
+        setMeetings([]);
+      });
     }
   };
 
   useEffect(() => {
-    refreshCrmData();
+    if (isLoaded) {
+      if (!isDemo) {
+        setContacts([]);
+        setCompanies([]);
+        setDeals([]);
+        setMeetings([]);
+        refreshCrmData();
+      } else {
+        // Keeps defaults for demo
+      }
+    }
   }, [isLoaded, isDemo]);
 
   useEffect(() => {

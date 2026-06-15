@@ -99,7 +99,7 @@ export default function ConsoleLayout({ children }: ConsoleLayoutProps) {
         if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
           return 'http://localhost:4000';
         }
-        return 'https://api.vortiq.in';
+        return process.env.NEXT_PUBLIC_API_URL || 'https://api.vortiq.in';
       };
 
       console.log(`[SSE] Connecting to live event stream for org: ${orgId}`);

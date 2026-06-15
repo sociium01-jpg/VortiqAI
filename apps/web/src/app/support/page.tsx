@@ -38,12 +38,20 @@ const ModuleAIPanel = dynamic(() => import('../components/ai/ModuleAIPanel'), { 
 
 export default function SupportPage() {
   const { user, isLoaded } = useUser();
-  const isDemo = isLoaded && user?.primaryEmailAddress?.emailAddress?.toLowerCase() === 'demo@vortiq.ai';
+  const [isDemo, setIsDemo] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const clerkDemo = isLoaded && user?.primaryEmailAddress?.emailAddress?.toLowerCase() === 'demo@vortiq.ai';
+      const localDemo = localStorage.getItem('vortiq-demo-logged-in') === 'true';
+      setIsDemo(clerkDemo || localDemo);
+    }
+  }, [isLoaded, user]);
 
   const refreshTickets = () => {
     if (isLoaded && !isDemo) {
       vortiqClient.callQuery('support.ticketsList').then(res => {
-        if (res) {
+        if (res && res.length > 0) {
           const mapped = res.map((t: any) => ({
             id: t.id,
             customer: t.customer || 'Client User',
@@ -66,16 +74,26 @@ export default function SupportPage() {
           if (mapped.length > 0) {
             setSelectedTicketId(mapped[0].id);
           }
+        } else {
+          setTickets([]);
         }
       }).catch(err => {
         console.error('Failed to load tickets:', err);
+        setTickets([]);
       });
       setAiAnalysis("SupportAgent Monitor: Connected client database loaded.");
     }
   };
 
   useEffect(() => {
-    refreshTickets();
+    if (isLoaded) {
+      if (!isDemo) {
+        setTickets([]);
+        refreshTickets();
+      } else {
+        // Keeps defaults for demo
+      }
+    }
   }, [isLoaded, isDemo]);
 
   useEffect(() => {

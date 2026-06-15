@@ -91,7 +91,15 @@ export default function TasksPage() {
   const [aiAnalysis, setAiAnalysis] = useState('TaskAgent Monitor: 3 active task tracks analyzed. TSK-003 is blocked pending completion of TSK-002. Auto-delegation rules ran: Sourced leads allocated to Amit.');
 
   const { user, isLoaded } = useUser();
-  const isDemo = isLoaded && user?.primaryEmailAddress?.emailAddress?.toLowerCase() === 'demo@vortiq.ai';
+  const [isDemo, setIsDemo] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const clerkDemo = isLoaded && user?.primaryEmailAddress?.emailAddress?.toLowerCase() === 'demo@vortiq.ai';
+      const localDemo = localStorage.getItem('vortiq-demo-logged-in') === 'true';
+      setIsDemo(clerkDemo || localDemo);
+    }
+  }, [isLoaded, user]);
 
   // Sync Task Metrics to Dashboard Telemetry
   const syncTaskMetricsToDashboard = (updatedTasks: Task[]) => {
@@ -130,7 +138,7 @@ export default function TasksPage() {
   const refreshTasks = () => {
     if (isLoaded && !isDemo) {
       vortiqClient.callQuery('tasks.tasksList').then(res => {
-        if (res) {
+        if (res && res.length > 0) {
           const mapped = res.map((t: any) => ({
             id: t.id,
             name: t.title,
@@ -143,6 +151,9 @@ export default function TasksPage() {
           }));
           setTasks(mapped);
           syncTaskMetricsToDashboard(mapped);
+        } else {
+          setTasks([]);
+          syncTaskMetricsToDashboard([]);
         }
       }).catch(err => {
         console.error('Failed to load tasks from DB, fallback to localStorage:', err);
@@ -152,7 +163,13 @@ export default function TasksPage() {
             const parsed = JSON.parse(savedTasks);
             setTasks(parsed);
             syncTaskMetricsToDashboard(parsed);
-          } catch (e) {}
+          } catch (e) {
+            setTasks([]);
+            syncTaskMetricsToDashboard([]);
+          }
+        } else {
+          setTasks([]);
+          syncTaskMetricsToDashboard([]);
         }
       });
 
@@ -175,7 +192,16 @@ export default function TasksPage() {
   };
 
   useEffect(() => {
-    refreshTasks();
+    if (isLoaded) {
+      if (!isDemo) {
+        setTasks([]);
+        setRecurringTemplates([]);
+        setDelegateRules([]);
+        refreshTasks();
+      } else {
+        // Keeps defaults for demo
+      }
+    }
   }, [isLoaded, isDemo]);
 
   useEffect(() => {

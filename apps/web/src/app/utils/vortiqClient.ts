@@ -4,7 +4,7 @@ const getApiUrl = () => {
       return 'http://localhost:4000';
     }
   }
-  return 'https://api.vortiq.in'; // Production fallback
+  return process.env.NEXT_PUBLIC_API_URL || 'https://api.vortiq.in';
 };
 
 export const vortiqClient = {

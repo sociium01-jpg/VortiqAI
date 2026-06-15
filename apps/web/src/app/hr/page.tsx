@@ -46,7 +46,15 @@ interface LeaveRequest {
 
 export default function HRPage() {
   const { user, isLoaded } = useUser();
-  const isDemo = isLoaded && user?.primaryEmailAddress?.emailAddress?.toLowerCase() === 'demo@vortiq.ai';
+  const [isDemo, setIsDemo] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const clerkDemo = isLoaded && user?.primaryEmailAddress?.emailAddress?.toLowerCase() === 'demo@vortiq.ai';
+      const localDemo = localStorage.getItem('vortiq-demo-logged-in') === 'true';
+      setIsDemo(clerkDemo || localDemo);
+    }
+  }, [isLoaded, user]);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [validationError, setValidationError] = useState('');
@@ -90,7 +98,17 @@ export default function HRPage() {
   };
 
   useEffect(() => {
-    refreshHrData();
+    if (isLoaded) {
+      if (!isDemo) {
+        setEmployees([]);
+        setLeaveRequests([]);
+        setCandidates([]);
+        setAttendance([]);
+        refreshHrData();
+      } else {
+        // Keeps defaults for demo
+      }
+    }
   }, [isLoaded, isDemo]);
 
   useEffect(() => {
