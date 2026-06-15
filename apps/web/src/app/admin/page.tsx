@@ -21,43 +21,25 @@ export default function VortiqAdminPage() {
   const [showSecret, setShowSecret] = useState<Record<string, boolean>>({});
 
   // Central Client Directory (User + Company meta, trial info, registration docs)
-  const [clients, setClients] = useState([
-    { id: 'CLI-001', name: 'Bharat Components', owner: 'Ravi Shah', email: 'ravi@bharatforge.com', plan: 'GROWTH', trialDaysLeft: 12, docUploaded: true, paymentStatus: 'TRIAL_ACTIVE', registeredName: 'Bharat Components Private Limited', gstin: '27AADCB1234F1Z5' },
-    { id: 'CLI-002', name: 'Zora Wellness', owner: 'Priya Patel', email: 'priya@tata.com', plan: 'BUSINESS', trialDaysLeft: 2, docUploaded: true, paymentStatus: 'TRIAL_ENDING_ALERT', registeredName: 'Zora Wellness Retail LLP', gstin: '27AAEZW9988G2Z1' },
-    { id: 'CLI-003', name: 'Nexus Cloud', owner: 'Amit Desai', email: 'amit@reliance.com', plan: 'STARTER', trialDaysLeft: 0, docUploaded: false, paymentStatus: 'PAYMENT_OVERDUE', registeredName: 'Nexus Cloud Solutions Pvt Ltd', gstin: '29AABCN5544H1Z9' }
-  ]);
+  const [clients, setClients] = useState<any[]>([]);
 
   // Support tickets sent from client side to troubleshooting
-  const [tickets, setTickets] = useState([
-    { id: 'TCK-201', clientName: 'Bharat Components', title: 'GST e-Invoice API connection timeout', severity: 'HIGH', status: 'OPEN', description: 'Getting 504 Gateway Timeout when calling GSTR offline schema validator.' },
-    { id: 'TCK-202', clientName: 'Zora Wellness', title: 'Shopify webhook sync issue', severity: 'MEDIUM', status: 'IN_PROGRESS', description: 'Some orders captured on Instagram store are not pushing stock sync to warehouse inventory.' }
-  ]);
+  const [tickets, setTickets] = useState<any[]>([]);
 
   // Tasks for Vortiq internal employees
-  const [tasks, setTasks] = useState([
-    { id: 'TSK-501', title: 'Verify Nexus Cloud registration documents', assignedTo: 'Vikram', priority: 'HIGH', status: 'TODO' },
-    { id: 'TSK-502', title: 'Deploy WhatsApp template for trial endings', assignedTo: 'Nisha', priority: 'MEDIUM', status: 'IN_PROGRESS' },
-    { id: 'TSK-503', title: 'Trigger Razorpay webhook testing sandbox', assignedTo: 'Vikram', priority: 'LOW', status: 'DONE' }
-  ]);
+  const [tasks, setTasks] = useState<any[]>([]);
 
   // Central finance trackers (internal Vortiq business data)
   const [financials, setFinancials] = useState({
-    paymentsDone: 245000,
-    receivables: 680000,
-    expenses: 125000
+    paymentsDone: 0,
+    receivables: 0,
+    expenses: 0
   });
 
-  const [financeEntries, setFinanceEntries] = useState([
-    { id: 'FIN-101', desc: 'Supabase DB Hosting Fee', amount: 8200, type: 'EXPENSE', date: '12/06/2026' },
-    { id: 'FIN-102', desc: 'Zora Wellness Subscription Pay', amount: 23997, type: 'RECEIVABLE', date: '14/06/2026' },
-    { id: 'FIN-103', desc: 'WhatsApp API Connector fee', amount: 15400, type: 'EXPENSE', date: '15/06/2026' }
-  ]);
+  const [financeEntries, setFinanceEntries] = useState<any[]>([]);
 
   // Vortiq internal Employee role management (with generated credentials)
-  const [employees, setEmployees] = useState([
-    { id: 'EMP-01', name: 'Vikram Mehta', email: 'vikram@vortiq.ai', role: 'Support Lead', username: 'vikram@vortiq.ai', password: 'VortiqUser-781', status: 'ACTIVE' },
-    { id: 'EMP-02', name: 'Nisha Sharma', email: 'nisha@vortiq.ai', role: 'Billing Specialist', username: 'nisha@vortiq.ai', password: 'VortiqUser-902', status: 'ACTIVE' }
-  ]);
+  const [employees, setEmployees] = useState<any[]>([]);
 
   const [newEmployeeName, setNewEmployeeName] = useState('');
   const [newEmployeeEmail, setNewEmployeeEmail] = useState('');
@@ -76,16 +58,29 @@ export default function VortiqAdminPage() {
   // Load client users from localStorage
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      const customBrandName = localStorage.getItem('vortiq-brand-name') || 'My Business';
+      const customBrandName = localStorage.getItem('vortiq-brand-name');
       const customPlan = localStorage.getItem('vortiq-plan') || 'STARTER';
       
-      const defaultClients = [
-        { id: 'CLI-001', name: 'Bharat Components', owner: 'Ravi Shah', email: 'ravi@bharatforge.com', plan: 'GROWTH', trialDaysLeft: 12, docUploaded: true, paymentStatus: 'TRIAL_ACTIVE', registeredName: 'Bharat Components Private Limited', gstin: '27AADCB1234F1Z5' },
-        { id: 'CLI-002', name: 'Zora Wellness', owner: 'Priya Patel', email: 'priya@tata.com', plan: 'BUSINESS', trialDaysLeft: 2, docUploaded: true, paymentStatus: 'TRIAL_ENDING_ALERT', registeredName: 'Zora Wellness Retail LLP', gstin: '27AAEZW9988G2Z1' },
-        { id: 'CLI-003', name: 'Nexus Cloud', owner: 'Amit Desai', email: 'amit@reliance.com', plan: 'STARTER', trialDaysLeft: 0, docUploaded: false, paymentStatus: 'PAYMENT_OVERDUE', registeredName: 'Nexus Cloud Solutions Pvt Ltd', gstin: '29AABCN5544H1Z9' },
-        { id: 'CLI-004', name: customBrandName, owner: 'Onboarding Owner', email: 'owner@vortiq.ai', plan: customPlan, trialDaysLeft: 14, docUploaded: false, paymentStatus: 'TRIAL_ACTIVE', registeredName: `${customBrandName} Private Limited`, gstin: '27AABCV1234E1Z0' }
-      ];
-      setClients(defaultClients);
+      const defaultClients = [];
+      if (customBrandName) {
+        defaultClients.push({
+          id: 'CLI-004',
+          name: customBrandName,
+          owner: 'Onboarding Owner',
+          email: 'owner@vortiq.ai',
+          plan: customPlan,
+          trialDaysLeft: 14,
+          docUploaded: false,
+          paymentStatus: 'TRIAL_ACTIVE',
+          registeredName: `${customBrandName} Private Limited`,
+          gstin: '27AABCV1234E1Z0'
+        });
+        setClients(defaultClients);
+        setSelectedClientId('CLI-004');
+      } else {
+        setClients([]);
+        setSelectedClientId('');
+      }
 
       let allUsers = [];
       const saved = localStorage.getItem('vortiq-all-client-users');
@@ -96,13 +91,7 @@ export default function VortiqAdminPage() {
           // ignore
         }
       } else {
-        allUsers = [
-          { id: "usr-01", clientId: "CLI-001", clientName: "Bharat Components", name: "Ravi Shah", email: "ravi@bharatforge.com", role: "Super Admin", password: "Password123", status: "Active" },
-          { id: "usr-02", clientId: "CLI-001", clientName: "Bharat Components", name: "Sunil Kumar", email: "sunil@bharatforge.com", role: "Sales Rep", password: "Password123", status: "Active" },
-          { id: "usr-03", clientId: "CLI-002", clientName: "Zora Wellness", name: "Priya Patel", email: "priya@tata.com", role: "Super Admin", password: "Password123", status: "Active" },
-          { id: "usr-04", clientId: "CLI-002", clientName: "Zora Wellness", name: "Rahul Sen", email: "rahul@vortiq.ai", role: "Sales Rep", password: "Password123", status: "Active" },
-          { id: "usr-05", clientId: "CLI-002", clientName: "Zora Wellness", name: "Sneha Rao", email: "sneha@vortiq.ai", role: "Marketing Manager", password: "Password123", status: "Active" }
-        ];
+        allUsers = [];
         localStorage.setItem('vortiq-all-client-users', JSON.stringify(allUsers));
       }
       setClientUsers(allUsers);
@@ -110,7 +99,7 @@ export default function VortiqAdminPage() {
   }, [isAdminLoggedIn, activeTab]);
 
   const activeClient = clients.find(c => c.id === selectedClientId) || clients[0];
-  const activeClientPlan = activeClient.plan;
+  const activeClientPlan = activeClient?.plan || 'STARTER';
   const planLimits: Record<string, number> = {
     'STARTER': 3,
     'GROWTH': 15,
@@ -123,6 +112,11 @@ export default function VortiqAdminPage() {
   const handleAddClientUser = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newClientUserName.trim() || !newClientUserEmail.trim()) return;
+
+    if (!activeClient) {
+      alert('No active client found. Please onboard a client first.');
+      return;
+    }
 
     if (activeClientUsers.length >= activeClientLimit) {
       alert(`Limit reached! Client plan ${activeClientPlan} allows a maximum of ${activeClientLimit} team members. Upgrade client package or remove a user first.`);
@@ -250,18 +244,18 @@ export default function VortiqAdminPage() {
     const lower = prompt.toLowerCase();
     if (lower.includes('health') || lower.includes('churn') || lower.includes('risk')) {
       return {
-        answer: "Admin Agent: Executed churn forecast. Nexus Cloud is flagged HIGH RISK (Usage drops > 35%, 1 critical open ticket #TCK-201). Recommend CS team outreach and manual grace-period extension.",
+        answer: "Admin Agent: Executed churn forecast. No clients are currently flagged as high risk.",
         logs: "Calculated client success health indexes."
       };
     }
     if (lower.includes('ticket') || lower.includes('assign') || lower.includes('reply')) {
       return {
-        answer: "Admin Agent: Suggested ticket assignment for TCK-201: Route to technical owner Rahul Sen (SLA: 12m remaining). Auto-drafted client reply: 'Our team is investigating the GST e-Invoice Gateway timeout, expected fix in 30 minutes.'",
+        answer: "Admin Agent: No open support tickets found to assign or reply to.",
         logs: "Prepared support routing instructions."
       };
     }
     return {
-      answer: "Admin Agent: Scanning client registries and license crons. You can ask me to 'summarize health risks' or 'route open tickets'.",
+      answer: "Admin Agent: Scanning client registries and license crons. You can ask me to 'summarize health risks' or 'check open tickets'.",
       logs: "Audited client trials database."
     };
   };
@@ -1100,13 +1094,12 @@ export default function VortiqAdminPage() {
           permissionsScope="Permissions Scope: Read client subscriptions logs, audit DND calling hours compliance, access KYC doc registers, draft client troubleshooting responses."
           suggestedPrompts={[
             "summarize client health risks",
-            "route open ticket TCK-201",
+            "check open tickets",
             "show active trial timelines"
           ]}
           defaultMemoryLogs={[
             "Vortiq Admin Agent online.",
-            "Scanned 3 client directories. Flagged 1 client (Nexus Cloud) at high churn risk.",
-            "Awaiting manual validation to route support ticket TCK-201."
+            "Awaiting client connections and onboarding telemetry."
           ]}
           mockResponseMapper={vortiqAdminMockResponse}
         />

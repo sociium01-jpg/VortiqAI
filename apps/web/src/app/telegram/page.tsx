@@ -1,17 +1,32 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useUser } from '@clerk/nextjs';
 import ConsoleLayout from '../ConsoleLayout';
 import { 
   MessageSquare, UserCheck, Key, Shield, AlertCircle, RefreshCw
 } from 'lucide-react';
 
 export default function TelegramPage() {
+  const { user, isLoaded } = useUser();
   const [pairingCode, setPairingCode] = useState('482910');
-  const [sessions] = useState([
-    { id: 1, name: 'Amit Sharma (CEO)', username: '@amit_vortiq', pairedAt: 'June 10, 2026', status: 'ACTIVE' },
-    { id: 2, name: 'Priya Patel (Sales)', username: '@priya_vortiq', pairedAt: 'June 12, 2026', status: 'ACTIVE' }
-  ]);
+  const [sessions, setSessions] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const clerkDemo = isLoaded && user?.primaryEmailAddress?.emailAddress?.toLowerCase() === 'demo@vortiq.ai';
+      const localDemo = localStorage.getItem('vortiq-demo-logged-in') === 'true';
+      const resolvedDemo = clerkDemo || localDemo;
+      if (resolvedDemo) {
+        setSessions([
+          { id: 1, name: 'Amit Sharma (CEO)', username: '@amit_vortiq', pairedAt: 'June 10, 2026', status: 'ACTIVE' },
+          { id: 2, name: 'Priya Patel (Sales)', username: '@priya_vortiq', pairedAt: 'June 12, 2026', status: 'ACTIVE' }
+        ]);
+      } else {
+        setSessions([]);
+      }
+    }
+  }, [isLoaded, user]);
 
   const generateCode = () => {
     setPairingCode(String(Math.floor(100000 + Math.random() * 900000)));
@@ -58,17 +73,21 @@ export default function TelegramPage() {
           </h3>
 
           <div className="space-y-3">
-            {sessions.map((s) => (
-              <div key={s.id} className="p-4 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-between">
-                <div>
-                  <h4 className="text-xs font-extrabold text-white">{s.name}</h4>
-                  <p className="text-[10px] text-slate-500">Username: {s.username} • Paired: {s.pairedAt}</p>
+            {sessions.length === 0 ? (
+              <p className="text-xs text-slate-500 italic py-4 text-center">No paired Telegram sessions found. Link a user profile via the pairing bot to get started.</p>
+            ) : (
+              sessions.map((s) => (
+                <div key={s.id} className="p-4 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-between">
+                  <div>
+                    <h4 className="text-xs font-extrabold text-white">{s.name}</h4>
+                    <p className="text-[10px] text-slate-500">Username: {s.username} • Paired: {s.pairedAt}</p>
+                  </div>
+                  <span className="px-2 py-0.5 text-[9px] font-black rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                    {s.status}
+                  </span>
                 </div>
-                <span className="px-2 py-0.5 text-[9px] font-black rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                  {s.status}
-                </span>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </div>
 

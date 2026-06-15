@@ -93,13 +93,7 @@ function SettingsContent() {
           // ignore
         }
       } else {
-        allUsers = [
-          { id: "usr-01", clientId: "CLI-001", clientName: "Bharat Components", name: "Ravi Shah", email: "ravi@bharatforge.com", role: "Super Admin", password: "Password123", status: "Active" },
-          { id: "usr-02", clientId: "CLI-001", clientName: "Bharat Components", name: "Sunil Kumar", email: "sunil@bharatforge.com", role: "Sales Rep", password: "Password123", status: "Active" },
-          { id: "usr-03", clientId: "CLI-002", clientName: "Zora Wellness", name: "Priya Patel", email: "priya@tata.com", role: "Super Admin", password: "Password123", status: "Active" },
-          { id: "usr-04", clientId: "CLI-002", clientName: "Zora Wellness", name: "Rahul Sen", email: "rahul@vortiq.ai", role: "Sales Rep", password: "Password123", status: "Active" },
-          { id: "usr-05", clientId: "CLI-002", clientName: "Zora Wellness", name: "Sneha Rao", email: "sneha@vortiq.ai", role: "Marketing Manager", password: "Password123", status: "Active" }
-        ];
+        allUsers = [];
         localStorage.setItem('vortiq-all-client-users', JSON.stringify(allUsers));
       }
 
