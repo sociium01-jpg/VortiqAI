@@ -18,9 +18,10 @@ export class BusinessAnalystAgent {
     const dealsWon = await prisma.deal.count({ where: { organisationId, stage: { isWon: true } } });
     const totalDeals = await prisma.deal.count({ where: { organisationId } });
     const tasksOverdue = await prisma.task.count({ where: { organisationId, status: { not: 'DONE' }, dueAt: { lt: new Date() } } });
-    const lowStock = await prisma.inventoryItem.count({
-      where: { organisationId, quantity: { lte: prisma.inventoryItem.fields.reorderPoint } }
+    const allItems = await prisma.inventoryItem.findMany({
+      where: { organisationId }
     });
+    const lowStock = allItems.filter(item => item.quantity <= item.reorderPoint).length;
 
     const salesScore = Math.max(50, Math.min(100, 70 + (dealsWon / (totalDeals || 1)) * 30));
     const marketingScore = Math.max(50, Math.min(100, 80 - (salesCount === 0 ? 20 : 0)));

@@ -85,15 +85,13 @@ export async function executeVortiqSkill(req: SkillRequest): Promise<any> {
       }
 
       case 'query_inventory': {
-        const lowStock = await prisma.inventoryItem.findMany({
+        const allItems = await prisma.inventoryItem.findMany({
           where: {
             organisationId,
-            deletedAt: null,
-            quantity: {
-              lte: prisma.inventoryItem.fields.reorderPoint
-            }
+            deletedAt: null
           }
         });
+        const lowStock = allItems.filter(item => item.quantity <= item.reorderPoint);
         result = { lowStock };
         break;
       }

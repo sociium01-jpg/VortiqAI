@@ -93,13 +93,12 @@ export class SupportAgent {
 // 6. Ops Agent
 export class OpsAgent {
   async checkReorderLevels(organisationId: string): Promise<any[]> {
-    const items = await prisma.inventoryItem.findMany({
+    const allItems = await prisma.inventoryItem.findMany({
       where: {
-        organisationId,
-        quantity: { lte: prisma.inventoryItem.fields.reorderPoint }
+        organisationId
       }
     });
-    return items;
+    return allItems.filter(item => item.quantity <= item.reorderPoint);
   }
 
   async draftPurchaseOrder(itemId: string, qty: number): Promise<any> {

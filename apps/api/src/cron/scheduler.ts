@@ -186,12 +186,12 @@ cron.schedule('*/30 * * * *', async () => {
   const orgIds = await getActiveOrgIds();
   for (const orgId of orgIds) {
     try {
-      const lowStockItems = await prisma.inventoryItem.findMany({
+      const allItems = await prisma.inventoryItem.findMany({
         where: {
-          organisationId: orgId,
-          quantity: { lte: prisma.inventoryItem.fields.reorderPoint }
+          organisationId: orgId
         }
       });
+      const lowStockItems = allItems.filter(item => item.quantity <= item.reorderPoint);
       if (lowStockItems.length > 0) {
         const users = await getOrgUsers(orgId);
         const ops = users.find(u => u.role === 'OPS' || u.role === 'CEO');

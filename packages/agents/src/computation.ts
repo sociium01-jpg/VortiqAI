@@ -204,13 +204,13 @@ export async function computeBusinessMetrics(organisationId: string) {
   });
   const stockLevels = stockAggregation._sum.quantity || 0;
 
-  const lowStockAlerts = await prisma.inventoryItem.count({
+  const allInventoryItems = await prisma.inventoryItem.findMany({
     where: {
       organisationId,
-      deletedAt: null,
-      quantity: { lte: prisma.inventoryItem.fields.reorderPoint }
+      deletedAt: null
     }
   });
+  const lowStockAlerts = allInventoryItems.filter(item => item.quantity <= item.reorderPoint).length;
 
   // HR & Attendance
   const startOfToday = new Date();
@@ -447,14 +447,14 @@ export async function computeInventoryMetrics(organisationId: string) {
     where: { organisationId, deletedAt: null }
   });
 
-  const lowStockItems = await prisma.inventoryItem.findMany({
+  const allInventoryItems = await prisma.inventoryItem.findMany({
     where: {
       organisationId,
       deletedAt: null,
-      quantity: { lte: prisma.inventoryItem.fields.reorderPoint }
     },
     select: { id: true, name: true, quantity: true, reorderPoint: true }
   });
+  const lowStockItems = allInventoryItems.filter(item => item.quantity <= item.reorderPoint);
 
   const pendingPOs = await prisma.purchaseOrder.count({
     where: { organisationId, status: { in: ['DRAFT', 'PENDING'] }, deletedAt: null }

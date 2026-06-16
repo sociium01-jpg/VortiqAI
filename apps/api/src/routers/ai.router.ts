@@ -592,10 +592,10 @@ AI AGENT PERFORMANCE:
       }));
 
       if (recommendations.length < 3) {
-        const lowStockItems = await prisma.inventoryItem.findMany({
-          where: { organisationId: orgId, quantity: { lte: prisma.inventoryItem.fields.reorderPoint }, deletedAt: null },
-          take: 1
+        const allItems = await prisma.inventoryItem.findMany({
+          where: { organisationId: orgId, deletedAt: null }
         });
+        const lowStockItems = allItems.filter(item => item.quantity <= item.reorderPoint);
         if (lowStockItems.length > 0) {
           recommendations.push({
             id: `db-rec-stock-${lowStockItems[0].id}`,
