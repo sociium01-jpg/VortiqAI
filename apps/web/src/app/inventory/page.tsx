@@ -7,14 +7,23 @@ import ConsoleLayout, { formatINR } from '../ConsoleLayout';
 import { 
   Package, Plus, Sparkles, Brain, AlertTriangle, 
   Trash2, Eye, Truck, Check, RefreshCw, FileText, ArrowRight,
-  TrendingDown, ShieldAlert, ArrowUpRight, ArrowDownRight, Layers
+  TrendingDown, ShieldAlert, ArrowUpRight, ArrowDownRight, Layers,
+  Filter, Settings, X
 } from 'lucide-react';
 import ModuleAgentSidebar from '../utils/ModuleAgentSidebar';
 import { vortiqClient } from '../utils/vortiqClient';
 import dynamic from 'next/dynamic';
 const ModuleAIPanel = dynamic(() => import('../components/ai/ModuleAIPanel'), { ssr: false });
+const DataImportWizard = dynamic(() => import('../components/DataImportWizard'), { ssr: false });
+const DataExportModal = dynamic(() => import('../components/DataExportModal'), { ssr: false });
+const FilterBuilder = dynamic(() => import('../components/FilterBuilder'), { ssr: false });
+const CustomFieldManager = dynamic(() => import('../components/CustomFieldManager'), { ssr: false });
+const DocumentAttachmentPanel = dynamic(() => import('../components/DocumentAttachmentPanel'), { ssr: false });
+const RelatedRecordsPanel = dynamic(() => import('../components/RelatedRecordsPanel'), { ssr: false });
+const AuditHistoryPanel = dynamic(() => import('../components/AuditHistoryPanel'), { ssr: false });
 
 interface SKU {
+  id?: string;
   code: string;
   name: string;
   category: string;
@@ -54,25 +63,90 @@ export default function InventoryPage() {
   const { user, isLoaded } = useUser();
   const isDemo = isLoaded && user?.primaryEmailAddress?.emailAddress?.toLowerCase() === 'demo@vortiq.ai';
 
-  useEffect(() => {
+  // Universal Data Import, Export, Search, Filter states
+  const [showImportWizard, setShowImportWizard] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [showFilterBuilder, setShowFilterBuilder] = useState(false);
+  const [showCustomFields, setShowCustomFields] = useState(false);
+  const [appliedFilters, setAppliedFilters] = useState<any>({});
+  const [selectedSKU, setSelectedSKU] = useState<SKU | null>(null);
+
+
+
+  const refreshInventoryData = () => {
     if (isLoaded && !isDemo) {
-      setSkus([]);
-      setPurchaseOrders([]);
-      setDispatches([]);
-      setHistory([]);
-      setAiAnalysis("Stock Analysis: Inventory ledger is empty. Register SKU parts to run automated replenishment scans.");
+      vortiqClient.callQuery('inventory.skusList').then((res: any) => {
+        if (res && res.length > 0) {
+          setSkus(res.map((s: any) => ({
+            id: s.id,
+            code: s.skuCode,
+            name: s.name,
+            category: 'Metals',
+            quantity: 10,
+            reorderPoint: s.reorderPoint || 10,
+            unit: 'Units',
+            location: 'Warehouse A',
+            costPrice: s.costPrice || 0,
+            sellingPrice: s.sellingPrice || 0,
+            gstRate: 18,
+            hsnCode: '8481.80',
+            vendor: 'General Supplier'
+          })));
+        } else {
+          setSkus([]);
+        }
+      }).catch(e => {
+        console.error('Error fetching inventory SKUs:', e);
+        setSkus([]);
+      });
+    }
+  };
+
+  useEffect(() => {
+    if (isLoaded) {
+      if (!isDemo) {
+        setSkus([]);
+        setPurchaseOrders([]);
+        setDispatches([]);
+        setHistory([]);
+        refreshInventoryData();
+      }
     }
   }, [isLoaded, isDemo]);
+
+  useEffect(() => {
+    if (isDemo) return;
+    const handleDataChange = () => {
+      refreshInventoryData();
+    };
+    window.addEventListener('vortiq-data-change', handleDataChange);
+    return () => {
+      window.removeEventListener('vortiq-data-change', handleDataChange);
+    };
+  }, [isDemo, isLoaded]);
 
   const [activeTab, setActiveTab] = useState<'catalog' | 'inwards' | 'orders' | 'shipping'>('catalog');
 
   // SKUs List
   const [skus, setSkus] = useState<SKU[]>([
-    { code: 'RAW-STEEL-V4', name: 'Raw Sheet Metal V4', category: 'Metals', quantity: 2, reorderPoint: 10, unit: 'Tons', location: 'Warehouse A', costPrice: 45000, sellingPrice: 58000, gstRate: 18, hsnCode: '7208.51', vendor: 'Jindal Steel' },
-    { code: 'ALUM-ROD-G2', name: 'Aluminium Extrusion Rod G2', category: 'Metals', quantity: 45, reorderPoint: 15, unit: 'Units', location: 'Warehouse A', costPrice: 1200, sellingPrice: 1800, gstRate: 18, hsnCode: '7604.21', vendor: 'Hindalco Industries' },
-    { code: 'COP-WIRE-C1', name: 'Copper Wire Coils C1', category: 'Electrical', quantity: 8, reorderPoint: 10, unit: 'Coils', location: 'Warehouse B', costPrice: 8500, sellingPrice: 11200, gstRate: 12, hsnCode: '7408.11', vendor: 'Finolex Cables' },
-    { code: 'STEEL-FAST-M8', name: 'M8 Heavy Fasteners Pack', category: 'Hardware', quantity: 230, reorderPoint: 50, unit: 'Packs', location: 'Warehouse A', costPrice: 450, sellingPrice: 650, gstRate: 18, hsnCode: '7318.15', vendor: 'LPS Bossard' }
+    { id: '20c785de-d8d4-4a6f-9721-36b0df44db31', code: 'RAW-STEEL-V4', name: 'Raw Sheet Metal V4', category: 'Metals', quantity: 2, reorderPoint: 10, unit: 'Tons', location: 'Warehouse A', costPrice: 45000, sellingPrice: 58000, gstRate: 18, hsnCode: '7208.51', vendor: 'Jindal Steel' },
+    { id: '40f1a0fb-d4ad-4d10-a92c-6331fa2e0fe6', code: 'ALUM-ROD-G2', name: 'Aluminium Extrusion Rod G2', category: 'Metals', quantity: 45, reorderPoint: 15, unit: 'Units', location: 'Warehouse A', costPrice: 1200, sellingPrice: 1800, gstRate: 18, hsnCode: '7604.21', vendor: 'Hindalco Industries' },
+    { id: 'b567d1db-0433-4fde-b565-d05e55e09f5f', code: 'COP-WIRE-C1', name: 'Copper Wire Coils C1', category: 'Electrical', quantity: 8, reorderPoint: 10, unit: 'Coils', location: 'Warehouse B', costPrice: 8500, sellingPrice: 11200, gstRate: 12, hsnCode: '7408.11', vendor: 'Finolex Cables' },
+    { id: '96b8296a-0f8b-4cde-bb7b-891df99b24ff', code: 'STEEL-FAST-M8', name: 'M8 Heavy Fasteners Pack', category: 'Hardware', quantity: 230, reorderPoint: 50, unit: 'Packs', location: 'Warehouse A', costPrice: 450, sellingPrice: 650, gstRate: 18, hsnCode: '7318.15', vendor: 'LPS Bossard' }
   ]);
+
+  const filteredSkus = skus.filter(s => {
+    let matchesAdvanced = true;
+    if (appliedFilters.search) {
+      const q = appliedFilters.search.toLowerCase();
+      matchesAdvanced = matchesAdvanced && (
+        s.code.toLowerCase().includes(q) || 
+        s.name.toLowerCase().includes(q) || 
+        s.category.toLowerCase().includes(q)
+      );
+    }
+    return matchesAdvanced;
+  });
 
   // Purchase Orders
   const [purchaseOrders, setPurchaseOrders] = useState<PurchaseOrder[]>([
@@ -245,8 +319,33 @@ export default function InventoryPage() {
 
           <div className="flex gap-2">
             <button 
+              onClick={() => setShowFilterBuilder(!showFilterBuilder)}
+              className={`p-2.5 border rounded-xl transition-all shadow-sm ${showFilterBuilder ? 'bg-indigo-500/10 border-indigo-500/20 text-indigo-400' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'}`}
+              title="Advanced Filters"
+            >
+              <Filter className="w-4 h-4" />
+            </button>
+            <button 
+              onClick={() => setShowCustomFields(true)}
+              className="p-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white rounded-xl transition-all shadow-sm"
+              title="Custom Fields Manager"
+            >
+              <Settings className="w-4 h-4" />
+            </button>
+            <button 
+              onClick={() => setShowImportWizard(true)}
+              className="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-xl transition-all"
+            >
+              Import CSV
+            </button>
+            <button 
+              onClick={() => setShowExportModal(true)}
+              className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-xl transition-all"
+            >
+              Export CSV
+            </button>
+            <button 
               onClick={() => {
-                setIsInwarding(true);
                 setIsAdding(false);
               }}
               className="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-900 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-bold transition-all"
@@ -509,10 +608,16 @@ export default function InventoryPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 dark:divide-slate-900 text-xs">
-                    {skus.map((s) => {
+                    {filteredSkus.map((s) => {
                       const isLow = s.quantity <= s.reorderPoint;
                       return (
-                        <tr key={s.code} className="hover:bg-slate-50/50 dark:hover:bg-slate-950/10 text-slate-700 dark:text-slate-300 font-medium">
+                        <tr 
+                          key={s.code} 
+                          className={`hover:bg-slate-50/50 dark:hover:bg-slate-950/10 text-slate-700 dark:text-slate-300 font-medium cursor-pointer transition-colors ${
+                            selectedSKU?.code === s.code ? 'bg-slate-100/60 dark:bg-slate-800/30' : ''
+                          }`}
+                          onClick={() => setSelectedSKU(s)}
+                        >
                           <td className="p-4 font-bold text-slate-900 dark:text-slate-100">{s.code}</td>
                           <td className="p-4">
                             <div>
@@ -741,6 +846,116 @@ export default function InventoryPage() {
         ]}
         mockResponseMapper={inventoryMockResponse}
       />
+
+        {/* Modals and Wizards */}
+        {showImportWizard && (
+          <DataImportWizard 
+            module="INVENTORY_ITEMS"
+            onClose={() => setShowImportWizard(false)}
+            onSuccess={() => refreshInventoryData()}
+          />
+        )}
+
+        {showExportModal && (
+          <DataExportModal 
+            module="INVENTORY_ITEMS"
+            filters={appliedFilters}
+            onClose={() => setShowExportModal(false)}
+          />
+        )}
+
+        {showCustomFields && (
+          <CustomFieldManager 
+            module="INVENTORY_ITEMS"
+            onClose={() => setShowCustomFields(false)}
+          />
+        )}
+
+        {showFilterBuilder && (
+          <div className="fixed inset-y-0 right-0 z-45 bg-[#0f172a] shadow-2xl transition-all border-l border-slate-850">
+            <FilterBuilder 
+              module="INVENTORY_ITEMS"
+              onApply={(f) => {
+                setAppliedFilters(f);
+                setShowFilterBuilder(false);
+              }}
+              onClose={() => setShowFilterBuilder(false)}
+            />
+          </div>
+        )}
+
+        {selectedSKU && (
+          <div className="w-96 bg-white dark:bg-slate-900/40 border border-slate-200 dark:border-slate-900 rounded-3xl p-5 shadow-lg space-y-5 flex flex-col justify-between shrink-0 animate-fadeIn">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-900 pb-3">
+                <span className="text-xs font-black uppercase text-slate-400 tracking-wider">SKU Detail File</span>
+                <button onClick={() => setSelectedSKU(null)} className="p-1 hover:bg-slate-100 dark:hover:bg-slate-900 rounded-lg text-slate-400 dark:text-slate-500">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Header profile details */}
+              <div>
+                <h4 className="text-sm font-black text-slate-900 dark:text-white">{selectedSKU.name}</h4>
+                <p className="text-xs text-slate-500 mt-0.5">Code: {selectedSKU.code} • Category: {selectedSKU.category}</p>
+                <div className="mt-2 flex flex-col gap-2 border bg-slate-50 dark:bg-slate-950 p-3 rounded-2xl">
+                  <div className="flex items-center justify-between text-xs text-slate-600 dark:text-slate-400">
+                    <span className={`px-2 py-0.5 rounded text-[9px] font-bold border ${
+                      selectedSKU.quantity <= selectedSKU.reorderPoint 
+                        ? 'bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/25' 
+                        : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/25'
+                    }`}>
+                      {selectedSKU.quantity <= selectedSKU.reorderPoint ? 'Low Stock' : 'In Stock'}
+                    </span>
+                    <span>Qty: <b className="text-slate-800 dark:text-white">{selectedSKU.quantity} {selectedSKU.unit || 'Units'}</b></span>
+                  </div>
+                </div>
+              </div>
+
+              {/* SKU Info */}
+              <div className="space-y-2 text-xs font-semibold text-slate-500 dark:text-slate-400">
+                <div className="flex justify-between border-b border-slate-100 dark:border-slate-900 pb-1">
+                  <span>Warehouse Location:</span>
+                  <span className="text-slate-800 dark:text-slate-250">{selectedSKU.location}</span>
+                </div>
+                <div className="flex justify-between border-b border-slate-100 dark:border-slate-900 pb-1">
+                  <span>Reorder Point:</span>
+                  <span className="text-slate-800 dark:text-slate-250">{selectedSKU.reorderPoint}</span>
+                </div>
+                <div className="flex justify-between border-b border-slate-100 dark:border-slate-900 pb-1">
+                  <span>Preferred Vendor:</span>
+                  <span className="text-slate-800 dark:text-slate-250">{selectedSKU.vendor}</span>
+                </div>
+                <div className="flex justify-between border-b border-slate-100 dark:border-slate-900 pb-1">
+                  <span>Cost Price:</span>
+                  <span className="text-slate-800 dark:text-slate-250">{formatINR(selectedSKU.costPrice)}</span>
+                </div>
+                <div className="flex justify-between border-b border-slate-100 dark:border-slate-900 pb-1">
+                  <span>Selling Price:</span>
+                  <span className="text-slate-800 dark:text-slate-250">{formatINR(selectedSKU.sellingPrice)}</span>
+                </div>
+                <div className="flex justify-between border-b border-slate-100 dark:border-slate-900 pb-1">
+                  <span>GST Rate:</span>
+                  <span className="text-slate-800 dark:text-slate-250">{selectedSKU.gstRate}%</span>
+                </div>
+                <div className="flex justify-between border-b border-slate-100 dark:border-slate-900 pb-1">
+                  <span>HSN Code:</span>
+                  <span className="text-slate-800 dark:text-slate-250">{selectedSKU.hsnCode}</span>
+                </div>
+              </div>
+
+              {/* Data Relationship & Attachments panels */}
+              {selectedSKU.id && (
+                <div className="border-t border-slate-100 dark:border-slate-900 pt-4 space-y-4">
+                  <DocumentAttachmentPanel module="INVENTORY_SKUS" recordId={selectedSKU.id} />
+                  <RelatedRecordsPanel module="INVENTORY_SKUS" recordId={selectedSKU.id} />
+                  <AuditHistoryPanel module="INVENTORY_SKUS" recordId={selectedSKU.id} />
+                </div>
+              )}
+
+            </div>
+          </div>
+        )}
 
       </div>
     </ConsoleLayout>

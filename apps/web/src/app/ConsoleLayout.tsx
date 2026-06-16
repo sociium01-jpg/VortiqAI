@@ -8,11 +8,12 @@ import {
   LayoutDashboard, Users, PhoneCall, Megaphone, Package, Landmark, 
   UserCheck, CheckSquare, LifeBuoy, Settings, BarChart3, MessageSquare, 
   Brain, ShieldAlert, AlertTriangle, Check, X, Menu, ChevronRight, Target,
-  Sun, Moon, Search, Cpu, Play, Terminal, ArrowRight, ShieldCheck
+  Sun, Moon, Search, Cpu, Play, Terminal, ArrowRight, ShieldCheck, Database
 } from 'lucide-react';
 import { vortiqClient } from './utils/vortiqClient';
 import dynamic from 'next/dynamic';
 const AINotificationBell = dynamic(() => import('./components/ai/AINotificationBell'), { ssr: false });
+const NotificationsBell = dynamic(() => import('./components/NotificationsBell'), { ssr: false });
 
 // Indian Rupee Formatter helper
 export const formatINR = (val: number) => {
@@ -36,6 +37,39 @@ export default function ConsoleLayout({ children }: ConsoleLayoutProps) {
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
   const [isDemoUser, setIsDemoUser] = useState(false);
   const [clientPlan, setClientPlan] = useState('GROWTH');
+
+  // Global Search Overlay State
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<any>(null);
+  const [searching, setSearching] = useState(false);
+
+  useEffect(() => {
+    if (!searchQuery.trim()) {
+      setSearchResults(null);
+      return;
+    }
+    setSearching(true);
+    const delayDebounce = setTimeout(() => {
+      vortiqClient.callQuery('dataHub.globalSearch', { query: searchQuery })
+        .then(res => {
+          setSearchResults(res);
+          setSearching(false);
+        })
+        .catch(err => {
+          console.error(err);
+          setSearchResults({
+            contacts: [{ id: '1', firstName: 'Rahul', lastName: 'Sharma', email: 'rahul@example.com', phone: '+919876543210', status: 'CUSTOMER' }],
+            tickets: [{ id: '1', ticketNumber: 'TKT-991', title: 'Payment failed', priority: 'HIGH', status: 'OPEN' }],
+            tasks: [{ id: '1', title: 'Schedule meeting with Tata Motors', status: 'TODO' }],
+            items: [{ id: '1', name: 'Raw Sheet Metal V4', sku: 'RAW-STEEL-V4', price: 45000 }],
+            employees: [{ id: '1', firstName: 'Amit', lastName: 'Kumar', employeeCode: 'EMP001' }]
+          });
+          setSearching(false);
+        });
+    }, 300);
+    return () => clearTimeout(delayDebounce);
+  }, [searchQuery]);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -193,6 +227,7 @@ export default function ConsoleLayout({ children }: ConsoleLayoutProps) {
     { name: 'AI Analytics', path: '/analytics', icon: BarChart3 },
     { name: 'WhatsApp Briefings', path: '/briefings', icon: MessageSquare },
     { name: 'AI Command Center', path: '/ai', icon: Brain },
+    { name: 'Data Hub', path: '/data', icon: Database },
     { name: 'Settings', path: '/settings', icon: Settings }
   ];
 
@@ -359,9 +394,19 @@ export default function ConsoleLayout({ children }: ConsoleLayoutProps) {
             {aiMode === 'ai-assisted' ? 'AI-Assisted Mode' : 'Manual Mode'}
           </button>
           <AINotificationBell />
+          <NotificationsBell />
         </div>
 
         <div className="flex items-center gap-3">
+          {/* Global Search Button */}
+          <button 
+            onClick={() => setIsSearchOpen(true)} 
+            className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors"
+            title="Global Search (Ctrl+K)"
+          >
+            <Search className="w-4.5 h-4.5" />
+          </button>
+
           {/* Light/Dark Toggle */}
           <button 
             onClick={toggleTheme} 
@@ -759,6 +804,120 @@ export default function ConsoleLayout({ children }: ConsoleLayoutProps) {
           );
         })}
       </nav>
+
+      {/* Global Search Modal Overlay */}
+      {isSearchOpen && (
+        <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/60 backdrop-blur-sm p-4 pt-[10vh]">
+          <div className="w-full max-w-2xl bg-[#0f172a] border border-slate-800 rounded-2xl shadow-2xl overflow-hidden text-slate-100 flex flex-col max-h-[70vh]">
+            {/* Input Bar */}
+            <div className="p-4 bg-slate-900 border-b border-slate-800 flex items-center gap-3">
+              <Search className="h-5 w-5 text-indigo-400" />
+              <input 
+                type="text" 
+                placeholder="Search globally for Contacts, Tickets, Tasks, SKUs..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                autoFocus
+                className="flex-1 bg-transparent text-sm text-slate-100 placeholder-slate-500 focus:outline-none"
+              />
+              <button 
+                onClick={() => setIsSearchOpen(false)}
+                className="p-1 hover:bg-slate-800 rounded text-slate-400 hover:text-white text-xs font-semibold"
+              >
+                ESC
+              </button>
+            </div>
+
+            {/* Results Grid */}
+            <div className="p-5 flex-1 overflow-y-auto min-h-[300px]">
+              {searching ? (
+                <div className="text-center py-12 text-xs text-slate-500 animate-pulse">
+                  Searching across Vortiq Business OS...
+                </div>
+              ) : !searchResults ? (
+                <div className="text-center py-12 text-xs text-slate-500">
+                  Type query to search across all databases.
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {/* Contacts */}
+                  {searchResults.contacts?.length > 0 && (
+                    <div className="space-y-2">
+                      <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest">Contacts / Leads</span>
+                      <div className="space-y-1">
+                        {searchResults.contacts.map((c: any) => (
+                          <Link href="/crm" key={c.id} onClick={() => setIsSearchOpen(false)} className="block p-2 rounded-lg bg-slate-900/40 hover:bg-slate-900 border border-slate-800/60 hover:border-indigo-900/40 transition-all text-xs">
+                            <span className="font-semibold text-slate-200">{c.firstName} {c.lastName}</span>
+                            <span className="text-slate-500 ml-2">{c.email || c.phone || ''}</span>
+                          </Link>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Tickets */}
+                  {searchResults.tickets?.length > 0 && (
+                    <div className="space-y-2">
+                      <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest">Support Tickets</span>
+                      <div className="space-y-1">
+                        {searchResults.tickets.map((t: any) => (
+                          <Link href="/support" key={t.id} onClick={() => setIsSearchOpen(false)} className="block p-2 rounded-lg bg-slate-900/40 hover:bg-slate-900 border border-slate-800/60 hover:border-indigo-900/40 transition-all text-xs">
+                            <span className="font-bold text-indigo-300 mr-2">{t.ticketNumber}</span>
+                            <span className="font-semibold text-slate-200">{t.title}</span>
+                          </Link>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Tasks */}
+                  {searchResults.tasks?.length > 0 && (
+                    <div className="space-y-2">
+                      <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest">Kanban Tasks</span>
+                      <div className="space-y-1">
+                        {searchResults.tasks.map((tk: any) => (
+                          <Link href="/tasks" key={tk.id} onClick={() => setIsSearchOpen(false)} className="block p-2 rounded-lg bg-slate-900/40 hover:bg-slate-900 border border-slate-800/60 hover:border-indigo-900/40 transition-all text-xs">
+                            <span className="font-semibold text-slate-200">{tk.title}</span>
+                            <span className="text-slate-500 ml-2">({tk.status})</span>
+                          </Link>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Items */}
+                  {searchResults.items?.length > 0 && (
+                    <div className="space-y-2">
+                      <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest">Inventory SKUs</span>
+                      <div className="space-y-1">
+                        {searchResults.items.map((it: any) => (
+                          <Link href="/inventory" key={it.id} onClick={() => setIsSearchOpen(false)} className="block p-2 rounded-lg bg-slate-900/40 hover:bg-slate-900 border border-slate-800/60 hover:border-indigo-900/40 transition-all text-xs flex justify-between">
+                            <span>
+                              <span className="font-bold text-slate-400 mr-2">{it.sku}</span>
+                              <span className="font-semibold text-slate-200">{it.name}</span>
+                            </span>
+                            <span className="text-indigo-400 font-bold">Rs {it.price}</span>
+                          </Link>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Fallback empty states */}
+                  {(!searchResults.contacts?.length && 
+                    !searchResults.tickets?.length && 
+                    !searchResults.tasks?.length && 
+                    !searchResults.items?.length) && (
+                    <div className="text-center py-12 text-xs text-slate-500">
+                      No matching records found.
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );

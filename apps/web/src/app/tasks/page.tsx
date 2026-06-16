@@ -7,12 +7,20 @@ import ConsoleLayout from '../ConsoleLayout';
 import { 
   CheckSquare, Plus, Sparkles, Brain, Trash2, 
   Layers, Check, X, ShieldCheck, Clock, RefreshCw,
-  MessageSquare, User, ArrowRight, Link2, AlertCircle, Play
+  MessageSquare, User, ArrowRight, Link2, AlertCircle, Play,
+  Filter, Settings
 } from 'lucide-react';
 import ModuleAgentSidebar from '../utils/ModuleAgentSidebar';
 import { vortiqClient } from '../utils/vortiqClient';
 import dynamic from 'next/dynamic';
 const ModuleAIPanel = dynamic(() => import('../components/ai/ModuleAIPanel'), { ssr: false });
+const DataImportWizard = dynamic(() => import('../components/DataImportWizard'), { ssr: false });
+const DataExportModal = dynamic(() => import('../components/DataExportModal'), { ssr: false });
+const FilterBuilder = dynamic(() => import('../components/FilterBuilder'), { ssr: false });
+const CustomFieldManager = dynamic(() => import('../components/CustomFieldManager'), { ssr: false });
+const DocumentAttachmentPanel = dynamic(() => import('../components/DocumentAttachmentPanel'), { ssr: false });
+const RelatedRecordsPanel = dynamic(() => import('../components/RelatedRecordsPanel'), { ssr: false });
+const AuditHistoryPanel = dynamic(() => import('../components/AuditHistoryPanel'), { ssr: false });
 
 interface Task {
   id: string;
@@ -30,7 +38,7 @@ interface Task {
 export default function TasksPage() {
   const [tasks, setTasks] = useState<Task[]>([
     { 
-      id: 'TSK-001', 
+      id: 'e0a1b023-e123-4567-89ab-cdef01234567', 
       name: 'Follow up with Tata Motors procurement regarding pre-launch specs', 
       stage: 'TODO', 
       priority: 'P1', 
@@ -42,7 +50,7 @@ export default function TasksPage() {
       isRecurring: false
     },
     { 
-      id: 'TSK-002', 
+      id: 'e0b2c034-f234-5678-90ab-cdef12345678', 
       name: 'Verify sheet metal levels in Pune Warehouse A', 
       stage: 'IN_PROGRESS', 
       priority: 'P2', 
@@ -54,11 +62,11 @@ export default function TasksPage() {
       isRecurring: false
     },
     { 
-      id: 'TSK-003', 
+      id: 'e0c3d045-a345-6789-01ab-cdef23456789', 
       name: 'File June GSTR-1 returns JSON output on GST Portal', 
       stage: 'TODO', 
       priority: 'P1', 
-      dependencyId: 'TSK-002', 
+      dependencyId: 'e0b2c034-f234-5678-90ab-cdef12345678', 
       assignedTo: 'Manoj Kumar', 
       dueDate: '25 Jun 2026',
       comments: [],
@@ -66,7 +74,7 @@ export default function TasksPage() {
       recurrence: 'MONTHLY'
     },
     { 
-      id: 'TSK-004', 
+      id: 'e0d4e056-b456-7890-12ab-cdef34567890', 
       name: 'Draft NDA contract agreement with Reliance Retail', 
       stage: 'DONE', 
       priority: 'P3', 
@@ -88,7 +96,15 @@ export default function TasksPage() {
     { id: 'RULE-002', category: 'Stock adjustments / Warehouse', targetOwner: 'Priya Patel', condition: 'Warehouse A location', isActive: true },
     { id: 'RULE-003', category: 'Code / Technical setups', targetOwner: 'Rahul Sen', condition: 'BYOK API changes', isActive: true }
   ]);
-  const [aiAnalysis, setAiAnalysis] = useState('TaskAgent Monitor: 3 active task tracks analyzed. TSK-003 is blocked pending completion of TSK-002. Auto-delegation rules ran: Sourced leads allocated to Amit.');
+  const [aiAnalysis, setAiAnalysis] = useState('TaskAgent Monitor: 3 active task tracks analyzed. e0c3d045-a345-6789-01ab-cdef23456789 is blocked pending completion of e0b2c034-f234-5678-90ab-cdef12345678. Auto-delegation rules ran: Sourced leads allocated to Amit.');
+  
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+
+  const [showImportWizard, setShowImportWizard] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [showFilterBuilder, setShowFilterBuilder] = useState(false);
+  const [showCustomFields, setShowCustomFields] = useState(false);
+  const [appliedFilters, setAppliedFilters] = useState<any>({});
 
   const { user, isLoaded } = useUser();
   const [isDemo, setIsDemo] = useState(false);
@@ -419,6 +435,32 @@ export default function TasksPage() {
 
           <div className="flex gap-2">
             <button 
+              onClick={() => setShowFilterBuilder(!showFilterBuilder)}
+              className={`p-2.5 border rounded-xl transition-all shadow-sm ${showFilterBuilder ? 'bg-indigo-500/10 border-indigo-500/20 text-indigo-400' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'}`}
+              title="Advanced Filters"
+            >
+              <Filter className="w-4 h-4" />
+            </button>
+            <button 
+              onClick={() => setShowCustomFields(true)}
+              className="p-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white rounded-xl transition-all shadow-sm"
+              title="Custom Fields Manager"
+            >
+              <Settings className="w-4 h-4" />
+            </button>
+            <button 
+              onClick={() => setShowImportWizard(true)}
+              className="px-3.5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-xl transition-all"
+            >
+              Import CSV
+            </button>
+            <button 
+              onClick={() => setShowExportModal(true)}
+              className="px-3.5 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-xl transition-all"
+            >
+              Export CSV
+            </button>
+            <button 
               onClick={() => {
                 setIsAdding(true);
               }}
@@ -609,7 +651,18 @@ export default function TasksPage() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               
               {(['TODO', 'IN_PROGRESS', 'DONE'] as const).map(stage => {
-                const stageTasks = tasks.filter(t => t.stage === stage);
+                const filteredTasks = tasks.filter(t => {
+                  let matchesAdvanced = true;
+                  if (appliedFilters.search) {
+                    const q = appliedFilters.search.toLowerCase();
+                    matchesAdvanced = matchesAdvanced && (
+                      t.id.toLowerCase().includes(q) || 
+                      t.name.toLowerCase().includes(q)
+                    );
+                  }
+                  return matchesAdvanced;
+                });
+                const stageTasks = filteredTasks.filter(t => t.stage === stage);
                 return (
                   <div 
                     key={stage} 
@@ -632,7 +685,10 @@ export default function TasksPage() {
                             key={t.id} 
                             draggable
                             onDragStart={(e) => handleDragStart(e, t.id)}
-                            className="bg-white dark:bg-slate-900/60 p-4 rounded-xl border border-slate-200 dark:border-slate-800 space-y-3 text-xs shadow-sm cursor-grab active:cursor-grabbing hover:border-teal-500/50 transition-all duration-200"
+                            className={`bg-white dark:bg-slate-900/60 p-4 rounded-xl border space-y-3 text-xs shadow-sm cursor-pointer hover:border-teal-500/50 transition-all duration-200 ${
+                              selectedTask?.id === t.id ? 'border-teal-500 bg-teal-500/5' : 'border-slate-200 dark:border-slate-800'
+                            }`}
+                            onClick={() => setSelectedTask(t)}
                           >
                             <div className="flex justify-between items-start gap-1">
                               <div>
@@ -808,6 +864,104 @@ export default function TasksPage() {
         ]}
         mockResponseMapper={tasksMockResponse}
       />
+
+        {selectedTask && (
+          <div className="w-96 bg-white dark:bg-slate-900/40 border border-slate-200 dark:border-slate-900 rounded-3xl p-5 shadow-lg space-y-5 flex flex-col justify-between shrink-0 animate-fadeIn">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-900 pb-3">
+                <span className="text-xs font-black uppercase text-slate-400 tracking-wider">Task Detail File</span>
+                <button onClick={() => setSelectedTask(null)} className="p-1 hover:bg-slate-100 dark:hover:bg-slate-900 rounded-lg text-slate-400 dark:text-slate-500">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Header profile details */}
+              <div>
+                <h4 className="text-sm font-black text-slate-900 dark:text-white">{selectedTask.name}</h4>
+                <p className="text-xs text-slate-500 mt-0.5">ID: {selectedTask.id}</p>
+                <div className="mt-2 flex flex-col gap-2 border bg-slate-50 dark:bg-slate-950 p-3 rounded-2xl">
+                  <div className="flex items-center justify-between text-xs text-slate-600 dark:text-slate-400">
+                    <span className={`px-2 py-0.5 rounded text-[9px] font-bold border uppercase ${
+                      selectedTask.stage === 'DONE' ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/25' :
+                      selectedTask.stage === 'IN_PROGRESS' ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/25' :
+                      'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/25'
+                    }`}>
+                      {selectedTask.stage}
+                    </span>
+                    <span>Priority: <b className="text-slate-800 dark:text-white">{selectedTask.priority}</b></span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Personnel/Salary Info */}
+              <div className="space-y-2 text-xs font-semibold text-slate-500 dark:text-slate-400">
+                <div className="flex justify-between border-b border-slate-100 dark:border-slate-900 pb-1">
+                  <span>Assigned Representative:</span>
+                  <span className="text-slate-800 dark:text-slate-250">{selectedTask.assignedTo}</span>
+                </div>
+                <div className="flex justify-between border-b border-slate-100 dark:border-slate-900 pb-1">
+                  <span>Due Date:</span>
+                  <span className="text-slate-800 dark:text-slate-250">{selectedTask.dueDate}</span>
+                </div>
+                <div className="flex justify-between border-b border-slate-100 dark:border-slate-900 pb-1">
+                  <span>Recurring Task:</span>
+                  <span className="text-slate-800 dark:text-slate-250">{selectedTask.isRecurring ? `Yes (${selectedTask.recurrence})` : 'No'}</span>
+                </div>
+                {selectedTask.dependencyId && (
+                  <div className="flex justify-between border-b border-slate-100 dark:border-slate-900 pb-1">
+                    <span>Blocked By Dependency:</span>
+                    <span className="text-red-650 dark:text-red-405">{selectedTask.dependencyId}</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Data Relationship & Attachments panels */}
+              <div className="border-t border-slate-100 dark:border-slate-900 pt-4 space-y-4">
+                <DocumentAttachmentPanel module="TASKS" recordId={selectedTask.id} />
+                <RelatedRecordsPanel module="TASKS" recordId={selectedTask.id} />
+                <AuditHistoryPanel module="TASKS" recordId={selectedTask.id} />
+              </div>
+
+            </div>
+          </div>
+        )}
+
+      {/* Modals and Wizards */}
+      {showImportWizard && (
+        <DataImportWizard 
+          module="TASKS"
+          onClose={() => setShowImportWizard(false)}
+          onSuccess={refreshTasks}
+        />
+      )}
+
+      {showExportModal && (
+        <DataExportModal 
+          module="TASKS"
+          filters={appliedFilters}
+          onClose={() => setShowExportModal(false)}
+        />
+      )}
+
+      {showCustomFields && (
+        <CustomFieldManager 
+          module="TASKS"
+          onClose={() => setShowCustomFields(false)}
+        />
+      )}
+
+      {showFilterBuilder && (
+        <div className="fixed inset-y-0 right-0 z-45 bg-[#0f172a] shadow-2xl transition-all border-l border-slate-850">
+          <FilterBuilder 
+            module="TASKS"
+            onApply={(f) => {
+              setAppliedFilters(f);
+              setShowFilterBuilder(false);
+            }}
+            onClose={() => setShowFilterBuilder(false)}
+          />
+        </div>
+      )}
 
       </div>
     </ConsoleLayout>

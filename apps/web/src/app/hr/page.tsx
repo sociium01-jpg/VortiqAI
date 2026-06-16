@@ -13,6 +13,13 @@ import ModuleAgentSidebar from '../utils/ModuleAgentSidebar';
 import { vortiqClient } from '../utils/vortiqClient';
 import dynamic from 'next/dynamic';
 const ModuleAIPanel = dynamic(() => import('../components/ai/ModuleAIPanel'), { ssr: false });
+const DataImportWizard = dynamic(() => import('../components/DataImportWizard'), { ssr: false });
+const DataExportModal = dynamic(() => import('../components/DataExportModal'), { ssr: false });
+const FilterBuilder = dynamic(() => import('../components/FilterBuilder'), { ssr: false });
+const CustomFieldManager = dynamic(() => import('../components/CustomFieldManager'), { ssr: false });
+const DocumentAttachmentPanel = dynamic(() => import('../components/DocumentAttachmentPanel'), { ssr: false });
+const RelatedRecordsPanel = dynamic(() => import('../components/RelatedRecordsPanel'), { ssr: false });
+const AuditHistoryPanel = dynamic(() => import('../components/AuditHistoryPanel'), { ssr: false });
 
 interface Employee {
   id: string;
@@ -123,11 +130,12 @@ export default function HRPage() {
   }, [isDemo, isLoaded]);
 
   const [activeTab, setActiveTab] = useState<'directory' | 'attendance' | 'payroll' | 'recruiting'>('directory');
+  const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
 
   // Employee list
   const [employees, setEmployees] = useState<Employee[]>([
     { 
-      id: 'EMP-001', 
+      id: 'b1a13488-ea65-4f01-8bf7-10f854b732d1', 
       code: 'VRTQ-101', 
       name: 'Amit Sharma', 
       phone: '+91 98765 43210', 
@@ -145,7 +153,7 @@ export default function HRPage() {
       status: 'ACTIVE' 
     },
     { 
-      id: 'EMP-002', 
+      id: 'c86326ea-8f81-424a-9ab1-2495b9a89fe2', 
       code: 'VRTQ-102', 
       name: 'Priya Patel', 
       phone: '+91 95601 22334', 
@@ -163,7 +171,7 @@ export default function HRPage() {
       status: 'ACTIVE' 
     },
     { 
-      id: 'EMP-003', 
+      id: 'fd96593a-86a0-47de-9b24-74ea02ff04de', 
       code: 'VRTQ-103', 
       name: 'Rahul Sen', 
       phone: '+91 98110 44556', 
@@ -181,6 +189,26 @@ export default function HRPage() {
       status: 'ACTIVE' 
     }
   ]);
+
+  // Universal Data Import, Export, Search, Filter states
+  const [showImportWizard, setShowImportWizard] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [showFilterBuilder, setShowFilterBuilder] = useState(false);
+  const [showCustomFields, setShowCustomFields] = useState(false);
+  const [appliedFilters, setAppliedFilters] = useState<any>({});
+
+  const filteredEmployees = employees.filter(e => {
+    let matchesAdvanced = true;
+    if (appliedFilters.search) {
+      const q = appliedFilters.search.toLowerCase();
+      matchesAdvanced = matchesAdvanced && (
+        e.code.toLowerCase().includes(q) || 
+        e.name.toLowerCase().includes(q) || 
+        e.department.toLowerCase().includes(q)
+      );
+    }
+    return matchesAdvanced;
+  });
 
   // Leave Requests
   const [leaveRequests, setLeaveRequests] = useState<LeaveRequest[]>([
@@ -445,6 +473,32 @@ export default function HRPage() {
           </div>
 
           <div className="flex gap-2">
+            <button 
+              onClick={() => setShowFilterBuilder(!showFilterBuilder)}
+              className={`p-2.5 border rounded-xl transition-all shadow-sm ${showFilterBuilder ? 'bg-indigo-500/10 border-indigo-500/20 text-indigo-400' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'}`}
+              title="Advanced Filters"
+            >
+              <Users className="w-4 h-4" />
+            </button>
+            <button 
+              onClick={() => setShowCustomFields(true)}
+              className="p-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white rounded-xl transition-all shadow-sm"
+              title="Custom Fields Manager"
+            >
+              <Award className="w-4 h-4" />
+            </button>
+            <button 
+              onClick={() => setShowImportWizard(true)}
+              className="px-3 py-2 bg-indigo-650 hover:bg-indigo-600 text-white rounded-xl text-xs font-bold transition-all"
+            >
+              Import CSV
+            </button>
+            <button 
+              onClick={() => setShowExportModal(true)}
+              className="px-3 py-2 bg-slate-850 hover:bg-slate-800 text-slate-350 rounded-xl text-xs font-bold transition-all"
+            >
+              Export CSV
+            </button>
             <button 
               onClick={() => {
                 setShowPayrollWizard(true);
@@ -741,8 +795,14 @@ export default function HRPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-900 text-xs">
-                  {employees.map((e) => (
-                    <tr key={e.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-950/10 text-slate-700 dark:text-slate-300">
+                  {filteredEmployees.map((e) => (
+                    <tr 
+                      key={e.id} 
+                      className={`hover:bg-slate-50/50 dark:hover:bg-slate-950/10 text-slate-700 dark:text-slate-300 cursor-pointer transition-all ${
+                        selectedEmployee?.id === e.id ? 'bg-slate-100/60 dark:bg-slate-800/30' : ''
+                      }`}
+                      onClick={() => setSelectedEmployee(e)}
+                    >
                       <td className="p-4 font-mono font-bold text-slate-900 dark:text-slate-100">{e.code}</td>
                       <td className="p-4">
                         <div>
@@ -929,6 +989,119 @@ export default function HRPage() {
         ]}
         mockResponseMapper={hrMockResponse}
       />
+
+        {/* Modals and Wizards */}
+        {showImportWizard && (
+          <DataImportWizard 
+            module="HR_EMPLOYEES"
+            onClose={() => setShowImportWizard(false)}
+            onSuccess={() => refreshHrData()}
+          />
+        )}
+
+        {showExportModal && (
+          <DataExportModal 
+            module="HR_EMPLOYEES"
+            filters={appliedFilters}
+            onClose={() => setShowExportModal(false)}
+          />
+        )}
+
+        {showCustomFields && (
+          <CustomFieldManager 
+            module="HR_EMPLOYEES"
+            onClose={() => setShowCustomFields(false)}
+          />
+        )}
+
+        {showFilterBuilder && (
+          <div className="fixed inset-y-0 right-0 z-45 bg-[#0f172a] shadow-2xl transition-all border-l border-slate-850">
+            <FilterBuilder 
+              module="HR_EMPLOYEES"
+              onApply={(f) => {
+                setAppliedFilters(f);
+                setShowFilterBuilder(false);
+              }}
+              onClose={() => setShowFilterBuilder(false)}
+            />
+          </div>
+        )}
+
+        {/* SIDEBAR drawer detail view (if employee clicked) */}
+        {selectedEmployee && (
+          <div className="w-96 bg-white dark:bg-slate-900/40 border border-slate-200 dark:border-slate-900 rounded-3xl p-5 shadow-lg space-y-5 flex flex-col justify-between shrink-0 animate-fadeIn">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-900 pb-3">
+                <span className="text-xs font-black uppercase text-slate-400 tracking-wider">Employee Profile File</span>
+                <button onClick={() => setSelectedEmployee(null)} className="p-1 hover:bg-slate-100 dark:hover:bg-slate-900 rounded-lg text-slate-400 dark:text-slate-500">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Header profile details */}
+              <div>
+                <h4 className="text-sm font-black text-slate-900 dark:text-white">{selectedEmployee.name}</h4>
+                <p className="text-xs text-slate-500 mt-0.5">{selectedEmployee.role} • {selectedEmployee.department}</p>
+                <div className="mt-2 flex flex-col gap-2 border bg-slate-50 dark:bg-slate-950 p-3 rounded-2xl">
+                  <div className="flex items-center justify-between text-xs text-slate-600 dark:text-slate-400">
+                    <span className={`px-2 py-0.5 rounded text-[9px] font-bold border ${
+                      selectedEmployee.status === 'ACTIVE' ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/25' :
+                      selectedEmployee.status === 'ON_LEAVE' ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/25' :
+                      'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/25'
+                    }`}>
+                      {selectedEmployee.status}
+                    </span>
+                    <span>Code: <b className="text-slate-800 dark:text-white">{selectedEmployee.code}</b></span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Personnel/Salary Info */}
+              <div className="space-y-2 text-xs font-semibold text-slate-500 dark:text-slate-400">
+                <div className="flex justify-between border-b border-slate-100 dark:border-slate-900 pb-1">
+                  <span>Email:</span>
+                  <span className="text-slate-800 dark:text-slate-250">{selectedEmployee.email}</span>
+                </div>
+                <div className="flex justify-between border-b border-slate-100 dark:border-slate-900 pb-1">
+                  <span>Phone:</span>
+                  <span className="text-slate-800 dark:text-slate-250">{selectedEmployee.phone}</span>
+                </div>
+                <div className="flex justify-between border-b border-slate-100 dark:border-slate-900 pb-1">
+                  <span>Join Date:</span>
+                  <span className="text-slate-800 dark:text-slate-250">{selectedEmployee.doj}</span>
+                </div>
+                <div className="flex justify-between border-b border-slate-100 dark:border-slate-900 pb-1">
+                  <span>Basic Salary:</span>
+                  <span className="text-slate-800 dark:text-slate-250">{formatINR(selectedEmployee.basicSalary)}</span>
+                </div>
+                <div className="flex justify-between border-b border-slate-100 dark:border-slate-900 pb-1">
+                  <span>HRA:</span>
+                  <span className="text-slate-800 dark:text-slate-250">{formatINR(selectedEmployee.hra)}</span>
+                </div>
+                <div className="flex justify-between border-b border-slate-100 dark:border-slate-900 pb-1">
+                  <span>Allowances:</span>
+                  <span className="text-slate-800 dark:text-slate-250">{formatINR(selectedEmployee.allowances)}</span>
+                </div>
+                <div className="flex justify-between border-b border-slate-100 dark:border-slate-900 pb-1">
+                  <span>PAN Number:</span>
+                  <span className="text-slate-800 dark:text-slate-250">{selectedEmployee.pan}</span>
+                </div>
+                <div className="flex justify-between border-b border-slate-100 dark:border-slate-900 pb-1">
+                  <span>Aadhaar Last 4:</span>
+                  <span className="text-slate-800 dark:text-slate-250">{selectedEmployee.aadhaar}</span>
+                </div>
+              </div>
+
+              {/* Data Relationship & Attachments panels */}
+              <div className="border-t border-slate-100 dark:border-slate-900 pt-4 space-y-4">
+                <DocumentAttachmentPanel module="HR_EMPLOYEES" recordId={selectedEmployee.id} />
+                <RelatedRecordsPanel module="HR_EMPLOYEES" recordId={selectedEmployee.id} />
+                <AuditHistoryPanel module="HR_EMPLOYEES" recordId={selectedEmployee.id} />
+              </div>
+
+            </div>
+          </div>
+        )}
 
       </div>
     </ConsoleLayout>

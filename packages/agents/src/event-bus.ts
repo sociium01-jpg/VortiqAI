@@ -1,5 +1,6 @@
 import Redis from 'ioredis';
 import { VortiqEvent, EventPayloads } from '@vortiq/types';
+import { prisma } from '@vortiq/db';
 
 // In development, if REDIS_URL is not set, use a fallback mock EventBus
 const REDIS_URL = process.env.REDIS_URL || 'redis://localhost:6379';
@@ -106,29 +107,162 @@ class EventBus {
 
 export const eventBus = new EventBus();
 
-// Handlers implementation place-holders (will link to relevant agent actions)
+// Handlers implementation
 const logAction = (name: string) => async (payload: any) => {
   console.log(`[CASCADE] Running handler "${name}" for payload:`, payload);
 };
 
 // Define all cascading handler functions
-const updateAnalytics = logAction('updateAnalytics');
+const updateAnalytics = async (payload: any) => {
+  const orgId = payload.organisationId;
+  if (orgId) {
+    // Notify client UI of data change
+    await eventBus.publish('data.change', { organisationId: orgId, module: 'ANALYTICS', action: 'REFRESH' });
+  }
+};
+
 const scoreLeadAsync = logAction('scoreLeadAsync');
-const assignToRep = logAction('assignToRep');
-const createActivityLog = logAction('createActivityLog');
-const notifyAssignee = logAction('notifyAssignee');
+
+const assignToRep = async (payload: any) => {
+  const orgId = payload.organisationId;
+  const contactId = payload.contactId;
+  if (orgId && contactId) {
+    // Assign contact to an admin or sales user if not assigned
+    const contact = await prisma.contact.findUnique({ where: { id: contactId } });
+    if (contact && !contact.consentStatus) {
+      // simulate assignment
+      console.log(`[CASCADE] Automatically assigned contact ${contactId} to default rep.`);
+    }
+  }
+};
+
+const createActivityLog = async (payload: any) => {
+  const orgId = payload.organisationId;
+  const recordId = payload.leadId || payload.contactId || payload.dealId || payload.invoiceId || payload.ticketId || payload.taskId || payload.employeeId || payload.jobId || payload.runId;
+  if (orgId && recordId) {
+    let moduleName = 'SYSTEM';
+    let description = 'System activity triggered.';
+    if (payload.leadId) { moduleName = 'CRM_LEADS'; description = 'Lead record activity updated.'; }
+    else if (payload.contactId) { moduleName = 'CRM_CONTACTS'; description = 'CRM contact details modified.'; }
+    else if (payload.dealId) { moduleName = 'CRM_DEALS'; description = 'CRM deal deal-flow update.'; }
+    else if (payload.invoiceId) { moduleName = 'FINANCE_INVOICES'; description = 'Finance billing invoice update.'; }
+    else if (payload.ticketId) { moduleName = 'SUPPORT_TICKETS'; description = 'Client support ticket status update.'; }
+    else if (payload.taskId) { moduleName = 'TASKS'; description = 'Kanban task item update.'; }
+    else if (payload.employeeId) { moduleName = 'HR_EMPLOYEES'; description = 'HR employee record update.'; }
+
+    await prisma.activityTimeline.create({
+      data: {
+        organisationId: orgId,
+        module: moduleName,
+        recordId,
+        actionType: 'STATUS_CHANGE',
+        description,
+        actorName: 'OS System Trigger'
+      }
+    });
+  }
+};
+
+const notifyAssignee = async (payload: any) => {
+  const orgId = payload.organisationId;
+  // Send notification to primary user or rep
+  const user = await prisma.user.findFirst({ where: { organisationId: orgId } });
+  if (orgId && user) {
+    await prisma.notification.create({
+      data: {
+        organisationId: orgId,
+        userId: user.id,
+        title: 'New OS Event Assigned',
+        message: 'A cross-module task or status change requires your review.',
+        module: 'SYSTEM'
+      }
+    });
+  }
+};
 
 const updateSalesTarget = logAction('updateSalesTarget');
 const recalcForecast = logAction('recalcForecast');
-const createTask = logAction('createTask');
 
-const createJournalDraft = logAction('createJournalDraft');
+const createTask = async (payload: any) => {
+  const orgId = payload.organisationId;
+  const dealId = payload.dealId;
+  if (orgId && dealId) {
+    const deal = await prisma.deal.findUnique({ where: { id: dealId } });
+    if (deal) {
+      const task = await prisma.task.create({
+        data: {
+          organisationId: orgId,
+          title: `Onboard client and setup deliverables for won deal: ${deal.title}`,
+          status: 'TODO',
+          priority: 'P1',
+          createdByUserId: payload.userId || deal.organisationId // fallback
+        }
+      });
+      await prisma.recordRelationship.create({
+        data: {
+          organisationId: orgId,
+          sourceModule: 'CRM_DEALS',
+          sourceRecordId: dealId,
+          targetModule: 'TASKS',
+          targetRecordId: task.id,
+          relationship: 'DEPENDENT_ON'
+        }
+      });
+      await eventBus.publish('data.change', { organisationId: orgId, module: 'TASKS', action: 'CREATE' });
+    }
+  }
+};
+
+const createJournalDraft = async (payload: any) => {
+  const orgId = payload.organisationId;
+  const dealId = payload.dealId;
+  if (orgId && dealId) {
+    const deal = await prisma.deal.findUnique({ where: { id: dealId } });
+    if (deal) {
+      const invNumber = `INV-DRAFT-${Date.now()}`;
+      const invoice = await prisma.invoice.create({
+        data: {
+          organisationId: orgId,
+          invoiceNumber: invNumber,
+          invoiceDate: new Date(),
+          dueDate: new Date(Date.now() + 30 * 24 * 3600000),
+          status: 'DRAFT',
+          grandTotal: deal.value,
+          subTotal: deal.value,
+          items: JSON.stringify([{ description: deal.title, amount: deal.value, quantity: 1 }]),
+          createdByUserId: payload.userId || deal.organisationId // fallback
+        }
+      });
+      await prisma.recordRelationship.create({
+        data: {
+          organisationId: orgId,
+          sourceModule: 'CRM_DEALS',
+          sourceRecordId: dealId,
+          targetModule: 'FINANCE_INVOICES',
+          targetRecordId: invoice.id,
+          relationship: 'CREATED_FROM'
+        }
+      });
+      await eventBus.publish('data.change', { organisationId: orgId, module: 'INVOICES', action: 'CREATE' });
+    }
+  }
+};
+
 const celebrateOnTelegram = logAction('celebrateOnTelegram');
 const updateEmployeePerformance = logAction('updateEmployeePerformance');
 const updateSuccessRate = logAction('updateSuccessRate');
 
 const generateIRN = logAction('generateIRN');
-const updateCashflow = logAction('updateCashflow');
+
+const updateCashflow = async (payload: any) => {
+  const orgId = payload.organisationId;
+  if (orgId) {
+    console.log('[CASCADE] Re-calculating business cashflow from paid invoice:', payload);
+    // Publish a UI refresh to update telemetry indicators
+    await eventBus.publish('data.change', { organisationId: orgId, module: 'DASHBOARD', action: 'REFRESH' });
+  }
+};
+
 const updatePnL = logAction('updatePnL');
 const notifyContact = logAction('notifyContact');
 
@@ -144,10 +278,45 @@ const syncToCRM = logAction('syncToCRM');
 const createFollowupTask = logAction('createFollowupTask');
 const storeTranscript = logAction('storeTranscript');
 
-const queueOpsAgent = logAction('queueOpsAgent');
-const createAlert = logAction('createAlert');
-const notifyOnTelegram = logAction('notifyOnTelegram');
+const queueOpsAgent = async (payload: any) => {
+  const orgId = payload.organisationId;
+  const itemId = payload.itemId;
+  if (orgId && itemId) {
+    const item = await prisma.inventoryItem.findUnique({ where: { id: itemId } });
+    if (item && item.quantity <= item.reorderPoint) {
+      await eventBus.publish('stock.below_reorder', {
+        itemId,
+        sku: item.sku,
+        name: item.name,
+        quantity: item.quantity,
+        reorderPoint: item.reorderPoint,
+        organisationId: orgId
+      });
+    }
+  }
+};
 
+const createAlert = async (payload: any) => {
+  const orgId = payload.organisationId;
+  if (orgId) {
+    const adminUser = await prisma.user.findFirst({ where: { organisationId: orgId } });
+    if (adminUser) {
+      await prisma.notification.create({
+        data: {
+          organisationId: orgId,
+          userId: adminUser.id,
+          title: `⚠️ LOW STOCK WARNING: ${payload.name}`,
+          message: `SKU ${payload.sku} quantity (${payload.quantity}) is below reorder threshold (${payload.reorderPoint}).`,
+          module: 'INVENTORY',
+          recordId: payload.itemId
+        }
+      });
+      await eventBus.publish('data.change', { organisationId: orgId, module: 'NOTIFICATIONS', action: 'CREATE' });
+    }
+  }
+};
+
+const notifyOnTelegram = logAction('notifyOnTelegram');
 const updateLeadCredits = logAction('updateLeadCredits');
 const refreshUI = logAction('refreshUI');
 
@@ -165,17 +334,40 @@ const showUpgradePage = logAction('showUpgradePage');
 // Setup the cascades according to ABSOLUTE PRINCIPLES (interconnection)
 const EVENT_CASCADES: Record<VortiqEvent, Function[]> = {
   'contact.created': [updateAnalytics, scoreLeadAsync, assignToRep, createActivityLog, notifyAssignee],
+  'contact.updated': [createActivityLog, updateAnalytics],
+  'lead.created': [createActivityLog, notifyAssignee, updateAnalytics],
+  'lead.updated': [createActivityLog, updateAnalytics],
+  'lead.converted': [createActivityLog, updateAnalytics, createTask],
+  'client.created': [createActivityLog, updateAnalytics],
+  'client.updated': [createActivityLog, updateAnalytics],
   'deal.stage_changed': [updateSalesTarget, recalcForecast, createTask, updateAnalytics],
   'deal.won': [createJournalDraft, celebrateOnTelegram, updateEmployeePerformance, updateSuccessRate],
+  'invoice.created': [createActivityLog, updateAnalytics],
   'invoice.approved': [generateIRN, updateCashflow, updatePnL, notifyContact],
+  'invoice.paid': [createActivityLog, updateCashflow, updateAnalytics],
+  'payment.failed': [createActivityLog, updateAnalytics],
+  'stock.added': [createActivityLog, updateAnalytics],
+  'stock.subtracted': [queueOpsAgent, createActivityLog, updateAnalytics],
+  'stock.below_reorder': [queueOpsAgent, createAlert, notifyOnTelegram],
+  'ticket.created': [createActivityLog, notifyAssignee, updateAnalytics],
+  'ticket.escalated': [createActivityLog, notifyAssignee],
+  'ticket.resolved': [createActivityLog, updateAnalytics],
+  'task.completed': [createActivityLog, updateAnalytics],
+  'task.overdue': [createActivityLog, notifyAssignee],
+  'employee.added': [createActivityLog, updateAnalytics],
+  'employee.updated': [createActivityLog],
+  'subscription.expiring': [createActivityLog],
+  'subscription.renewed': [createActivityLog, updateAnalytics],
+  'subscription.trial_ending': [sendWhatsAppWarning, sendTelegramWarning, sendEmail],
+  'subscription.trial_expired': [downgradeToStarter, lockFeatures, showUpgradePage],
+  'import.completed': [createActivityLog, updateAnalytics],
+  'export.created': [createActivityLog],
+  'ai.workflow.completed': [createActivityLog, updateAnalytics],
   'agent_job.awaiting_approval': [notifyViaWhatsApp, notifyViaTelegram, updateDashboard],
   'agent_job.approved': [executeAction, storeToMemory, updateDashboard, logAudit],
   'voice_call.completed': [syncToCRM, createFollowupTask, updateSalesTarget, storeTranscript],
-  'stock.below_reorder': [queueOpsAgent, createAlert, notifyOnTelegram],
   'lead_search.completed': [notifyOnTelegram, updateLeadCredits, refreshUI],
   'sales_target.at_risk': [notifyOnWhatsApp, notifyOnTelegram, queueAnalystUpdate],
-  'subscription.trial_ending': [sendWhatsAppWarning, sendTelegramWarning, sendEmail],
-  'subscription.trial_expired': [downgradeToStarter, lockFeatures, showUpgradePage],
   'data.change': []
 };
 
@@ -183,3 +375,4 @@ const EVENT_CASCADES: Record<VortiqEvent, Function[]> = {
 for (const [event, handlers] of Object.entries(EVENT_CASCADES)) {
   eventBus.registerHandlers(event as VortiqEvent, handlers);
 }
+

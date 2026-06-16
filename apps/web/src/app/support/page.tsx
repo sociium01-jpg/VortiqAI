@@ -7,7 +7,7 @@ import ConsoleLayout from '../ConsoleLayout';
 import { 
   LifeBuoy, Plus, Sparkles, Brain, AlertTriangle, 
   CheckCircle2, RefreshCw, MessageSquare, Send, Check,
-  Clock, ShieldAlert, ArrowRight, User, AlertCircle, X, Search, Filter
+  Clock, ShieldAlert, ArrowRight, User, AlertCircle, X, Search, Filter, Settings
 } from 'lucide-react';
 import ModuleAgentSidebar from '../utils/ModuleAgentSidebar';
 
@@ -35,6 +35,13 @@ interface Ticket {
 import { vortiqClient } from '../utils/vortiqClient';
 import dynamic from 'next/dynamic';
 const ModuleAIPanel = dynamic(() => import('../components/ai/ModuleAIPanel'), { ssr: false });
+const DataImportWizard = dynamic(() => import('../components/DataImportWizard'), { ssr: false });
+const DataExportModal = dynamic(() => import('../components/DataExportModal'), { ssr: false });
+const FilterBuilder = dynamic(() => import('../components/FilterBuilder'), { ssr: false });
+const CustomFieldManager = dynamic(() => import('../components/CustomFieldManager'), { ssr: false });
+const DocumentAttachmentPanel = dynamic(() => import('../components/DocumentAttachmentPanel'), { ssr: false });
+const RelatedRecordsPanel = dynamic(() => import('../components/RelatedRecordsPanel'), { ssr: false });
+const AuditHistoryPanel = dynamic(() => import('../components/AuditHistoryPanel'), { ssr: false });
 
 export default function SupportPage() {
   const { user, isLoaded } = useUser();
@@ -109,7 +116,7 @@ export default function SupportPage() {
 
   const [tickets, setTickets] = useState<Ticket[]>([
     { 
-      id: 'TCK-801', 
+      id: 'd0a1b023-e123-4567-89ab-cdef01234567', 
       customer: 'Amit Desai', 
       email: 'amit.desai@gmail.com',
       subject: 'Invoice amount anomaly discrepancy', 
@@ -124,7 +131,7 @@ export default function SupportPage() {
       ]
     },
     { 
-      id: 'TCK-802', 
+      id: 'd0b2c034-f234-5678-90ab-cdef12345678', 
       customer: 'Tata Motors Assembly', 
       email: 'procurement@tatamotors.com',
       subject: 'Dispatch delayed for raw metal sheets', 
@@ -137,7 +144,7 @@ export default function SupportPage() {
       comments: []
     },
     { 
-      id: 'TCK-803', 
+      id: 'd0c3d045-a345-6789-01ab-cdef23456789', 
       customer: 'Ravi Shah', 
       email: 'ravi.shah@villas.in',
       subject: 'Villa floorplan PDF download query', 
@@ -152,7 +159,7 @@ export default function SupportPage() {
       ]
     },
     { 
-      id: 'TCK-804', 
+      id: 'd0d4e056-b456-7890-12ab-cdef34567890', 
       customer: 'Vijay Nair', 
       email: 'vijay@nairconsulting.com',
       subject: 'Connect Tally XML integration setup help', 
@@ -167,7 +174,7 @@ export default function SupportPage() {
   ]);
 
   // Selected ticket for responder drawer
-  const [selectedTicketId, setSelectedTicketId] = useState<string | null>('TCK-801');
+  const [selectedTicketId, setSelectedTicketId] = useState<string | null>('d0a1b023-e123-4567-89ab-cdef01234567');
   const selectedTicket = tickets.find(t => t.id === selectedTicketId);
 
   // Responder Form States
@@ -191,8 +198,14 @@ export default function SupportPage() {
   const [priorityFilter, setPriorityFilter] = useState<string>('ALL');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
 
+  const [showImportWizard, setShowImportWizard] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [showFilterBuilder, setShowFilterBuilder] = useState(false);
+  const [showCustomFields, setShowCustomFields] = useState(false);
+  const [appliedFilters, setAppliedFilters] = useState<any>({});
+
   const [aiWorking, setAiWorking] = useState(false);
-  const [aiAnalysis, setAiAnalysis] = useState('SupportAgent Monitor: 4 total tickets in queue. TCK-801 requires immediate human intervention due to SLA limits. Sentiment parsed: 1 Irritated customer.');
+  const [aiAnalysis, setAiAnalysis] = useState('SupportAgent Monitor: 4 total tickets in queue. d0a1b023-e123-4567-89ab-cdef01234567 requires immediate human intervention due to SLA limits. Sentiment parsed: 1 Irritated customer.');
 
   const handleCreateTicket = (e: React.FormEvent) => {
     e.preventDefault();
@@ -363,7 +376,16 @@ export default function SupportPage() {
                           t.id.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesPriority = priorityFilter === 'ALL' || t.priority === priorityFilter;
     const matchesStatus = statusFilter === 'ALL' || t.status === statusFilter;
-    return matchesSearch && matchesPriority && matchesStatus;
+
+    let matchesAdvanced = true;
+    if (appliedFilters.search) {
+      const q = appliedFilters.search.toLowerCase();
+      matchesAdvanced = matchesAdvanced && (
+        t.customer.toLowerCase().includes(q) || 
+        t.subject.toLowerCase().includes(q)
+      );
+    }
+    return matchesSearch && matchesPriority && matchesStatus && matchesAdvanced;
   });
 
   const supportMockResponse = (prompt: string) => {
@@ -404,6 +426,32 @@ export default function SupportPage() {
           </div>
 
           <div className="flex gap-2">
+            <button 
+              onClick={() => setShowFilterBuilder(!showFilterBuilder)}
+              className={`p-2.5 border rounded-xl transition-all shadow-sm ${showFilterBuilder ? 'bg-indigo-500/10 border-indigo-500/20 text-indigo-400' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'}`}
+              title="Advanced Filters"
+            >
+              <Filter className="w-4 h-4" />
+            </button>
+            <button 
+              onClick={() => setShowCustomFields(true)}
+              className="p-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white rounded-xl transition-all shadow-sm"
+              title="Custom Fields Manager"
+            >
+              <Settings className="w-4 h-4" />
+            </button>
+            <button 
+              onClick={() => setShowImportWizard(true)}
+              className="px-3.5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-xl transition-all"
+            >
+              Import CSV
+            </button>
+            <button 
+              onClick={() => setShowExportModal(true)}
+              className="px-3.5 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-xl transition-all"
+            >
+              Export CSV
+            </button>
             <button 
               onClick={() => {
                 setIsAdding(true);
@@ -772,6 +820,13 @@ export default function SupportPage() {
                   </form>
                 )}
 
+                {/* Data Relationship & Attachments panels */}
+                <div className="border-t border-slate-105 dark:border-slate-800 pt-4 space-y-4">
+                  <DocumentAttachmentPanel module="SUPPORT_TICKETS" recordId={selectedTicket.id} />
+                  <RelatedRecordsPanel module="SUPPORT_TICKETS" recordId={selectedTicket.id} />
+                  <AuditHistoryPanel module="SUPPORT_TICKETS" recordId={selectedTicket.id} />
+                </div>
+
               </div>
             ) : (
               <p className="text-xs text-slate-500 font-semibold text-center py-12">Select a ticket from support queue to respond.</p>
@@ -801,6 +856,43 @@ export default function SupportPage() {
         ]}
         mockResponseMapper={supportMockResponse}
       />
+
+      {/* Modals and Wizards */}
+      {showImportWizard && (
+        <DataImportWizard 
+          module="SUPPORT_TICKETS"
+          onClose={() => setShowImportWizard(false)}
+          onSuccess={refreshTickets}
+        />
+      )}
+
+      {showExportModal && (
+        <DataExportModal 
+          module="SUPPORT_TICKETS"
+          filters={appliedFilters}
+          onClose={() => setShowExportModal(false)}
+        />
+      )}
+
+      {showCustomFields && (
+        <CustomFieldManager 
+          module="SUPPORT_TICKETS"
+          onClose={() => setShowCustomFields(false)}
+        />
+      )}
+
+      {showFilterBuilder && (
+        <div className="fixed inset-y-0 right-0 z-45 bg-[#0f172a] shadow-2xl transition-all border-l border-slate-850">
+          <FilterBuilder 
+            module="SUPPORT_TICKETS"
+            onApply={(f) => {
+              setAppliedFilters(f);
+              setShowFilterBuilder(false);
+            }}
+            onClose={() => setShowFilterBuilder(false)}
+          />
+        </div>
+      )}
 
       </div>
     </ConsoleLayout>

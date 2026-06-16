@@ -328,6 +328,22 @@ model Organisation {
   aiSettings               AiSetting[]
   aiProviderConnections    AiProviderConnection[]
   aiManualOverrides        AiManualOverride[]
+  uploadedFiles            UploadedFile[]
+  importJobs               ImportJob[]
+  savedFilters             SavedFilter[]
+  customFields             CustomField[]
+  customFieldValues        CustomFieldValue[]
+  exportJobs               ExportJob[]
+  recordRelationships      RecordRelationship[]
+  activityTimelines        ActivityTimeline[]
+  moduleEvents             ModuleEvent[]
+  syncJobs                 SyncJob[]
+  syncErrors               SyncError[]
+  dependencyRules          DependencyRule[]
+  relatedRecordViews       RelatedRecordView[]
+  recordVersions           RecordVersion[]
+  softDeletedRecords       SoftDeletedRecord[]
+  notifications            Notification[]
 }
 
 model User {
@@ -371,6 +387,11 @@ model User {
   briefingLogs            BriefingLog[]
   telegramSessions        TelegramSession[]
   openClawSkillExecutions OpenClawSkillExecution[]
+  uploadedFiles            UploadedFile[]
+  importJobs               ImportJob[]
+  savedFilters             SavedFilter[]
+  exportJobs               ExportJob[]
+  notifications            Notification[]
 }
 
 model Company {
@@ -1672,4 +1693,293 @@ model AiManualOverride {
   createdAt      DateTime @default(now())
 
   organisation Organisation @relation(fields: [organisationId], references: [id])
+}
+
+model UploadedFile {
+  id             String    @id @default(uuid()) @db.Uuid
+  organisationId String    @db.Uuid
+  filename       String
+  fileType       String
+  fileSize       Int
+  filePath       String    // local path or S3 key
+  uploadedById   String    @db.Uuid
+  uploadedAt     DateTime  @default(now())
+  relatedModule  String    // e.g. CRM, HR, INVENTORY, FINANCE, SUPPORT, TASKS, etc.
+  relatedRecordId String?  @db.Uuid
+  tags           String[]  @default([])
+  description    String?
+  version        Int       @default(1)
+  isPublic       Boolean   @default(false)
+  extractedText  String?   // optional OCR / text extraction content
+  aiSummary      String?   // optional AI summary of document
+  deletedAt      DateTime?
+
+  organisation   Organisation @relation(fields: [organisationId], references: [id])
+  uploadedBy     User         @relation(fields: [uploadedById], references: [id])
+  importJobs     ImportJob[]
+
+  @@index([organisationId, relatedModule])
+}
+
+model ImportJob {
+  id             String         @id @default(uuid()) @db.Uuid
+  organisationId String         @db.Uuid
+  module         String         // e.g. CRM_CONTACTS, CRM_COMPANIES, HR_EMPLOYEES, INVENTORY_ITEMS, FINANCE_INVOICES, TASKS
+  status         String         // UPLOADING, UPLOADED, PROCESSING, MAPPING_REQUIRED, VALIDATION_REQUIRED, READY_TO_IMPORT, IMPORTING, COMPLETED, COMPLETED_WITH_ERRORS, FAILED, CANCELLED, ROLLED_BACK
+  uploadedFileId String?        @db.Uuid
+  uploadedById   String         @db.Uuid
+  totalRows      Int            @default(0)
+  successfulRows Int            @default(0)
+  failedRows     Int            @default(0)
+  duplicateRows  Int            @default(0)
+  skippedRows    Int            @default(0)
+  updatedRows    Int            @default(0)
+  createdRows    Int            @default(0)
+  fieldMapping   Json?          // columns configuration mapping JSON
+  duplicateRule  String         @default("SKIP") // SKIP, UPDATE, MERGE, NEW
+  errorReportUrl String?        // path to downloaded failed rows report
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  deletedAt      DateTime?
+
+  organisation   Organisation   @relation(fields: [organisationId], references: [id])
+  uploadedBy     User           @relation(fields: [uploadedById], references: [id])
+  uploadedFile   UploadedFile?  @relation(fields: [uploadedFileId], references: [id])
+  rows           ImportJobRow[]
+
+  @@index([organisationId, module])
+}
+
+model ImportJobRow {
+  id               String       @id @default(uuid()) @db.Uuid
+  jobId            String       @db.Uuid
+  rowNumber        Int
+  rowData          Json
+  status           String       // SUCCESS, FAILED, DUPLICATE, SKIPPED
+  errorMessage     String?
+  warnings         Json?
+  importedRecordId String?      @db.Uuid
+
+  job              ImportJob    @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@index([jobId, status])
+}
+
+model SavedFilter {
+  id             String    @id @default(uuid()) @db.Uuid
+  organisationId String    @db.Uuid
+  userId         String    @db.Uuid
+  name           String
+  module         String    // CRM, HR, SUPPORT, TASKS, etc.
+  filters        Json      // filter criteria object
+  isDefault      Boolean   @default(false)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  organisation   Organisation @relation(fields: [organisationId], references: [id])
+  user           User         @relation(fields: [userId], references: [id])
+
+  @@index([organisationId, module, userId])
+}
+
+model CustomField {
+  id             String    @id @default(uuid()) @db.Uuid
+  organisationId String    @db.Uuid
+  module         String    // CRM, HR, TASKS, etc.
+  name           String
+  type           String    // TEXT, NUMBER, DATE, DROPDOWN, MULTI_SELECT, EMAIL, PHONE, CURRENCY, CHECKBOX, FILE_ATTACHMENT, URL, LONG_TEXT, USER_LOOKUP, COMPANY_LOOKUP
+  options        Json?     // Array of strings for dropdown/multi-select
+  isRequired     Boolean   @default(false)
+  defaultValue   String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  organisation   Organisation @relation(fields: [organisationId], references: [id])
+  values         CustomFieldValue[]
+
+  @@unique([organisationId, module, name])
+}
+
+model CustomFieldValue {
+  id             String    @id @default(uuid()) @db.Uuid
+  organisationId String    @db.Uuid
+  customFieldId  String    @db.Uuid
+  recordId       String    @db.Uuid // ID of the related lead, employee, product, task, etc.
+  value          String    // serialized value or JSON string
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  organisation   Organisation @relation(fields: [organisationId], references: [id])
+  customField    CustomField  @relation(fields: [customFieldId], references: [id], onDelete: Cascade)
+
+  @@index([organisationId, recordId])
+}
+
+model ExportJob {
+  id             String    @id @default(uuid()) @db.Uuid
+  organisationId String    @db.Uuid
+  userId         String    @db.Uuid
+  module         String    // CRM, HR, INVENTORY, FINANCE, SUPPORT, TASKS, etc.
+  filters        Json?
+  status         String    // PENDING, COMPLETED, FAILED
+  fileType       String    // CSV, XLSX, PDF
+  fileUrl        String?
+  recordsCount   Int       @default(0)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  organisation   Organisation @relation(fields: [organisationId], references: [id])
+  user           User         @relation(fields: [userId], references: [id])
+
+  @@index([organisationId, module])
+}
+
+model RecordRelationship {
+  id             String   @id @default(uuid()) @db.Uuid
+  organisationId String   @db.Uuid
+  sourceModule   String   // e.g. CRM_LEADS, CRM_DEALS, etc.
+  sourceRecordId String   @db.Uuid
+  targetModule   String   // e.g. FINANCE_INVOICES, TASKS, etc.
+  targetRecordId String   @db.Uuid
+  relationship   String   // e.g. CREATED_FROM, LINKED_TO, DEPENDENT_ON
+  metadata       Json?
+  createdAt      DateTime @default(now())
+
+  organisation   Organisation @relation(fields: [organisationId], references: [id])
+
+  @@index([organisationId, sourceRecordId])
+  @@index([organisationId, targetRecordId])
+}
+
+model ActivityTimeline {
+  id             String   @id @default(uuid()) @db.Uuid
+  organisationId String   @db.Uuid
+  module         String   // e.g. CRM, FINANCE, etc.
+  recordId       String   @db.Uuid
+  actionType     String   // ADD, EDIT, DELETE, STATUS_CHANGE, SUBTRACT, CONVERTED
+  description    String
+  actorId        String?  @db.Uuid
+  actorName      String   // User name or "AI Agent"
+  metadata       Json?
+  createdAt      DateTime @default(now())
+
+  organisation   Organisation @relation(fields: [organisationId], references: [id])
+
+  @@index([organisationId, recordId])
+}
+
+model ModuleEvent {
+  id             String   @id @default(uuid()) @db.Uuid
+  organisationId String   @db.Uuid
+  eventType      String   // e.g. lead.created, deal.won, invoice.paid, etc.
+  sourceModule   String
+  sourceRecordId String   @db.Uuid
+  relatedRecords Json?    // JSON array of related module/IDs
+  triggeredById  String?  @db.Uuid
+  oldValues      Json?
+  newValues      Json?
+  status         String   // PENDING, PROCESSED, FAILED
+  errorLog       String?
+  createdAt      DateTime @default(now())
+
+  organisation   Organisation @relation(fields: [organisationId], references: [id])
+
+  @@index([organisationId, eventType])
+}
+
+model SyncJob {
+  id             String   @id @default(uuid()) @db.Uuid
+  organisationId String   @db.Uuid
+  jobType        String   // IMPORT, EXPORT, RELATIONSHIP_SYNC
+  status         String   // RUNNING, COMPLETED, FAILED
+  startedAt      DateTime @default(now())
+  completedAt    DateTime?
+  summary        Json?
+
+  organisation   Organisation @relation(fields: [organisationId], references: [id])
+}
+
+model SyncError {
+  id             String   @id @default(uuid()) @db.Uuid
+  organisationId String   @db.Uuid
+  jobId          String?  @db.Uuid
+  module         String
+  recordId       String?  @db.Uuid
+  errorType      String
+  errorMessage   String
+  stackTrace     String?
+  createdAt      DateTime @default(now())
+
+  organisation   Organisation @relation(fields: [organisationId], references: [id])
+}
+
+model DependencyRule {
+  id             String   @id @default(uuid()) @db.Uuid
+  organisationId String   @db.Uuid
+  triggerModule  String
+  triggerAction  String   // ON_DELETE, ON_STATUS_CHANGE
+  targetModule   String
+  behavior       String   // BLOCK, CASCADE, SET_NULL
+  isEnabled      Boolean  @default(true)
+  createdAt      DateTime @default(now())
+
+  organisation   Organisation @relation(fields: [organisationId], references: [id])
+}
+
+model RelatedRecordView {
+  id             String   @id @default(uuid()) @db.Uuid
+  organisationId String   @db.Uuid
+  module         String
+  layoutConfig   Json     // JSON defining which related cards to show
+  createdAt      DateTime @default(now())
+
+  organisation   Organisation @relation(fields: [organisationId], references: [id])
+}
+
+model RecordVersion {
+  id             String   @id @default(uuid()) @db.Uuid
+  organisationId String   @db.Uuid
+  module         String
+  recordId       String   @db.Uuid
+  versionNumber  Int
+  values         Json     // Full state of the record at this version
+  changedById    String?  @db.Uuid
+  changeReason   String?
+  createdAt      DateTime @default(now())
+
+  organisation   Organisation @relation(fields: [organisationId], references: [id])
+
+  @@index([organisationId, recordId])
+}
+
+model SoftDeletedRecord {
+  id             String   @id @default(uuid()) @db.Uuid
+  organisationId String   @db.Uuid
+  module         String
+  recordId       String   @db.Uuid
+  originalValues Json
+  deletedById    String?  @db.Uuid
+  deletedAt      DateTime @default(now())
+  restoredAt     DateTime?
+
+  organisation   Organisation @relation(fields: [organisationId], references: [id])
+
+  @@index([organisationId, recordId])
+}
+
+model Notification {
+  id             String   @id @default(uuid()) @db.Uuid
+  organisationId String   @db.Uuid
+  userId         String   @db.Uuid
+  title          String
+  message        String
+  module         String?
+  recordId       String?  @db.Uuid
+  isRead         Boolean  @default(false)
+  createdAt      DateTime @default(now())
+
+  organisation   Organisation @relation(fields: [organisationId], references: [id])
+  user           User         @relation(fields: [userId], references: [id])
+
+  @@index([organisationId, userId, isRead])
 }

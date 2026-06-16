@@ -6,7 +6,7 @@ import React, { useState, useEffect } from 'react';
 import ConsoleLayout, { formatINR } from '../ConsoleLayout';
 import { 
   Users, UserPlus, Sparkles, Brain, ArrowRight, Trash2, 
-  Layers, Mail, Target, MessageSquare, Plus, Check, Printer, Download, Search, Filter, Calendar, FileText, ChevronRight, X, Clock, Paperclip, Send
+  Layers, Mail, Target, MessageSquare, Plus, Check, Printer, Download, Search, Filter, Calendar, FileText, ChevronRight, X, Clock, Paperclip, Send, Settings
 } from 'lucide-react';
 import { handlePrint, handleExportPDF } from '../utils/export';
 import ModuleAgentSidebar from '../utils/ModuleAgentSidebar';
@@ -14,10 +14,24 @@ import ModuleAgentSidebar from '../utils/ModuleAgentSidebar';
 import { vortiqClient } from '../utils/vortiqClient';
 import dynamic from 'next/dynamic';
 const ModuleAIPanel = dynamic(() => import('../components/ai/ModuleAIPanel'), { ssr: false });
+const DataImportWizard = dynamic(() => import('../components/DataImportWizard'), { ssr: false });
+const DataExportModal = dynamic(() => import('../components/DataExportModal'), { ssr: false });
+const FilterBuilder = dynamic(() => import('../components/FilterBuilder'), { ssr: false });
+const CustomFieldManager = dynamic(() => import('../components/CustomFieldManager'), { ssr: false });
+const DocumentAttachmentPanel = dynamic(() => import('../components/DocumentAttachmentPanel'), { ssr: false });
+const RelatedRecordsPanel = dynamic(() => import('../components/RelatedRecordsPanel'), { ssr: false });
+const AuditHistoryPanel = dynamic(() => import('../components/AuditHistoryPanel'), { ssr: false });
 
 export default function CRMPage() {
   const { user, isLoaded } = useUser();
   const [isDemo, setIsDemo] = useState(false);
+
+  // Universal Data Import, Export, Search, Filter states
+  const [showImportWizard, setShowImportWizard] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [showFilterBuilder, setShowFilterBuilder] = useState(false);
+  const [showCustomFields, setShowCustomFields] = useState(false);
+  const [appliedFilters, setAppliedFilters] = useState<any>({});
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -349,7 +363,22 @@ export default function CRMPage() {
                           c.email.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStatus = statusFilter === 'ALL' || c.status === statusFilter;
     const matchesScore = c.score >= minScore;
-    return matchesSearch && matchesStatus && matchesScore;
+
+    // Advanced FilterBuilder filters
+    let matchesAdvanced = true;
+    if (appliedFilters.search) {
+      const s = appliedFilters.search.toLowerCase();
+      matchesAdvanced = matchesAdvanced && (
+        c.name.toLowerCase().includes(s) || 
+        c.companyName.toLowerCase().includes(s) || 
+        c.email.toLowerCase().includes(s)
+      );
+    }
+    if (appliedFilters.status) {
+      matchesAdvanced = matchesAdvanced && c.status === appliedFilters.status;
+    }
+
+    return matchesSearch && matchesStatus && matchesScore && matchesAdvanced;
   });
 
   // Reusable Agent mock mapping
@@ -390,6 +419,32 @@ export default function CRMPage() {
             </div>
 
             <div className="flex items-center gap-2">
+              <button 
+                onClick={() => setShowFilterBuilder(!showFilterBuilder)}
+                className={`p-2.5 border rounded-xl transition-all shadow-sm ${showFilterBuilder ? 'bg-indigo-500/10 border-indigo-500/20 text-indigo-400' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'}`}
+                title="Advanced Filters"
+              >
+                <Filter className="w-4 h-4" />
+              </button>
+              <button 
+                onClick={() => setShowCustomFields(true)}
+                className="p-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white rounded-xl transition-all shadow-sm"
+                title="Custom Fields Manager"
+              >
+                <Settings className="w-4 h-4" />
+              </button>
+              <button 
+                onClick={() => setShowImportWizard(true)}
+                className="px-3.5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-xl transition-all"
+              >
+                Import CSV
+              </button>
+              <button 
+                onClick={() => setShowExportModal(true)}
+                className="px-3.5 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-xl transition-all"
+              >
+                Export CSV
+              </button>
               <button 
                 onClick={handlePrint}
                 className="p-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white rounded-xl transition-all shadow-sm"
@@ -831,21 +886,10 @@ export default function CRMPage() {
                 </div>
 
                 {/* Attachments Section */}
-                <div className="space-y-2 border-t border-slate-100 dark:border-slate-900 pt-4">
-                  <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Attachments</span>
-                  <div className="space-y-1.5">
-                    {selectedContact.attachments.map((file: string, idx: number) => (
-                      <div key={idx} className="p-2 bg-slate-50 dark:bg-slate-900/20 border border-slate-200 dark:border-slate-900 rounded-lg flex items-center justify-between text-[10px] text-slate-700 dark:text-slate-300">
-                        <span className="flex items-center gap-1 font-semibold">
-                          <Paperclip className="w-3 h-3 text-slate-400" /> {file}
-                        </span>
-                        <a href="#" className="underline text-teal-600 dark:text-teal-400 font-bold">Download</a>
-                      </div>
-                    ))}
-                    {selectedContact.attachments.length === 0 && (
-                      <p className="text-[10px] text-slate-400 italic">No files uploaded.</p>
-                    )}
-                  </div>
+                <div className="border-t border-slate-100 dark:border-slate-900 pt-4 space-y-4">
+                  <DocumentAttachmentPanel module="CRM_CONTACTS" recordId={selectedContact.id} />
+                  <RelatedRecordsPanel module="CRM_CONTACTS" recordId={selectedContact.id} />
+                  <AuditHistoryPanel module="CRM_CONTACTS" recordId={selectedContact.id} />
                 </div>
 
               </div>
@@ -875,6 +919,43 @@ export default function CRMPage() {
           ]}
           mockResponseMapper={crmMockResponse}
         />
+
+        {/* Modals and Wizards */}
+        {showImportWizard && (
+          <DataImportWizard 
+            module="CRM_CONTACTS"
+            onClose={() => setShowImportWizard(false)}
+            onSuccess={refreshCrmData}
+          />
+        )}
+
+        {showExportModal && (
+          <DataExportModal 
+            module="CRM_CONTACTS"
+            filters={appliedFilters}
+            onClose={() => setShowExportModal(false)}
+          />
+        )}
+
+        {showCustomFields && (
+          <CustomFieldManager 
+            module="CRM_CONTACTS"
+            onClose={() => setShowCustomFields(false)}
+          />
+        )}
+
+        {showFilterBuilder && (
+          <div className="fixed inset-y-0 right-0 z-45 bg-[#0f172a] shadow-2xl transition-all border-l border-slate-850">
+            <FilterBuilder 
+              module="CRM_CONTACTS"
+              onApply={(f) => {
+                setAppliedFilters(f);
+                setShowFilterBuilder(false);
+              }}
+              onClose={() => setShowFilterBuilder(false)}
+            />
+          </div>
+        )}
 
       </div>
     </ConsoleLayout>
