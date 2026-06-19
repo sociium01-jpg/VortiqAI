@@ -1,5 +1,25 @@
 import { prisma } from '@vortiq/db';
 
+export async function isOrganisationEmpty(organisationId: string): Promise<boolean> {
+  const contactsCount = await prisma.contact.count({ where: { organisationId, deletedAt: null } });
+  const tasksCount = await prisma.task.count({ where: { organisationId, deletedAt: null } });
+  const dealsCount = await prisma.deal.count({ where: { organisationId, deletedAt: null } });
+  const invoicesCount = await prisma.invoice.count({ where: { organisationId, deletedAt: null } });
+  const inventoryItemsCount = await prisma.inventoryItem.count({ where: { organisationId, deletedAt: null } });
+  const productsCount = await prisma.product.count({ where: { organisationId, deletedAt: null } });
+  const employeeCount = await prisma.employee.count({ where: { organisationId, deletedAt: null } });
+
+  return (
+    contactsCount === 0 &&
+    tasksCount === 0 &&
+    dealsCount === 0 &&
+    invoicesCount === 0 &&
+    inventoryItemsCount === 0 &&
+    productsCount === 0 &&
+    employeeCount === 0
+  );
+}
+
 export async function computeLeadMetrics(organisationId: string) {
   const totalLeads = await prisma.contact.count({
     where: { organisationId, status: 'LEAD', deletedAt: null }
@@ -150,7 +170,9 @@ export async function computeFinanceMetrics(organisationId: string) {
     },
     _sum: { totalDebit: true }
   });
-  const expenses = (expensesAggregation._sum.totalDebit || 0) + 310000; // default operational expense baseline
+  
+  const isEmpty = await isOrganisationEmpty(organisationId);
+  const expenses = isEmpty ? 0 : ((expensesAggregation._sum.totalDebit || 0) + 310000); // default operational expense baseline
 
   return {
     revenueTotals,
@@ -192,6 +214,37 @@ export async function computeSupportMetrics(organisationId: string) {
 }
 
 export async function computeBusinessMetrics(organisationId: string) {
+  const isEmpty = await isOrganisationEmpty(organisationId);
+  if (isEmpty) {
+    return {
+      healthScore: 0,
+      revenue: 0,
+      targetAmount: 0,
+      leadsToday: 0,
+      tasksCompleted: 0,
+      activeAgents: 0,
+      efficiencyScore: 0,
+      openTickets: 0,
+      activeCampaigns: 0,
+      briefingsSent: 0,
+      receivables: 0,
+      payoutsDone: 0,
+      attendancePresent: 0,
+      attendanceTotal: 0,
+      adClicks: 0,
+      
+      // Details
+      lead: { totalLeads: 0, newLeads: 0, hotLeads: 0, coldLeads: 0, convertedLeads: 0, leadConversionRate: 0, leadSourcePerformance: [] },
+      sales: { pipelineValue: 0, dealConversionRate: 0, wonDealsCount: 0, totalDealsCount: 0 },
+      finance: { revenueTotals: 0, monthlyRevenue: 0, outstandingPayments: 0, paidInvoices: 0, pendingInvoices: 0, overdueInvoices: 0, expenses: 0 },
+      support: { supportTicketVolume: 0, ticketResolutionTime: 0 },
+      stockLevels: 0,
+      lowStockAlerts: 0,
+      taskCompletionRate: 0,
+      delayedTasks: 0
+    };
+  }
+
   const lead = await computeLeadMetrics(organisationId);
   const sales = await computeSalesMetrics(organisationId);
   const finance = await computeFinanceMetrics(organisationId);

@@ -359,6 +359,97 @@ function DashboardContent() {
     }
   };
 
+  const isEmptySlate = !isDemo &&
+    metrics.revenue === 0 &&
+    metrics.leadsToday === 0 &&
+    metrics.attendanceTotal === 0 &&
+    metrics.tasksCompleted === 0 &&
+    metrics.activeAgents === 0;
+
+  if (isEmptySlate) {
+    return (
+      <ConsoleLayout>
+        <div className="flex flex-col items-center justify-center min-h-[70vh] p-6 max-w-3xl mx-auto space-y-8 text-center">
+          {/* Animated Header Logo */}
+          <div className="relative">
+            <div className="absolute inset-0 bg-teal-500/20 rounded-full blur-xl animate-pulse" />
+            <div className="relative w-20 h-20 rounded-3xl bg-gradient-to-tr from-teal-500 to-indigo-600 flex items-center justify-center font-bold text-white shadow-2xl text-2xl animate-bounce">
+              V
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            <h2 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
+              Welcome to Vortiq Business OS
+            </h2>
+            <p className="text-sm text-slate-500 dark:text-slate-400 max-w-xl mx-auto font-medium leading-relaxed">
+              Your digital command center is ready. Since this is a new workspace, your dashboard telemetry is clean. Initialize your workspace using any of the quick-start tools below.
+            </p>
+          </div>
+
+          {/* Setup Action Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full text-left">
+            <Link 
+              href="/data" 
+              className="p-5 rounded-3xl bg-white dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 hover:border-teal-500/50 dark:hover:border-teal-500/50 hover:shadow-lg dark:hover:shadow-teal-500/5 transition-all group space-y-2 cursor-pointer"
+            >
+              <div className="p-2 bg-teal-500/10 text-teal-600 dark:text-teal-400 rounded-xl w-fit group-hover:scale-110 transition-transform">
+                <Package className="w-5 h-5" />
+              </div>
+              <h3 className="text-sm font-bold text-slate-800 dark:text-white">Import Bulk Datasets</h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+                Upload historical contacts, CRM leads, invoices, or inventory items via CSV/Excel to populate telemetry instantly.
+              </p>
+            </Link>
+
+            <Link 
+              href="/crm?tab=whatsapp" 
+              className="p-5 rounded-3xl bg-white dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 hover:border-teal-500/50 dark:hover:border-teal-500/50 hover:shadow-lg dark:hover:shadow-teal-500/5 transition-all group space-y-2 cursor-pointer"
+            >
+              <div className="p-2 bg-teal-500/10 text-teal-600 dark:text-teal-400 rounded-xl w-fit group-hover:scale-110 transition-transform">
+                <MessageSquare className="w-5 h-5" />
+              </div>
+              <h3 className="text-sm font-bold text-slate-800 dark:text-white">WhatsApp AI Assistant</h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+                Connect your business phone number and deploy your front-desk WhatsApp auto-reply agent in under 15 minutes.
+              </p>
+            </Link>
+
+            <Link 
+              href="/crm?tab=openclaw" 
+              className="p-5 rounded-3xl bg-white dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 hover:border-teal-500/50 dark:hover:border-teal-500/50 hover:shadow-lg dark:hover:shadow-teal-500/5 transition-all group space-y-2 cursor-pointer"
+            >
+              <div className="p-2 bg-teal-500/10 text-teal-600 dark:text-teal-400 rounded-xl w-fit group-hover:scale-110 transition-transform">
+                <Cpu className="w-5 h-5" />
+              </div>
+              <h3 className="text-sm font-bold text-slate-800 dark:text-white">OpenClaw Agent Settings</h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+                Configure agent permission matrices and map OpenClaw hooks directly into your CRM, Tasks, or HR tables.
+              </p>
+            </Link>
+
+            <Link 
+              href="/crm" 
+              className="p-5 rounded-3xl bg-white dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 hover:border-teal-500/50 dark:hover:border-teal-500/50 hover:shadow-lg dark:hover:shadow-teal-500/5 transition-all group space-y-2 cursor-pointer"
+            >
+              <div className="p-2 bg-teal-500/10 text-teal-600 dark:text-teal-400 rounded-xl w-fit group-hover:scale-110 transition-transform">
+                <Users className="w-5 h-5" />
+              </div>
+              <h3 className="text-sm font-bold text-slate-800 dark:text-white">Add Records Manually</h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+                Go to the CRM, HR, or Tasks sections to manually add contacts, register employees, or schedule your first deal.
+              </p>
+            </Link>
+          </div>
+
+          <div className="p-4 bg-teal-500/5 dark:bg-teal-500/10 border border-teal-500/20 rounded-2xl w-full text-xs text-slate-600 dark:text-slate-400 text-center font-medium">
+            💡 <b>Pro-Tip:</b> If you want to preview how the dashboard looks with populated charts, you can log in as <span className="font-extrabold text-teal-600 dark:text-teal-400">demo@vortiq.ai</span> to explore pre-configured templates.
+          </div>
+        </div>
+      </ConsoleLayout>
+    );
+  }
+
   return (
     <ConsoleLayout>
       

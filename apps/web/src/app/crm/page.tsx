@@ -6,8 +6,9 @@ import React, { useState, useEffect } from 'react';
 import ConsoleLayout, { formatINR } from '../ConsoleLayout';
 import { 
   Users, UserPlus, Sparkles, Brain, ArrowRight, Trash2, 
-  Layers, Mail, Target, MessageSquare, Plus, Check, Printer, Download, Search, Filter, Calendar, FileText, ChevronRight, X, Clock, Paperclip, Send, Settings
+  Layers, Mail, Target, MessageSquare, Plus, Check, Printer, Download, Search, Filter, Calendar, FileText, ChevronRight, X, Clock, Paperclip, Send, Settings, Cpu
 } from 'lucide-react';
+import { useSearchParams } from 'next/navigation';
 import { handlePrint, handleExportPDF } from '../utils/export';
 import ModuleAgentSidebar from '../utils/ModuleAgentSidebar';
 
@@ -21,8 +22,21 @@ const CustomFieldManager = dynamic(() => import('../components/CustomFieldManage
 const DocumentAttachmentPanel = dynamic(() => import('../components/DocumentAttachmentPanel'), { ssr: false });
 const RelatedRecordsPanel = dynamic(() => import('../components/RelatedRecordsPanel'), { ssr: false });
 const AuditHistoryPanel = dynamic(() => import('../components/AuditHistoryPanel'), { ssr: false });
+const classifyConsolePrompt = (text: string) => {
+  const t = text.toLowerCase();
+  if (t.includes('metric') || t.includes('score') || t.includes('dashboard')) return 'query_metrics';
+  if (t.includes('revenue') || t.includes('finance') || t.includes('invoice') || t.includes('gst')) return 'query_finance';
+  if (t.includes('stock') || t.includes('inventory')) return 'query_inventory';
+  if (t.includes('absent') || t.includes('attendance') || t.includes('employee')) return 'query_employees';
+  if (t.includes('lead')) return 'query_leads';
+  if (t.includes('deal')) return 'query_deals';
+  if (t.includes('task')) return 'query_tasks';
+  if (t.includes('create contact') || t.includes('add lead') || t.includes('add contact')) return 'create_contact';
+  if (t.includes('create task') || t.includes('add task')) return 'create_task';
+  return 'query_metrics'; // default
+};
 
-export default function CRMPage() {
+function CRMContent() {
   const { user, isLoaded } = useUser();
   const [isDemo, setIsDemo] = useState(false);
 
@@ -153,8 +167,16 @@ export default function CRMPage() {
     };
   }, [isDemo, isLoaded]);
 
-  // Tabs: 'contacts' | 'companies' | 'deals' | 'meetings'
-  const [activeTab, setActiveTab] = useState<'contacts' | 'companies' | 'deals' | 'meetings'>('contacts');
+  // Tabs: 'contacts' | 'companies' | 'deals' | 'meetings' | 'whatsapp' | 'openclaw'
+  const [activeTab, setActiveTab] = useState<'contacts' | 'companies' | 'deals' | 'meetings' | 'whatsapp' | 'openclaw'>('contacts');
+
+  const searchParams = useSearchParams();
+  useEffect(() => {
+    const tabParam = searchParams?.get('tab');
+    if (tabParam && ['contacts', 'companies', 'deals', 'meetings', 'whatsapp', 'openclaw'].includes(tabParam)) {
+      setActiveTab(tabParam as any);
+    }
+  }, [searchParams]);
 
   // Search & Filter state
   const [searchQuery, setSearchQuery] = useState('');
@@ -163,6 +185,307 @@ export default function CRMPage() {
 
   // Selected item for Detailed View (drawer)
   const [selectedContact, setSelectedContact] = useState<any | null>(null);
+
+  // WhatsApp States
+  const [waEnabled, setWaEnabled] = useState(true);
+  const [waPhone, setWaPhone] = useState('+919000012345');
+  const [waVerifyToken, setWaVerifyToken] = useState('vortiq_verify_token_xyz');
+  const [waId, setWaId] = useState('waba_9021830');
+  const [showMetaSignup, setShowMetaSignup] = useState(false);
+  const [metaConnected, setMetaConnected] = useState(true);
+  const [testPhoneNumber, setTestPhoneNumber] = useState('');
+  const [testingMessage, setTestingMessage] = useState(false);
+
+  // Live Chat Simulator Sandbox States
+  const [waChats, setWaChats] = useState([
+    { id: 'wa-1', phone: '+919876543210', name: 'Ravi Shah', lastMessage: 'Interested in property options', time: '10m ago', unread: false, messages: [
+      { id: 'm1', text: 'Namaste Raviji, I am an AI calling. How can I help you today?', sender: 'assistant', time: '10m ago' },
+      { id: 'm2', text: 'Interested in premium property options and luxury villas spec pricing sheets.', sender: 'client', time: '9m ago' }
+    ] },
+    { id: 'wa-2', phone: '+919500012345', name: 'Sunita Rao', lastMessage: 'What are your timings?', time: '1h ago', unread: false, messages: [
+      { id: 'm3', text: 'Hello, what are your services and operational timings?', sender: 'client', time: '1h ago' }
+    ] }
+  ]);
+  const [selectedChatId, setSelectedChatId] = useState('wa-1');
+  const [outgoingText, setOutgoingText] = useState('');
+  const [incomingText, setIncomingText] = useState('');
+  const [isTyping, setIsTyping] = useState(false);
+  const [autoReplyEnabled, setAutoReplyEnabled] = useState(true);
+  const [faqInput, setFaqInput] = useState('Business Name: Alpha Real Estate Developers\nHours: Mon-Sat 9AM-7PM\nServices: Luxury Hinjewadi villas layout configurations starting at Rs 1.2 Crore\nAuto-reply FAQs: Yes, we provide site visits and sub-structure payment plans over 3 years.');
+
+  // OpenClaw States
+  const [openClawEnabled, setOpenClawEnabled] = useState(true);
+  const [openClawPerms, setOpenClawPerms] = useState({
+    crmConnected: true,
+    tasksConnected: true,
+    financeConnected: true,
+    inventoryConnected: true,
+    hrConnected: true,
+    dashboardConnected: true,
+    supportConnected: true
+  });
+  const [consolePrompt, setConsolePrompt] = useState('');
+  const [consoleLogs, setConsoleLogs] = useState<string[]>([
+    'Vortiq OpenClaw Agent Environment v1.0.0 Online',
+    'OpenClaw: Standard capabilities parsed successfully.',
+    'System: Awaiting user command input...'
+  ]);
+  const [runningCmd, setRunningCmd] = useState(false);
+
+  // Load configurations from DB on mount
+  useEffect(() => {
+    if (!isDemo && isLoaded) {
+      vortiqClient.callQuery('ai.getConnectorConfig', { connectorType: 'OPENCLAW' })
+        .then((res: any) => {
+          if (res) {
+            setOpenClawEnabled(res.isEnabled);
+            if (res.config && typeof res.config === 'object') {
+              setOpenClawPerms(prev => ({ ...prev, ...res.config }));
+            }
+          }
+        }).catch(err => console.error('Error loading OpenClaw config:', err));
+
+      vortiqClient.callQuery('ai.getConnectorConfig', { connectorType: 'WHATSAPP' })
+        .then((res: any) => {
+          if (res) {
+            setWaEnabled(res.isEnabled);
+            if (res.config && typeof res.config === 'object') {
+              setWaPhone(res.config.phone || '+919000012345');
+              setWaVerifyToken(res.config.verifyToken || 'vortiq_verify_token_xyz');
+              setWaId(res.config.wabaId || 'waba_9021830');
+              setMetaConnected(res.config.metaConnected !== false);
+              if (res.config.faqInput) setFaqInput(res.config.faqInput);
+            }
+          }
+        }).catch(err => console.error('Error loading WhatsApp config:', err));
+    }
+  }, [isDemo, isLoaded]);
+
+  const handleSaveOpenClawPerms = (updatedPerms: any, enabledState: boolean = openClawEnabled) => {
+    setOpenClawPerms(updatedPerms);
+    if (!isDemo) {
+      vortiqClient.callMutation('ai.saveConnectorConfig', {
+        connectorType: 'OPENCLAW',
+        isEnabled: enabledState,
+        config: updatedPerms
+      }).catch(err => console.error('Error saving OpenClaw config:', err));
+    }
+  };
+
+  const handleSaveWhatsAppConfig = (updates: any, enabledState: boolean = waEnabled) => {
+    if (!isDemo) {
+      const mergedConfig = {
+        phone: waPhone,
+        verifyToken: waVerifyToken,
+        wabaId: waId,
+        metaConnected,
+        faqInput,
+        ...updates
+      };
+      vortiqClient.callMutation('ai.saveConnectorConfig', {
+        connectorType: 'WHATSAPP',
+        isEnabled: enabledState,
+        config: mergedConfig
+      }).catch(err => console.error('Error saving WhatsApp config:', err));
+    }
+  };
+
+  const handleSendOutgoingMessage = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!outgoingText.trim()) return;
+    const newMessage = {
+      id: `msg-${Date.now()}`,
+      text: outgoingText,
+      sender: 'assistant',
+      time: 'Just now'
+    };
+    setWaChats(prev => prev.map(chat => {
+      if (chat.id === selectedChatId) {
+        return {
+          ...chat,
+          lastMessage: outgoingText,
+          time: 'Just now',
+          messages: [...chat.messages, newMessage]
+        };
+      }
+      return chat;
+    }));
+    setOutgoingText('');
+  };
+
+  const handleSimulateIncomingMessage = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!incomingText.trim()) return;
+    const clientMessage = {
+      id: `msg-${Date.now()}`,
+      text: incomingText,
+      sender: 'client',
+      time: 'Just now'
+    };
+    
+    setWaChats(prev => prev.map(chat => {
+      if (chat.id === selectedChatId) {
+        return {
+          ...chat,
+          lastMessage: incomingText,
+          time: 'Just now',
+          messages: [...chat.messages, clientMessage]
+        };
+      }
+      return chat;
+    }));
+    
+    const queryText = incomingText;
+    setIncomingText('');
+
+    if (autoReplyEnabled) {
+      setIsTyping(true);
+      setTimeout(() => {
+        setIsTyping(false);
+        let reply = "Hello! I'm your Vortiq AI assistant. I didn't quite catch that. Could you clarify?";
+        const lower = queryText.toLowerCase();
+        if (lower.includes('timing') || lower.includes('hour')) {
+          reply = "Our business hours are Monday to Saturday from 9:00 AM to 7:00 PM. We are closed on Sundays.";
+        } else if (lower.includes('price') || lower.includes('cost') || lower.includes('luxury') || lower.includes('villa')) {
+          reply = "Our premium luxury Hinjewadi villas start at Rs 1.2 Crore. We offer sub-structure payment plans spread over 3 years.";
+        } else if (lower.includes('visit') || lower.includes('book') || lower.includes('appointment')) {
+          reply = "I would be happy to schedule a site visit for you! Would tomorrow afternoon at 3:00 PM work?";
+        } else if (lower.includes('service')) {
+          reply = "We specialize in layout configurations, sub-structure planning, and premium property sales in Chakan and Hinjewadi.";
+        }
+
+        const botMessage = {
+          id: `msg-${Date.now() + 1}`,
+          text: reply,
+          sender: 'assistant',
+          time: 'Just now'
+        };
+
+        setWaChats(prev => prev.map(chat => {
+          if (chat.id === selectedChatId) {
+            return {
+              ...chat,
+              lastMessage: reply,
+              time: 'Just now',
+              messages: [...chat.messages, botMessage]
+            };
+          }
+          return chat;
+        }));
+      }, 1200);
+    }
+  };
+
+  const handleRunOpenClawCommand = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!consolePrompt.trim()) return;
+    
+    const prompt = consolePrompt;
+    setConsolePrompt('');
+    setRunningCmd(true);
+
+    const intent = classifyConsolePrompt(prompt);
+
+    setConsoleLogs(prev => [
+      ...prev,
+      `> Command: "${prompt}"`,
+      `[OpenClaw] Parsing natural language query...`,
+      `[OpenClaw] Intent classified: ${intent}`,
+      `[OpenClaw] Checking cross-section connector permissions for ${intent.toUpperCase()}...`
+    ]);
+
+    setTimeout(() => {
+      const intentToModule: Record<string, string> = {
+        query_metrics: 'dashboardConnected',
+        query_leads: 'crmConnected',
+        query_deals: 'crmConnected',
+        create_contact: 'crmConnected',
+        query_tasks: 'tasksConnected',
+        create_task: 'tasksConnected',
+        query_finance: 'financeConnected',
+        query_inventory: 'inventoryConnected',
+        query_employees: 'hrConnected',
+        list_approvals: 'supportConnected',
+        approve_job: 'supportConnected',
+        reject_job: 'supportConnected'
+      };
+
+      const requiredPermission = intentToModule[intent];
+      const hasPermission = openClawPerms[requiredPermission as keyof typeof openClawPerms] === true;
+
+      if (!openClawEnabled) {
+        setConsoleLogs(prev => [
+          ...prev,
+          `[Error] OpenClaw Agent engine is currently disabled. Toggle it on to execute commands.`,
+          `System: Idle.`
+        ]);
+        setRunningCmd(false);
+        return;
+      }
+
+      if (requiredPermission && !hasPermission) {
+        setConsoleLogs(prev => [
+          ...prev,
+          `[OpenClaw] Permission status: DENIED`,
+          `[Error] OpenClaw Agent is not permitted to access this section (${requiredPermission.replace('Connected', '').toUpperCase()}). Please enable it in the Cross-Section Connectors Matrix.`,
+          `System: Idle.`
+        ]);
+        setRunningCmd(false);
+        return;
+      }
+
+      setConsoleLogs(prev => [
+        ...prev,
+        `[OpenClaw] Permission status: ALLOWED`,
+        `[tRPC] Dispatching call: ai.runOpenClawSkill({ intent: "${intent}", parameters: {} })`
+      ]);
+
+      if (isDemo) {
+        setTimeout(() => {
+          let mockResult = {};
+          if (intent === 'query_metrics') {
+            mockResult = { contactsCount: 13, dealsCount: 6, tasksCount: 14, efficiencyScore: 91.5 };
+          } else if (intent === 'query_finance') {
+            mockResult = { totalUnpaid: 450000, invoiceCount: 3, pendingTaxes: [] };
+          } else if (intent === 'query_inventory') {
+            mockResult = { lowStock: [{ name: 'Steel Sheets SKU-V4', quantity: 80, reorderPoint: 100 }] };
+          } else if (intent === 'query_employees') {
+            mockResult = { absentees: [{ name: 'Priya Patel', role: 'SALES' }] };
+          } else {
+            mockResult = { status: 'success', data: 'Operation completed' };
+          }
+
+          setConsoleLogs(prev => [
+            ...prev,
+            `[tRPC] Response received (demo fallback):`,
+            JSON.stringify(mockResult, null, 2),
+            `System: Idle.`
+          ]);
+          setRunningCmd(false);
+        }, 800);
+      } else {
+        vortiqClient.callMutation('ai.runOpenClawSkill', {
+          intent,
+          parameters: {}
+        }).then(res => {
+          setConsoleLogs(prev => [
+            ...prev,
+            `[tRPC] Response received:`,
+            JSON.stringify(res.result || res, null, 2),
+            `System: Idle.`
+          ]);
+        }).catch(err => {
+          setConsoleLogs(prev => [
+            ...prev,
+            `[Error] tRPC dispatch failed: ${err.message}`,
+            `System: Idle.`
+          ]);
+        }).finally(() => {
+          setRunningCmd(false);
+        });
+      }
+    }, 600);
+  };
 
   // Simulated Sales Reps for assignment
   const salesReps = ['Rahul Sharma', 'Sneha Rao', 'Amit Verma', 'Priya Naik'];
@@ -502,6 +825,22 @@ export default function CRMPage() {
             >
               <Calendar className="w-4 h-4" /> Meetings & Follow-ups
             </button>
+            <button 
+              onClick={() => { setActiveTab('whatsapp'); setSelectedContact(null); }}
+              className={`pb-3 transition-colors flex items-center gap-1.5 border-b-2 ${
+                activeTab === 'whatsapp' ? 'border-teal-500 text-teal-600' : 'border-transparent hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              <MessageSquare className="w-4 h-4" /> WhatsApp Assistant
+            </button>
+            <button 
+              onClick={() => { setActiveTab('openclaw'); setSelectedContact(null); }}
+              className={`pb-3 transition-colors flex items-center gap-1.5 border-b-2 ${
+                activeTab === 'openclaw' ? 'border-teal-500 text-teal-600' : 'border-transparent hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              <Cpu className="w-4 h-4" /> OpenClaw Agent
+            </button>
           </div>
 
           {/* Add Lead Form Overlay/Panel */}
@@ -798,6 +1137,385 @@ export default function CRMPage() {
               </div>
             )}
 
+            {/* VIEW: WHATSAPP */}
+            {activeTab === 'whatsapp' && (
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-fadeIn">
+                {/* Left Side: Meta Onboarding Settings */}
+                <div className="lg:col-span-1 space-y-6">
+                  <div className="bg-white dark:bg-slate-900/20 border border-slate-200 dark:border-slate-800 p-5 rounded-3xl space-y-4">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-xs font-bold text-slate-700 dark:text-slate-200 uppercase tracking-widest flex items-center gap-1.5">
+                        <MessageSquare className="w-4 h-4 text-teal-650" /> Meta WhatsApp Settings
+                      </h3>
+                      <button 
+                        onClick={() => {
+                          const newState = !waEnabled;
+                          setWaEnabled(newState);
+                          handleSaveWhatsAppConfig({}, newState);
+                        }}
+                        className={`text-[10px] font-black px-2.5 py-1 rounded-lg border ${
+                          waEnabled 
+                            ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' 
+                            : 'bg-slate-100 text-slate-500 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700'
+                        }`}
+                      >
+                        {waEnabled ? 'ACTIVE' : 'DISABLED'}
+                      </button>
+                    </div>
+
+                    <div className="space-y-3.5 text-xs">
+                      <div className="space-y-1">
+                        <label className="text-[10px] uppercase font-bold text-slate-400 block">WhatsApp Phone Number</label>
+                        <input 
+                          type="text" 
+                          value={waPhone} 
+                          onChange={(e) => {
+                            setWaPhone(e.target.value);
+                            handleSaveWhatsAppConfig({ phone: e.target.value });
+                          }}
+                          className="w-full bg-slate-50 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-slate-800 dark:text-white focus:outline-none focus:border-teal-500"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[10px] uppercase font-bold text-slate-400 block">WABA Account ID</label>
+                        <input 
+                          type="text" 
+                          value={waId} 
+                          onChange={(e) => {
+                            setWaId(e.target.value);
+                            handleSaveWhatsAppConfig({ wabaId: e.target.value });
+                          }}
+                          className="w-full bg-slate-50 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-slate-800 dark:text-white focus:outline-none focus:border-teal-500"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[10px] uppercase font-bold text-slate-400 block">Verify Token</label>
+                        <input 
+                          type="text" 
+                          value={waVerifyToken} 
+                          onChange={(e) => {
+                            setWaVerifyToken(e.target.value);
+                            handleSaveWhatsAppConfig({ verifyToken: e.target.value });
+                          }}
+                          className="w-full bg-slate-50 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-slate-800 dark:text-white focus:outline-none focus:border-teal-500"
+                        />
+                      </div>
+                      
+                      <div className="p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 rounded-2xl space-y-1">
+                        <span className="text-[9px] uppercase font-extrabold text-slate-400 tracking-wider block">Webhook Endpoint</span>
+                        <code className="text-[10px] block font-mono text-teal-605 dark:text-teal-400 select-all overflow-hidden text-ellipsis">
+                          https://api.vortiq.in/api/whatsapp/webhook
+                        </code>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-white dark:bg-slate-900/20 border border-slate-200 dark:border-slate-800 p-5 rounded-3xl space-y-4">
+                    <h3 className="text-xs font-bold text-slate-700 dark:text-slate-205 uppercase tracking-widest flex items-center gap-1.5">
+                      <Brain className="w-4.5 h-4.5 text-teal-600" /> FAQ Knowledge Base
+                    </h3>
+                    <div className="space-y-3 text-xs">
+                      <p className="text-[10px] text-slate-500 leading-normal font-medium">
+                        Configure business rules and contextual details that the AI WhatsApp assistant will read to resolve customer inbound Q&As.
+                      </p>
+                      <textarea
+                        rows={6}
+                        value={faqInput}
+                        onChange={(e) => {
+                          setFaqInput(e.target.value);
+                          handleSaveWhatsAppConfig({ faqInput: e.target.value });
+                        }}
+                        placeholder="Define services, prices, and FAQs here..."
+                        className="w-full bg-slate-50 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 font-mono text-[10px] text-slate-850 dark:text-slate-350 focus:outline-none focus:border-teal-500"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Right Side: Live Chat Simulator Sandbox */}
+                <div className="lg:col-span-2 bg-white dark:bg-slate-900/20 border border-slate-200 dark:border-slate-800 rounded-3xl flex flex-col xl:flex-row overflow-hidden shadow-sm min-h-[500px]">
+                  {/* Chats list */}
+                  <div className="w-full xl:w-1/3 border-r border-slate-200 dark:border-slate-800 flex flex-col">
+                    <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
+                      <span className="text-xs font-black uppercase text-slate-400 tracking-wider">Simulated Inbounds</span>
+                      <span className="px-2 py-0.5 bg-teal-500/10 text-teal-600 dark:text-teal-400 rounded-full text-[9px] font-bold">2 active</span>
+                    </div>
+                    <div className="flex-1 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800/60 max-h-[400px]">
+                      {waChats.map(chat => (
+                        <div 
+                          key={chat.id}
+                          onClick={() => setSelectedChatId(chat.id)}
+                          className={`p-3.5 flex items-center justify-between cursor-pointer transition-all ${
+                            selectedChatId === chat.id 
+                              ? 'bg-slate-100 dark:bg-slate-800/40 border-l-4 border-teal-500' 
+                              : 'hover:bg-slate-50 dark:hover:bg-slate-900/30'
+                          }`}
+                        >
+                          <div className="space-y-1">
+                            <h4 className="text-xs font-extrabold text-slate-800 dark:text-white">{chat.name}</h4>
+                            <p className="text-[10px] text-slate-500 font-medium truncate max-w-[120px]">{chat.lastMessage}</p>
+                          </div>
+                          <span className="text-[9px] text-slate-400 font-medium shrink-0">{chat.time}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Chat Pane */}
+                  <div className="flex-1 flex flex-col justify-between min-h-[400px]">
+                    {/* Chat header */}
+                    <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-900/40">
+                      <div>
+                        <h4 className="text-xs font-black text-slate-800 dark:text-white">
+                          {waChats.find(c => c.id === selectedChatId)?.name}
+                        </h4>
+                        <p className="text-[9px] text-slate-500 font-bold mt-0.5">
+                          {waChats.find(c => c.id === selectedChatId)?.phone}
+                        </p>
+                      </div>
+                      
+                      <div className="flex items-center gap-2 text-[10px] font-bold text-slate-500">
+                        <span>AI Auto-Reply</span>
+                        <button 
+                          onClick={() => setAutoReplyEnabled(!autoReplyEnabled)}
+                          className={`w-9 h-5 rounded-full p-0.5 transition-all border ${
+                            autoReplyEnabled ? 'bg-teal-500 border-teal-400' : 'bg-slate-200 border-slate-300 dark:bg-slate-800 dark:border-slate-700'
+                          }`}
+                        >
+                          <div className={`w-3.5 h-3.5 rounded-full bg-white transition-transform ${autoReplyEnabled ? 'translate-x-4' : 'translate-x-0'}`} />
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Messages list */}
+                    <div className="flex-1 p-4 overflow-y-auto space-y-3.5 max-h-[300px] min-h-[220px]">
+                      {waChats.find(c => c.id === selectedChatId)?.messages.map(msg => (
+                        <div 
+                          key={msg.id}
+                          className={`flex ${msg.sender === 'client' ? 'justify-start' : 'justify-end'}`}
+                        >
+                          <div className={`max-w-[75%] p-3 rounded-2xl text-xs leading-relaxed space-y-1 ${
+                            msg.sender === 'client'
+                              ? 'bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 rounded-tl-none'
+                              : 'bg-teal-650 text-white rounded-tr-none'
+                          }`}>
+                            <p className="font-medium">{msg.text}</p>
+                            <span className={`text-[8px] block text-right font-bold ${
+                              msg.sender === 'client' ? 'text-slate-500' : 'text-teal-200'
+                            }`}>{msg.time}</span>
+                          </div>
+                        </div>
+                      ))}
+
+                      {/* Typing indicator */}
+                      {isTyping && (
+                        <div className="flex justify-start">
+                          <div className="bg-slate-100 dark:bg-slate-800 p-3 rounded-2xl rounded-tl-none flex items-center gap-1">
+                            <div className="w-1.5 h-1.5 bg-slate-500 rounded-full animate-bounce" />
+                            <div className="w-1.5 h-1.5 bg-slate-500 rounded-full animate-bounce [animation-delay:0.2s]" />
+                            <div className="w-1.5 h-1.5 bg-slate-500 rounded-full animate-bounce [animation-delay:0.4s]" />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Outgoing & Simulator Inputs */}
+                    <div className="p-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/40 space-y-3">
+                      {/* Operator manual reply */}
+                      <form onSubmit={handleSendOutgoingMessage} className="flex gap-2">
+                        <input 
+                          type="text" 
+                          value={outgoingText}
+                          onChange={(e) => setOutgoingText(e.target.value)}
+                          placeholder="Type manual reply (as operator)..."
+                          className="flex-1 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-xs focus:outline-none focus:border-teal-500"
+                        />
+                        <button 
+                          type="submit" 
+                          className="px-4 py-2.5 bg-teal-600 text-white rounded-xl text-xs font-black shadow-md flex items-center justify-center shrink-0 hover:bg-teal-500"
+                        >
+                          <Send className="w-4 h-4" />
+                        </button>
+                      </form>
+
+                      {/* Inbound Simulator (Simulates customer action) */}
+                      <form onSubmit={handleSimulateIncomingMessage} className="flex gap-2">
+                        <input 
+                          type="text" 
+                          value={incomingText}
+                          onChange={(e) => setIncomingText(e.target.value)}
+                          placeholder="Simulate incoming customer query message..."
+                          className="flex-1 bg-white dark:bg-slate-950 border border-indigo-200 dark:border-indigo-900/40 rounded-xl px-3.5 py-2.5 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-indigo-500 font-semibold"
+                        />
+                        <button 
+                          type="submit" 
+                          className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-550 text-white rounded-xl text-xs font-black flex items-center justify-center shrink-0 shadow-sm"
+                        >
+                          Simulate Inbound
+                        </button>
+                      </form>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* VIEW: OPENCLAW */}
+            {activeTab === 'openclaw' && (
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-fadeIn">
+                {/* Left Side: Connection permission matrix */}
+                <div className="lg:col-span-1 bg-white dark:bg-slate-900/20 border border-slate-200 dark:border-slate-800 p-5 rounded-3xl space-y-4">
+                  <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+                    <h3 className="text-xs font-bold text-slate-700 dark:text-slate-205 uppercase tracking-widest flex items-center gap-1.5">
+                      <Cpu className="w-4 h-4 text-teal-650" /> OpenClaw Status
+                    </h3>
+                    <button 
+                      onClick={() => {
+                        const newState = !openClawEnabled;
+                        setOpenClawEnabled(newState);
+                        handleSaveOpenClawPerms(openClawPerms, newState);
+                      }}
+                      className={`text-[10px] font-black px-2.5 py-1 rounded-lg border ${
+                        openClawEnabled 
+                          ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' 
+                          : 'bg-slate-100 text-slate-500 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700'
+                      }`}
+                    >
+                      {openClawEnabled ? 'CONNECTED' : 'OFFLINE'}
+                    </button>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div>
+                      <h4 className="text-xs font-extrabold text-slate-900 dark:text-white">Cross-Section Connectors</h4>
+                      <p className="text-[10px] text-slate-500 leading-normal font-medium mt-0.5">
+                        Authorize which workspace modules OpenClaw agents are permitted to query, read, and write database rows.
+                      </p>
+                    </div>
+
+                    <div className="space-y-2 text-xs font-bold text-slate-750 dark:text-slate-350">
+                      {[
+                        { key: 'dashboardConnected', label: 'Dashboard & Business Telemetry' },
+                        { key: 'crmConnected', label: 'CRM Leads & Pipeline Deals' },
+                        { key: 'tasksConnected', label: 'Tasks, Reminders & Calendars' },
+                        { key: 'financeConnected', label: 'Invoices, Receivables & Taxes' },
+                        { key: 'inventoryConnected', label: 'Inventory Stock & POs' },
+                        { key: 'hrConnected', label: 'Employee Attendance Rosters' },
+                        { key: 'supportConnected', label: 'Support SLA Ticket Queues' }
+                      ].map((item) => {
+                        const isChecked = openClawPerms[item.key as keyof typeof openClawPerms] === true;
+                        return (
+                          <label 
+                            key={item.key} 
+                            className="flex items-center gap-3 p-2.5 rounded-xl border border-slate-100 hover:bg-slate-50 dark:border-slate-800/60 dark:hover:bg-slate-900/30 cursor-pointer transition-all"
+                          >
+                            <input 
+                              type="checkbox" 
+                              checked={isChecked}
+                              onChange={() => {
+                                const updated = {
+                                  ...openClawPerms,
+                                  [item.key]: !isChecked
+                                };
+                                handleSaveOpenClawPerms(updated);
+                              }}
+                              className="w-4 h-4 accent-teal-500"
+                            />
+                            <span>{item.label}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Right Side: Natural Language Sandbox prompt & output */}
+                <div className="lg:col-span-2 space-y-6">
+                  <div className="bg-white dark:bg-slate-900/20 border border-slate-200 dark:border-slate-800 p-5 rounded-3xl space-y-4">
+                    <h3 className="text-xs font-bold text-slate-700 dark:text-slate-205 uppercase tracking-widest flex items-center gap-1.5">
+                      <Plus className="w-4.5 h-4.5 text-teal-650" /> Prompt Console Sandbox
+                    </h3>
+
+                    <p className="text-[10px] text-slate-500 leading-normal font-medium">
+                      Test the OpenClaw agent live. Enter operational prompts to see the agent parse intents, check cross-section permissions, make tRPC database calls, and return results.
+                    </p>
+
+                    <form onSubmit={handleRunOpenClawCommand} className="flex gap-2">
+                      <input 
+                        type="text" 
+                        value={consolePrompt}
+                        onChange={(e) => setConsolePrompt(e.target.value)}
+                        placeholder="e.g. Find leads with high scores, Check stock warnings, Check overdue invoice finance"
+                        className="flex-1 bg-slate-50 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-3 text-xs focus:outline-none focus:border-teal-500 font-semibold"
+                      />
+                      <button 
+                        type="submit" 
+                        disabled={runningCmd || !consolePrompt.trim()}
+                        className="px-5 bg-teal-600 hover:bg-teal-500 text-white rounded-xl text-xs font-black shadow-md disabled:bg-slate-100 disabled:text-slate-400 dark:disabled:bg-slate-800 dark:disabled:text-slate-500 flex items-center justify-center shrink-0 min-w-[100px]"
+                      >
+                        {runningCmd ? 'Running...' : 'Run Prompt'}
+                      </button>
+                    </form>
+
+                    <div className="flex flex-wrap gap-2 text-[10px] font-bold text-slate-500">
+                      <span className="self-center font-extrabold uppercase text-slate-405">Presets:</span>
+                      {[
+                        'List low stock inventory items',
+                        'Show metrics scorecard',
+                        'Check pending approvals',
+                        'Query finance receivables'
+                      ].map(preset => (
+                        <button 
+                          key={preset}
+                          type="button"
+                          onClick={() => setConsolePrompt(preset)}
+                          className="px-2.5 py-1.5 bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg hover:border-teal-500 hover:text-teal-650 dark:hover:text-teal-400 transition-all"
+                        >
+                          {preset}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Terminal Console output */}
+                  <div className="bg-slate-950 border border-slate-800/80 rounded-3xl p-5 shadow-inner space-y-3 font-mono text-[10px] text-teal-400 min-h-[220px]">
+                    <div className="flex items-center justify-between border-b border-slate-800/60 pb-2">
+                      <span className="text-[9px] uppercase font-black tracking-widest text-slate-500">Execution Output logs</span>
+                      <button 
+                        onClick={() => setConsoleLogs([
+                          'Vortiq OpenClaw Agent Environment v1.0.0 Online',
+                          'System: Awaiting user command input...'
+                        ])}
+                        className="text-[9px] text-slate-500 hover:underline hover:text-slate-350"
+                      >
+                        Clear Console
+                      </button>
+                    </div>
+
+                    <div className="space-y-1.5 max-h-[250px] overflow-y-auto leading-relaxed">
+                      {consoleLogs.map((log, idx) => (
+                        <div key={idx} className={
+                          log.startsWith('>') ? 'text-white font-extrabold mt-2' :
+                          log.startsWith('[Error]') ? 'text-rose-500 font-extrabold' :
+                          log.startsWith('[OpenClaw]') ? 'text-teal-350 font-bold' :
+                          log.startsWith('[tRPC]') ? 'text-indigo-405' :
+                          'text-slate-500'
+                        }>
+                          {log.startsWith('{') || log.startsWith('[') ? (
+                            <pre className="p-2.5 rounded-xl bg-slate-900/80 border border-slate-900 text-teal-300 font-mono text-[9px] overflow-x-auto whitespace-pre">
+                              {log}
+                            </pre>
+                          ) : (
+                            <span>{log}</span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
           </div>
 
           {/* SIDEBAR drawer detail view (if contact clicked) */}
@@ -1008,5 +1726,13 @@ export default function CRMPage() {
 
       </div>
     </ConsoleLayout>
+  );
+}
+
+export default function CRMPage() {
+  return (
+    <React.Suspense fallback={<div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex items-center justify-center text-xs text-slate-500 font-bold">Loading CRM...</div>}>
+      <CRMContent />
+    </React.Suspense>
   );
 }

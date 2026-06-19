@@ -3,6 +3,7 @@ import { prisma } from '@vortiq/db';
 import { z } from 'zod';
 import { TRPCError } from '@trpc/server';
 import crypto from 'crypto';
+import { executeVortiqSkill } from '@vortiq/agents/src/openclaw/index.js';
 import {
   computeBusinessMetrics,
   computeLeadMetrics,
@@ -870,5 +871,120 @@ AI AGENT PERFORMANCE:
         response: `Vortiq AI Agent [${input.role}]: Based on live database records, your operational metrics are stable. No immediate risks flagged.`,
         logId: log.id
       };
+    }),
+
+  getConnectorConfig: protectedProcedure
+    .input(z.object({ connectorType: z.string() }))
+    .query(async ({ ctx, input }) => {
+      const orgId = ctx.org!.id;
+      let config = await prisma.connectorConfig.findFirst({
+        where: { organisationId: orgId, connectorType: input.connectorType }
+      });
+      if (!config) {
+        config = await prisma.connectorConfig.create({
+          data: {
+            organisationId: orgId,
+            connectorType: input.connectorType,
+            isEnabled: false,
+            config: {}
+          }
+        });
+      }
+      return config;
+    }),
+
+  saveConnectorConfig: protectedProcedure
+    .input(z.object({
+      connectorType: z.string(),
+      config: z.any(),
+      isEnabled: z.boolean()
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const orgId = ctx.org!.id;
+      const existing = await prisma.connectorConfig.findFirst({
+        where: { organisationId: orgId, connectorType: input.connectorType }
+      });
+      if (existing) {
+        return prisma.connectorConfig.update({
+          where: { id: existing.id },
+          data: {
+            config: input.config,
+            isEnabled: input.isEnabled
+          }
+        });
+      }
+      return prisma.connectorConfig.create({
+        data: {
+          organisationId: orgId,
+          connectorType: input.connectorType,
+          config: input.config,
+          isEnabled: input.isEnabled
+        }
+      });
+    }),
+
+  runOpenClawSkill: protectedProcedure
+    .input(z.object({
+      intent: z.string(),
+      parameters: z.any()
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const orgId = ctx.org!.id;
+      const userId = ctx.user!.id;
+      
+      const openClawConfig = await prisma.connectorConfig.findFirst({
+        where: { organisationId: orgId, connectorType: 'OPENCLAW' }
+      });
+
+      const permissions = (openClawConfig?.config as any) || {};
+      const isEnabled = openClawConfig?.isEnabled ?? false;
+
+      if (!isEnabled) {
+        throw new TRPCError({
+          code: 'PRECONDITION_FAILED',
+          message: 'OpenClaw Agent engine is currently disabled. Enable it in CRM -> OpenClaw Agent.'
+        });
+      }
+
+      const intentToModule: Record<string, string> = {
+        query_metrics: 'dashboardConnected',
+        query_leads: 'crmConnected',
+        query_deals: 'crmConnected',
+        create_contact: 'crmConnected',
+        query_tasks: 'tasksConnected',
+        create_task: 'tasksConnected',
+        query_finance: 'financeConnected',
+        query_inventory: 'inventoryConnected',
+        query_employees: 'hrConnected',
+        list_approvals: 'supportConnected',
+        approve_job: 'supportConnected',
+        reject_job: 'supportConnected'
+      };
+
+      const requiredPermission = intentToModule[input.intent];
+      if (requiredPermission && permissions[requiredPermission] !== true) {
+        throw new TRPCError({
+          code: 'FORBIDDEN',
+          message: `Access Denied: OpenClaw Agent is not permitted to access this section (${requiredPermission.replace('Connected', '').toUpperCase()}). Please enable it in the Cross-Section Connectors Matrix.`
+        });
+      }
+
+      try {
+        const result = await executeVortiqSkill({
+          intent: input.intent,
+          parameters: { 
+            ...input.parameters, 
+            rawQuery: input.parameters?.rawQuery || `Executed ${input.intent} via UI console` 
+          },
+          organisationId: orgId,
+          userId: userId
+        });
+        return { success: true, result };
+      } catch (err: any) {
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: err.message || 'Execution error in OpenClaw skill'
+        });
+      }
     })
 });
