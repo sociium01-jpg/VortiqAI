@@ -631,7 +631,8 @@ export default function CRMPage() {
                   </div>
                 ) : (
                   <div className="overflow-x-auto">
-                    <table className="w-full text-left text-xs leading-normal">
+                    {/* Desktop table */}
+                    <table className="hidden md:table w-full text-left text-xs leading-normal">
                       <thead>
                         <tr className="border-b border-slate-100 dark:border-slate-900 text-slate-400 font-bold uppercase tracking-wider">
                           <th className="py-2.5 px-3">Lead Name</th>
@@ -665,6 +666,35 @@ export default function CRMPage() {
                         ))}
                       </tbody>
                     </table>
+
+                    {/* Mobile Card-based view */}
+                    <div className="md:hidden space-y-3">
+                      {filteredContacts.map((c) => (
+                        <div 
+                          key={c.id} 
+                          onClick={() => setSelectedContact(c)}
+                          className="p-4 bg-slate-50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 rounded-2xl space-y-2 cursor-pointer shadow-sm hover:border-slate-300 dark:hover:border-slate-700 transition-all"
+                        >
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <h4 className="font-extrabold text-slate-900 dark:text-white text-xs">{c.name}</h4>
+                              <p className="text-[10px] text-slate-450 mt-0.5">{c.email} • {c.phone}</p>
+                            </div>
+                            <ChevronRight className="w-4 h-4 text-slate-300" />
+                          </div>
+                          <div className="flex justify-between items-center text-[10px] border-t border-slate-100 dark:border-slate-800/60 pt-2 font-semibold">
+                            <div>
+                              <span className="text-slate-450">Company:</span> <span className="text-slate-700 dark:text-slate-300">{c.companyName}</span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <span className="text-slate-450">Score:</span> 
+                              <span className="font-extrabold text-indigo-600 dark:text-indigo-400">{c.score}/100</span>
+                              {c.enriched && <span className="text-[8px] bg-teal-500/10 text-teal-600 dark:text-teal-400 px-1 py-0.5 rounded-full font-bold">Enriched</span>}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>
@@ -674,7 +704,8 @@ export default function CRMPage() {
             {activeTab === 'companies' && (
               <div className="bg-white dark:bg-slate-900/20 border border-slate-200 dark:border-slate-900 rounded-3xl p-5 shadow-sm space-y-4">
                 <h3 className="text-xs font-bold text-slate-700 dark:text-slate-200 uppercase tracking-widest">Connected Client Companies</h3>
-                <table className="w-full text-left text-xs leading-normal">
+                {/* Desktop table */}
+                <table className="hidden md:table w-full text-left text-xs leading-normal">
                   <thead>
                     <tr className="border-b border-slate-100 dark:border-slate-900 text-slate-400 font-bold uppercase tracking-wider">
                       <th className="py-2.5 px-3">Company Name</th>
@@ -694,6 +725,24 @@ export default function CRMPage() {
                     ))}
                   </tbody>
                 </table>
+
+                {/* Mobile view */}
+                <div className="md:hidden space-y-3">
+                  {companies.map((com) => (
+                    <div key={com.id} className="p-4 bg-slate-50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 rounded-2xl space-y-2 text-xs shadow-sm">
+                      <div className="flex justify-between items-start">
+                        <h4 className="font-extrabold text-slate-900 dark:text-white">{com.name}</h4>
+                        <span className="text-[10px] px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-extrabold border border-indigo-500/20">{com.industry}</span>
+                      </div>
+                      <div className="flex justify-between items-center text-[10px] border-t border-slate-100 dark:border-slate-800/60 pt-2 font-semibold">
+                        <div>
+                          <span className="text-slate-400">Contacts:</span> <span className="text-slate-705 dark:text-slate-300">{com.contacts}</span>
+                        </div>
+                        <span className="font-black text-teal-605 dark:text-teal-400">{formatINR(com.dealsValue)}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
 

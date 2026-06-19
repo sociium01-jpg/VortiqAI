@@ -782,7 +782,8 @@ export default function HRPage() {
             </div>
 
             <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
+              {/* Desktop table view */}
+              <table className="hidden md:table w-full text-left border-collapse">
                 <thead>
                   <tr className="border-b border-slate-100 dark:border-slate-900 bg-slate-50/50 dark:bg-slate-950/20 text-[10px] font-bold text-slate-500 uppercase tracking-wider">
                     <th className="p-4">Employee Code</th>
@@ -806,7 +807,7 @@ export default function HRPage() {
                       <td className="p-4 font-mono font-bold text-slate-900 dark:text-slate-100">{e.code}</td>
                       <td className="p-4">
                         <div>
-                          <p className="font-semibold text-slate-800 dark:text-slate-200">{e.name}</p>
+                          <p className="font-semibold text-slate-805 dark:text-slate-200">{e.name}</p>
                           <p className="text-[10px] text-slate-500 mt-0.5">{e.email} • {e.phone}</p>
                         </div>
                       </td>
@@ -826,6 +827,36 @@ export default function HRPage() {
                   ))}
                 </tbody>
               </table>
+
+              {/* Mobile Card view */}
+              <div className="md:hidden divide-y divide-slate-100 dark:divide-slate-900">
+                {filteredEmployees.map((e) => (
+                  <div 
+                    key={e.id} 
+                    onClick={() => setSelectedEmployee(e)}
+                    className={`p-4 space-y-2 cursor-pointer transition-all ${
+                      selectedEmployee?.id === e.id ? 'bg-slate-100/60 dark:bg-slate-800/30' : 'hover:bg-slate-50/50 dark:hover:bg-slate-950/10'
+                    }`}
+                  >
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <span className="font-mono font-bold text-slate-500 text-[10px] block">{e.code}</span>
+                        <h4 className="font-extrabold text-slate-900 dark:text-white text-xs">{e.name}</h4>
+                        <p className="text-[10px] text-slate-450 mt-0.5">{e.email} • {e.phone}</p>
+                      </div>
+                      <span className="text-[10px] px-2 py-0.5 rounded bg-teal-500/10 text-teal-600 dark:text-teal-400 font-extrabold border border-teal-500/20">{e.role}</span>
+                    </div>
+                    <div className="flex justify-between items-center text-[10px] pt-1 font-semibold text-slate-500 dark:text-slate-450">
+                      <span>{e.department}</span>
+                      <span className="font-black text-slate-800 dark:text-slate-200">{formatINR(e.basicSalary + e.hra + e.allowances)}/mo</span>
+                    </div>
+                    <div className="flex justify-between text-[9px] text-slate-400 pt-1 border-t border-slate-100/50 dark:border-slate-800/60">
+                      <span>PAN: {e.pan} • Aadhaar: {e.aadhaar}</span>
+                      <span>Joined: {e.doj}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         )}

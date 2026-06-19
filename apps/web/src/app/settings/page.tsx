@@ -55,6 +55,21 @@ function SettingsContent() {
           }
         }).catch(e => console.error('Error fetching organisation:', e));
 
+        // Initialize keys as empty
+        setAnthropicKey("");
+        setOpenAIKey("");
+        setElevenlabsKey("");
+        setGeminiKey("");
+
+        // Fetch connected providers to populate placeholders
+        vortiqClient.callQuery('ai.getConnectedProviders').then(providers => {
+          if (providers) {
+            if (providers.includes('GEMINI')) setGeminiKey('••••••••••••••••');
+            if (providers.includes('OPENAI')) setOpenAIKey('••••••••••••••••');
+            if (providers.includes('ANTHROPIC')) setAnthropicKey('••••••••••••••••');
+          }
+        }).catch(e => console.error('Error fetching connected providers:', e));
+
         // 2. Fetch AI settings
         vortiqClient.callQuery('ai.getAISettings').then(settings => {
           if (settings) {
@@ -331,26 +346,46 @@ function SettingsContent() {
       return;
     }
     const promises = [];
-    if (geminiKey && geminiKey !== 'AIzaSyxxxxxx') {
+    if (geminiKey && geminiKey !== 'AIzaSyxxxxxx' && geminiKey !== '••••••••••••••••') {
       promises.push(vortiqClient.callMutation('ai.connectAIProvider', { provider: 'GEMINI', apiKey: geminiKey }));
     }
-    if (openaiKey && openaiKey !== 'sk-proj-xxxxxx') {
+    if (openaiKey && openaiKey !== 'sk-proj-xxxxxx' && openaiKey !== '••••••••••••••••') {
       promises.push(vortiqClient.callMutation('ai.connectAIProvider', { provider: 'OPENAI', apiKey: openaiKey }));
     }
-    if (promises.length === 0) {
-      alert('No credentials entered.');
-      return;
+    if (anthropicKey && anthropicKey !== 'sk-ant-api03-xxxxxx' && anthropicKey !== '••••••••••••••••') {
+      promises.push(vortiqClient.callMutation('ai.connectAIProvider', { provider: 'ANTHROPIC', apiKey: anthropicKey }));
     }
+
     setAiWorking(true);
-    Promise.all(promises).then(() => {
-      return vortiqClient.callMutation('ai.updateAISettings', { provider: selectedProvider });
-    }).then(() => {
-      setAiWorking(false);
-      alert('API credentials successfully saved to your secure organization profile.');
-    }).catch(err => {
-      setAiWorking(false);
-      alert(err.message);
-    });
+    const saveSettings = () => {
+      vortiqClient.callMutation('ai.updateAISettings', { provider: selectedProvider })
+        .then(() => {
+          setAiWorking(false);
+          alert('AI Settings and API credentials successfully saved.');
+          vortiqClient.callQuery('ai.getConnectedProviders').then(providers => {
+            if (providers) {
+              if (providers.includes('GEMINI')) setGeminiKey('••••••••••••••••');
+              if (providers.includes('OPENAI')) setOpenAIKey('••••••••••••••••');
+              if (providers.includes('ANTHROPIC')) setAnthropicKey('••••••••••••••••');
+            }
+          }).catch(() => {});
+        })
+        .catch(err => {
+          setAiWorking(false);
+          alert(err.message);
+        });
+    };
+
+    if (promises.length > 0) {
+      Promise.all(promises)
+        .then(() => saveSettings())
+        .catch(err => {
+          setAiWorking(false);
+          alert(err.message);
+        });
+    } else {
+      saveSettings();
+    }
   };
 
   const handleTestConnection = () => {

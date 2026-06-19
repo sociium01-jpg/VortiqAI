@@ -135,6 +135,16 @@ export const aiRouter = router({
       return { success: true, latencyMs: Math.floor(80 + Math.random() * 50) };
     }),
 
+  getConnectedProviders: protectedProcedure
+    .query(async ({ ctx }) => {
+      const orgId = ctx.org!.id;
+      const connections = await prisma.aiProviderConnection.findMany({
+        where: { organisationId: orgId, isActive: true },
+        select: { provider: true }
+      });
+      return connections.map(c => c.provider);
+    }),
+
   // ──────────────────────────────────────────
   //  AI SETTINGS
   // ──────────────────────────────────────────
