@@ -131,9 +131,11 @@ export default function OnboardingPage() {
 
       {/* Onboarding Wizard Header */}
       <div className="w-full max-w-xl mb-8 flex flex-col items-center">
-        <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-teal-500 to-indigo-600 flex items-center justify-center font-bold text-white shadow-lg shadow-teal-500/20 mb-4">
-          V
-        </div>
+        <img 
+          src="/logo.png" 
+          alt="Vortiq Logo" 
+          className="h-12 w-auto dark:invert dark:brightness-200 object-contain mb-4"
+        />
         <h2 className="text-xl font-black text-white">Setup VORTIQ Business OS</h2>
         <p className="text-xs text-slate-500 font-semibold mt-1">Answer 4 quick steps to configure your custom portal.</p>
         

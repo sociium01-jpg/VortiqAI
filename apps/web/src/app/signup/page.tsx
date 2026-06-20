@@ -33,11 +33,14 @@ export default function SignupPage() {
       
       {/* Brand logo */}
       <div className="mb-8 flex flex-col items-center gap-3">
-        <Link href="/" className="w-12 h-12 rounded-xl bg-gradient-to-tr from-teal-500 to-indigo-600 flex items-center justify-center font-bold text-white shadow-lg shadow-teal-500/20 text-lg">
-          V
+        <Link href="/">
+          <img 
+            src="/logo.png" 
+            alt="Vortiq Logo" 
+            className="h-12 w-auto object-contain"
+          />
         </Link>
         <div className="text-center">
-          <h1 className="text-xl font-bold tracking-tight bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent">VORTIQ</h1>
           <p className="text-xs text-slate-500 font-semibold">Create your AI Business OS Account</p>
         </div>
       </div>

@@ -349,12 +349,13 @@ export default function ConsoleLayout({ children }: ConsoleLayoutProps) {
           >
             <Menu className="w-5 h-5" />
           </button>
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-teal-500 to-indigo-600 flex items-center justify-center font-bold text-white shadow-lg shadow-teal-500/20">
-            V
-          </div>
-          <div>
-            <h1 className="text-md font-bold tracking-tight bg-gradient-to-r from-slate-900 to-slate-600 dark:from-white dark:to-slate-400 bg-clip-text text-transparent">VORTIQ</h1>
-            <p className="text-[10px] text-slate-400 dark:text-slate-500 font-semibold uppercase tracking-wider">Business OS</p>
+          <div className="flex items-center gap-2">
+            <img 
+              src="/logo.png" 
+              alt="Vortiq Logo" 
+              className="h-8 w-auto dark:invert dark:brightness-200 object-contain"
+            />
+            <p className="text-[10px] text-slate-400 dark:text-slate-500 font-semibold uppercase tracking-wider self-end mb-1">Business OS</p>
           </div>
         </div>
 

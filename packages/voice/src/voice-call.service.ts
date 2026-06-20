@@ -21,8 +21,10 @@ export class VoiceCallService {
   constructor() {
     const sid = process.env.TWILIO_ACCOUNT_SID;
     const token = process.env.TWILIO_AUTH_TOKEN;
-    if (sid && token) {
+    if (sid && sid.startsWith('AC') && token) {
       this.twilioClient = twilio(sid, token);
+    } else {
+      console.warn('[VoiceCallService] Twilio client not initialized: Missing or invalid Account SID (must start with "AC")');
     }
   }
 

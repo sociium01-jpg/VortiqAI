@@ -64,12 +64,13 @@ export default function LandingPage() {
       {/* Navigation */}
       <nav className="border-b border-slate-200 dark:border-slate-900 bg-white/80 dark:bg-slate-950/80 backdrop-blur-md sticky top-0 z-50 px-6 py-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-teal-500 to-indigo-600 flex items-center justify-center font-bold text-white shadow-lg shadow-teal-500/20">
-            V
-          </div>
-          <div>
-            <h1 className="text-xl font-bold tracking-tight bg-gradient-to-r from-slate-900 to-slate-700 dark:from-white dark:to-slate-400 bg-clip-text text-transparent">VORTIQ</h1>
-            <p className="text-xs text-slate-500 font-medium">Business OS</p>
+          <div className="flex items-center gap-2">
+            <img 
+              src="/logo.png" 
+              alt="Vortiq Logo" 
+              className="h-9 w-auto dark:invert dark:brightness-200 object-contain"
+            />
+            <p className="text-xs text-slate-500 font-medium self-end mb-0.5">Business OS</p>
           </div>
         </div>
 
