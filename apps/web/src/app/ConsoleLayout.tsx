@@ -224,6 +224,7 @@ export default function ConsoleLayout({ children }: ConsoleLayoutProps) {
     { name: 'HR & Payroll', path: '/hr', icon: UserCheck },
     { name: 'Tasks', path: '/tasks', icon: CheckSquare },
     { name: 'Support', path: '/support', icon: LifeBuoy },
+    { name: 'Internal Chat', path: '/chat', icon: MessageSquare },
     { name: 'AI Analytics', path: '/analytics', icon: BarChart3 },
     { name: 'WhatsApp Briefings', path: '/briefings', icon: MessageSquare },
     { name: 'AI Command Center', path: '/ai', icon: Brain },
@@ -783,8 +784,8 @@ export default function ConsoleLayout({ children }: ConsoleLayoutProps) {
         {[
           { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
           { name: 'CRM', path: '/crm', icon: Users },
+          { name: 'Chat', path: '/chat', icon: MessageSquare },
           { name: 'Sales', path: '/sales', icon: PhoneCall },
-          { name: 'Support', path: '/support', icon: LifeBuoy },
           { name: 'Settings', path: '/settings', icon: Settings },
         ].map((item) => {
           const Icon = item.icon;

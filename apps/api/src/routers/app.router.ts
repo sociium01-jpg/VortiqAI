@@ -12,6 +12,7 @@ import { tasksRouter } from './tasks.router.js';
 import { aiRouter } from './ai.router.js';
 import { dataSystemRouter } from './data_system.router.js';
 import { interconnectRouter } from './interconnect.router.js';
+import { chatRouter } from './chat.router.js';
 
 export const appRouter = router({
   auth: authRouter,
@@ -26,7 +27,8 @@ export const appRouter = router({
   tasks: tasksRouter,
   ai: aiRouter,
   dataHub: dataSystemRouter,
-  interconnect: interconnectRouter
+  interconnect: interconnectRouter,
+  chat: chatRouter
 });
 
 export type AppRouter = typeof appRouter;

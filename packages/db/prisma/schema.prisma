@@ -344,6 +344,9 @@ model Organisation {
   recordVersions           RecordVersion[]
   softDeletedRecords       SoftDeletedRecord[]
   notifications            Notification[]
+  chatChannels             ChatChannel[]
+  chatChannelMembers       ChatChannelMember[]
+  chatMessages             ChatMessage[]
 }
 
 model User {
@@ -392,6 +395,8 @@ model User {
   savedFilters             SavedFilter[]
   exportJobs               ExportJob[]
   notifications            Notification[]
+  chatChannelMembers       ChatChannelMember[]
+  chatMessages             ChatMessage[]
 }
 
 model Company {
@@ -1982,4 +1987,58 @@ model Notification {
   user           User         @relation(fields: [userId], references: [id])
 
   @@index([organisationId, userId, isRead])
+}
+
+model ChatChannel {
+  id             String              @id @default(uuid()) @db.Uuid
+  organisationId String              @db.Uuid
+  name           String
+  type           String              // PUBLIC, PRIVATE, DIRECT
+  department     String?             // e.g. SALES, FINANCE, HR, etc.
+  createdById    String?             @db.Uuid
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+  deletedAt      DateTime?
+
+  organisation   Organisation        @relation(fields: [organisationId], references: [id])
+  members        ChatChannelMember[]
+  messages       ChatMessage[]
+
+  @@index([organisationId, type])
+}
+
+model ChatChannelMember {
+  id             String      @id @default(uuid()) @db.Uuid
+  organisationId String      @db.Uuid
+  channelId      String      @db.Uuid
+  userId         String      @db.Uuid
+  joinedAt       DateTime    @default(now())
+
+  organisation   Organisation @relation(fields: [organisationId], references: [id])
+  channel        ChatChannel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  user           User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([channelId, userId])
+}
+
+model ChatMessage {
+  id              String      @id @default(uuid()) @db.Uuid
+  organisationId  String      @db.Uuid
+  channelId       String      @db.Uuid
+  senderId        String      @db.Uuid
+  senderName      String
+  content         String
+  parentMessageId String?     @db.Uuid // For thread support
+  linkedModule    String?     // e.g. CRM_LEADS, CRM_DEALS, FINANCE_INVOICES
+  linkedRecordId  String?     @db.Uuid
+  fileUrl         String?
+  fileName        String?
+  isPinned        Boolean     @default(false)
+  createdAt       DateTime    @default(now())
+
+  organisation    Organisation @relation(fields: [organisationId], references: [id])
+  channel         ChatChannel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  sender          User        @relation(fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@index([channelId, createdAt])
 }
