@@ -17,6 +17,7 @@ export const inventoryRouter = router({
     .input(z.object({
       name: z.string().min(1),
       category: z.string().optional(),
+      brand: z.string().optional(),
       gstRate: z.number().default(18.0)
     }))
     .mutation(async ({ ctx, input }) => {
@@ -32,7 +33,8 @@ export const inventoryRouter = router({
     .meta({ requiredFeature: 'inventory' })
     .query(async ({ ctx }) => {
       return prisma.sKU.findMany({
-        where: { organisationId: ctx.org!.id, deletedAt: null }
+        where: { organisationId: ctx.org!.id, deletedAt: null },
+        include: { product: true, stockEntries: true }
       });
     }),
 
@@ -44,7 +46,8 @@ export const inventoryRouter = router({
       name: z.string().min(1),
       costPrice: z.number().min(0),
       sellingPrice: z.number().min(0),
-      reorderPoint: z.number().default(10)
+      reorderPoint: z.number().default(10),
+      attributes: z.record(z.any()).optional()
     }))
     .mutation(async ({ ctx, input }) => {
       return prisma.sKU.create({

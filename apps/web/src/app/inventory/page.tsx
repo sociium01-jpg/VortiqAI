@@ -36,6 +36,10 @@ interface SKU {
   gstRate: number; // e.g. 18 for 18%
   hsnCode: string;
   vendor: string;
+  brand?: string;
+  thickness?: string;
+  size?: string;
+  finish?: string;
 }
 
 interface PurchaseOrder {
@@ -81,16 +85,20 @@ export default function InventoryPage() {
             id: s.id,
             code: s.skuCode,
             name: s.name,
-            category: 'Metals',
-            quantity: 10,
+            category: s.product?.category || 'Gurjan Plywood',
+            quantity: s.stockEntries?.reduce((acc: number, entry: any) => acc + entry.quantity, 0) || 0,
             reorderPoint: s.reorderPoint || 10,
-            unit: 'Units',
+            unit: s.product?.unitOfMeasure || 'PCS',
             location: 'Warehouse A',
             costPrice: s.costPrice || 0,
             sellingPrice: s.sellingPrice || 0,
-            gstRate: 18,
-            hsnCode: '8481.80',
-            vendor: 'General Supplier'
+            gstRate: s.product?.gstRate || 18,
+            hsnCode: s.product?.hsnCode || '4412.31',
+            vendor: s.product?.brand || 'Spelux',
+            brand: s.product?.brand || 'Spelux',
+            thickness: s.attributes?.thickness || '19mm',
+            size: s.attributes?.size || '8x4',
+            finish: s.attributes?.finish || 'Glossy'
           })));
         } else {
           setSkus([]);
@@ -129,10 +137,10 @@ export default function InventoryPage() {
 
   // SKUs List
   const [skus, setSkus] = useState<SKU[]>([
-    { id: '20c785de-d8d4-4a6f-9721-36b0df44db31', code: 'RAW-STEEL-V4', name: 'Raw Sheet Metal V4', category: 'Metals', quantity: 2, reorderPoint: 10, unit: 'Tons', location: 'Warehouse A', costPrice: 45000, sellingPrice: 58000, gstRate: 18, hsnCode: '7208.51', vendor: 'Jindal Steel' },
-    { id: '40f1a0fb-d4ad-4d10-a92c-6331fa2e0fe6', code: 'ALUM-ROD-G2', name: 'Aluminium Extrusion Rod G2', category: 'Metals', quantity: 45, reorderPoint: 15, unit: 'Units', location: 'Warehouse A', costPrice: 1200, sellingPrice: 1800, gstRate: 18, hsnCode: '7604.21', vendor: 'Hindalco Industries' },
-    { id: 'b567d1db-0433-4fde-b565-d05e55e09f5f', code: 'COP-WIRE-C1', name: 'Copper Wire Coils C1', category: 'Electrical', quantity: 8, reorderPoint: 10, unit: 'Coils', location: 'Warehouse B', costPrice: 8500, sellingPrice: 11200, gstRate: 12, hsnCode: '7408.11', vendor: 'Finolex Cables' },
-    { id: '96b8296a-0f8b-4cde-bb7b-891df99b24ff', code: 'STEEL-FAST-M8', name: 'M8 Heavy Fasteners Pack', category: 'Hardware', quantity: 230, reorderPoint: 50, unit: 'Packs', location: 'Warehouse A', costPrice: 450, sellingPrice: 650, gstRate: 18, hsnCode: '7318.15', vendor: 'LPS Bossard' }
+    { id: '20c785de-d8d4-4a6f-9721-36b0df44db31', code: 'PLY-GUR-19-8X4-G', name: 'Gurjan Premium Plywood', category: 'Gurjan Plywood', quantity: 2, reorderPoint: 10, unit: 'PCS', location: 'Warehouse A', costPrice: 2800, sellingPrice: 3800, gstRate: 18, hsnCode: '4412.31', vendor: 'Greenply Industries', brand: 'Greenply', thickness: '19mm', size: '8x4', finish: 'Glossy' },
+    { id: '40f1a0fb-d4ad-4d10-a92c-6331fa2e0fe6', code: 'PLY-ALT-12-8X4-M', name: 'Alternate Commercial Board', category: 'Alternate Plywood', quantity: 45, reorderPoint: 15, unit: 'PCS', location: 'Warehouse A', costPrice: 1200, sellingPrice: 1800, gstRate: 18, hsnCode: '4412.31', vendor: 'CenturyPly', brand: 'CenturyPly', thickness: '12mm', size: '8x4', finish: 'Matte' },
+    { id: 'b567d1db-0433-4fde-b565-d05e55e09f5f', code: 'PLY-HW-16-7X4-S', name: 'Hardwood Suede Laminate', category: 'Hardwood Plywood', quantity: 8, reorderPoint: 10, unit: 'PCS', location: 'Warehouse B', costPrice: 1900, sellingPrice: 2500, gstRate: 18, hsnCode: '4412.31', vendor: 'Greenply Industries', brand: 'Greenply', thickness: '16mm', size: '7x4', finish: 'Suede' },
+    { id: '96b8296a-0f8b-4cde-bb7b-891df99b24ff', code: 'PLY-COM-09-8X4-T', name: 'Commercial Textured Sheet', category: 'Commercial Plywood', quantity: 230, reorderPoint: 50, unit: 'PCS', location: 'Warehouse A', costPrice: 650, sellingPrice: 950, gstRate: 18, hsnCode: '4412.31', vendor: 'Local Supplier', brand: 'Spelux', thickness: '9mm', size: '8x4', finish: 'Textured' }
   ]);
 
   const filteredSkus = skus.filter(s => {
@@ -150,28 +158,28 @@ export default function InventoryPage() {
 
   // Purchase Orders
   const [purchaseOrders, setPurchaseOrders] = useState<PurchaseOrder[]>([
-    { id: 'PO-2026-001', vendor: 'Jindal Steel', skuCode: 'RAW-STEEL-V4', quantity: 15, totalCost: 675000, status: 'SENT_TO_VENDOR', createdAt: '12 Jun 2026' },
-    { id: 'PO-2026-002', vendor: 'Finolex Cables', skuCode: 'COP-WIRE-C1', quantity: 10, totalCost: 85000, status: 'DRAFT', createdAt: 'Today' }
+    { id: 'PO-2026-001', vendor: 'Greenply Industries', skuCode: 'PLY-GUR-19-8X4-G', quantity: 15, totalCost: 42000, status: 'SENT_TO_VENDOR', createdAt: '12 Jun 2026' },
+    { id: 'PO-2026-002', vendor: 'CenturyPly', skuCode: 'PLY-ALT-12-8X4-M', quantity: 10, totalCost: 12000, status: 'DRAFT', createdAt: 'Today' }
   ]);
 
   // Courier Dispatches
   const [dispatches, setDispatches] = useState<Dispatch[]>([
-    { id: 'DSP-901', customer: 'Tata Motors Assembly', skuCode: 'RAW-STEEL-V4', quantity: 4, partner: 'Shiprocket', trackingNo: 'SR992019401', status: 'IN_TRANSIT', address: 'Pimpri, Pune, MH - 411018' },
-    { id: 'DSP-902', customer: 'Bharat Forge CNC', skuCode: 'ALUM-ROD-G2', quantity: 15, partner: 'Delhivery', trackingNo: 'DELH77301948', status: 'DELIVERED', address: 'Chakan, Pune, MH - 410501' },
-    { id: 'DSP-903', customer: 'Minda Electricals', skuCode: 'COP-WIRE-C1', quantity: 5, partner: 'Shiprocket', trackingNo: 'SR119028445', status: 'PICKING', address: 'Oragadam, Chennai, TN - 602105' }
+    { id: 'DSP-901', customer: 'National Furniture Mart', skuCode: 'PLY-GUR-19-8X4-G', quantity: 4, partner: 'Shiprocket', trackingNo: 'SR992019401', status: 'IN_TRANSIT', address: 'Pimpri, Pune, MH - 411018' },
+    { id: 'DSP-902', customer: 'Apex Builders Hyderabad', skuCode: 'PLY-ALT-12-8X4-M', quantity: 15, partner: 'Delhivery', trackingNo: 'DELH77301948', status: 'DELIVERED', address: 'Banjara Hills, Hyderabad, TS - 500034' },
+    { id: 'DSP-903', customer: 'Metro Interio Bangalore', skuCode: 'PLY-HW-16-7X4-S', quantity: 5, partner: 'Shiprocket', trackingNo: 'SR119028445', status: 'PICKING', address: 'Whitefield, Bangalore, KA - 560066' }
   ]);
 
   // Inward/Outward transaction history
   const [history, setHistory] = useState([
-    { id: 'TXN-001', skuCode: 'RAW-STEEL-V4', quantity: 10, type: 'INWARD', reason: 'PO Fulfillment', user: 'Admin Manoj', date: '12 Jun 2026' },
-    { id: 'TXN-002', skuCode: 'ALUM-ROD-G2', quantity: -5, type: 'OUTWARD', reason: 'Sales Order Dispatch', user: 'Rep Shruti', date: 'Yesterday' }
+    { id: 'TXN-001', skuCode: 'PLY-GUR-19-8X4-G', quantity: 10, type: 'INWARD', reason: 'PO Fulfillment', user: 'Admin Manoj', date: '12 Jun 2026' },
+    { id: 'TXN-002', skuCode: 'PLY-ALT-12-8X4-M', quantity: -5, type: 'OUTWARD', reason: 'Sales Order Dispatch', user: 'Rep Shruti', date: 'Yesterday' }
   ]);
 
   // Form State
   const [isAdding, setIsAdding] = useState(false);
   const [newCode, setNewCode] = useState('');
   const [newName, setNewName] = useState('');
-  const [newCategory, setNewCategory] = useState('Metals');
+  const [newCategory, setNewCategory] = useState('Gurjan Plywood');
   const [newQty, setNewQty] = useState(10);
   const [newReorder, setNewReorder] = useState(5);
   const [newCost, setNewCost] = useState(100);
@@ -180,15 +188,19 @@ export default function InventoryPage() {
   const [newHsn, setNewHsn] = useState('');
   const [newVendor, setNewVendor] = useState('');
   const [newLocation, setNewLocation] = useState('Warehouse A');
+  const [newBrand, setNewBrand] = useState('Spelux');
+  const [newThickness, setNewThickness] = useState('19mm');
+  const [newSize, setNewSize] = useState('8x4');
+  const [newFinish, setNewFinish] = useState('Glossy');
 
   // Inward Form State
   const [isInwarding, setIsInwarding] = useState(false);
-  const [inwardSKU, setInwardSKU] = useState('RAW-STEEL-V4');
+  const [inwardSKU, setInwardSKU] = useState('PLY-GUR-19-8X4-G');
   const [inwardQty, setInwardQty] = useState(10);
   const [inwardReason, setInwardReason] = useState('Purchase');
 
   const [aiWorking, setAiWorking] = useState(false);
-  const [aiAnalysis, setAiAnalysis] = useState('Stock Analysis: RAW-STEEL-V4 is below reorder point (2 left, threshold 10). Depletion predicted in 4 days. Auto-drafted PO-2026-002 with Finolex and preparedTata Motors delivery route parameters.');
+  const [aiAnalysis, setAiAnalysis] = useState('Stock Analysis: PLY-GUR-19-8X4-G is below reorder point (2 left, threshold 10). Depletion predicted in 4 days. Auto-drafted PO-2026-002 with Greenply and prepared National Furniture delivery route parameters.');
 
   const handleAddSKU = (e: React.FormEvent) => {
     e.preventDefault();
@@ -199,14 +211,53 @@ export default function InventoryPage() {
       category: newCategory,
       quantity: newQty,
       reorderPoint: newReorder,
-      unit: 'Units',
+      unit: 'PCS',
       location: newLocation,
       costPrice: newCost,
       sellingPrice: newSell,
       gstRate: newGst,
-      hsnCode: newHsn || '8481.80',
-      vendor: newVendor || 'General Supplier'
+      hsnCode: newHsn || '4412.31',
+      vendor: newVendor || 'Spelux',
+      brand: newBrand,
+      thickness: newThickness,
+      size: newSize,
+      finish: newFinish
     };
+
+    if (!isDemo) {
+      vortiqClient.callMutation('inventory.productsCreate', {
+        name: newName,
+        category: newCategory,
+        brand: newBrand,
+        gstRate: newGst
+      }).then((prod: any) => {
+        return vortiqClient.callMutation('inventory.skusCreate', {
+          productId: prod.id,
+          skuCode: newCode.toUpperCase(),
+          name: newName,
+          costPrice: newCost,
+          sellingPrice: newSell,
+          reorderPoint: newReorder,
+          attributes: {
+            brand: newBrand,
+            thickness: newThickness,
+            size: newSize,
+            finish: newFinish
+          }
+        });
+      }).then((sku: any) => {
+        if (newQty > 0) {
+          return vortiqClient.callMutation('inventory.stockAdjust', {
+            skuId: sku.id,
+            quantity: newQty,
+            reason: 'Initial stock load'
+          });
+        }
+      }).then(() => {
+        window.dispatchEvent(new Event('vortiq-data-change'));
+      }).catch(e => console.error('Error creating SKU in db:', e));
+    }
+
     setSkus([...skus, newS]);
     resetForm();
   };
@@ -220,19 +271,37 @@ export default function InventoryPage() {
     setNewSell(150);
     setNewHsn('');
     setNewVendor('');
+    setNewBrand('Spelux');
+    setNewThickness('19mm');
+    setNewSize('8x4');
+    setNewFinish('Glossy');
     setIsAdding(false);
   };
 
   const handleInwardSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setSkus(prev => prev.map(s => s.code === inwardSKU ? { ...s, quantity: s.quantity + inwardQty } : s));
+
+    if (!isDemo) {
+      const skuObj = skus.find(s => s.code === inwardSKU);
+      if (skuObj && skuObj.id) {
+        vortiqClient.callMutation('inventory.stockAdjust', {
+          skuId: skuObj.id,
+          quantity: inwardQty,
+          reason: inwardReason
+        }).then(() => {
+          window.dispatchEvent(new Event('vortiq-data-change'));
+        }).catch(e => console.error('Error adjusting stock:', e));
+      }
+    }
+
     const newTxn = {
       id: `TXN-00${history.length + 1}`,
       skuCode: inwardSKU,
       quantity: inwardQty,
       type: 'INWARD',
       reason: inwardReason,
-      user: 'Super Admin',
+      user: user?.fullName || 'Super Admin',
       date: 'Today'
     };
     setHistory([newTxn, ...history]);
@@ -241,13 +310,27 @@ export default function InventoryPage() {
 
   const handleOutward = (skuCode: string, qty: number) => {
     setSkus(prev => prev.map(s => s.code === skuCode ? { ...s, quantity: Math.max(0, s.quantity - qty) } : s));
+
+    if (!isDemo) {
+      const skuObj = skus.find(s => s.code === skuCode);
+      if (skuObj && skuObj.id) {
+        vortiqClient.callMutation('inventory.stockAdjust', {
+          skuId: skuObj.id,
+          quantity: -qty,
+          reason: 'Manual Outward Deduct'
+        }).then(() => {
+          window.dispatchEvent(new Event('vortiq-data-change'));
+        }).catch(e => console.error('Error adjusting stock:', e));
+      }
+    }
+
     const newTxn = {
       id: `TXN-00${history.length + 1}`,
       skuCode: skuCode,
       quantity: -qty,
       type: 'OUTWARD',
-      reason: 'Audit Adjustment',
-      user: 'Super Admin',
+      reason: 'Manual Outward Deduct',
+      user: user?.fullName || 'Super Admin',
       date: 'Today'
     };
     setHistory([newTxn, ...history]);
@@ -257,7 +340,7 @@ export default function InventoryPage() {
     setAiWorking(true);
     setTimeout(() => {
       setAiWorking(false);
-      setAiAnalysis('Updated Stock Forecast: Created new draft purchase order for RAW-STEEL-V4 (10 Tons) to Jindal Steel. Current supply schedules are fully audited.');
+      setAiAnalysis('Updated Stock Forecast: Created new draft purchase order for PLY-GUR-19-8X4-G (10 Sheets) to Greenply Industries. Current supply schedules are fully audited.');
     }, 1200);
   };
 
@@ -446,11 +529,61 @@ export default function InventoryPage() {
                 <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Category</label>
                 <select 
                   value={newCategory} onChange={(e) => setNewCategory(e.target.value)}
-                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-800 dark:text-slate-200"
                 >
-                  <option value="Metals">Metals</option>
-                  <option value="Electrical">Electrical</option>
-                  <option value="Hardware">Hardware</option>
+                  <option value="Gurjan Plywood">Gurjan Plywood</option>
+                  <option value="Alternate Plywood">Alternate Plywood</option>
+                  <option value="Hardwood Plywood">Hardwood Plywood</option>
+                  <option value="Commercial Plywood">Commercial Plywood</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Brand</label>
+                <input 
+                  type="text" required value={newBrand} onChange={(e) => setNewBrand(e.target.value)}
+                  placeholder="e.g. Greenply"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-teal-500"
+                />
+              </div>
+              <div>
+                <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Thickness</label>
+                <select 
+                  value={newThickness} onChange={(e) => setNewThickness(e.target.value)}
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-800 dark:text-slate-200"
+                >
+                  <option value="6mm">6mm</option>
+                  <option value="9mm">9mm</option>
+                  <option value="12mm">12mm</option>
+                  <option value="16mm">16mm</option>
+                  <option value="19mm">19mm</option>
+                  <option value="25mm">25mm</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Size (Dimensions)</label>
+                <select 
+                  value={newSize} onChange={(e) => setNewSize(e.target.value)}
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-800 dark:text-slate-200"
+                >
+                  <option value="8x4">8x4</option>
+                  <option value="7x4">7x4</option>
+                  <option value="8x3">8x3</option>
+                  <option value="7x3">7x3</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Finish Style</label>
+                <select 
+                  value={newFinish} onChange={(e) => setNewFinish(e.target.value)}
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-800 dark:text-slate-200"
+                >
+                  <option value="Glossy">Glossy</option>
+                  <option value="Matte">Matte</option>
+                  <option value="Suede">Suede</option>
+                  <option value="Textured">Textured</option>
                 </select>
               </div>
               <div>
@@ -460,6 +593,9 @@ export default function InventoryPage() {
                   className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-800 dark:text-slate-200 focus:outline-none"
                 />
               </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Reorder Threshold</label>
                 <input 
@@ -503,7 +639,7 @@ export default function InventoryPage() {
                 <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">HSN Code</label>
                 <input 
                   type="text" value={newHsn} onChange={(e) => setNewHsn(e.target.value)}
-                  placeholder="e.g. 7208.51"
+                  placeholder="e.g. 4412.31"
                   className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-800 dark:text-slate-200 focus:outline-none"
                 />
               </div>
@@ -511,7 +647,7 @@ export default function InventoryPage() {
                 <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Preferred Vendor</label>
                 <input 
                   type="text" value={newVendor} onChange={(e) => setNewVendor(e.target.value)}
-                  placeholder="e.g. Jindal Steel"
+                  placeholder="e.g. Greenply Industries"
                   className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-800 dark:text-slate-200 focus:outline-none"
                 />
               </div>
